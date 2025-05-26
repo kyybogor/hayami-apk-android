@@ -25,7 +25,7 @@ class _KontakScreenState extends State<KontakScreen> {
 
   Future<void> fetchContacts() async {
     final response =
-        await http.get(Uri.parse("http://hayami.id/apps/erp/api-android/connect/JSON/kontak.php"));
+        await http.get(Uri.parse("http://hayami.id/apps/erp/api-android/api/kontak.php"));
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       setState(() {

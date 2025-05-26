@@ -40,7 +40,7 @@ class _ProdukPageState extends State<ProdukPage> {
   }
 
   Future<void> _fetchProduk() async {
-    final url = Uri.parse('http://192.168.1.8/hiyami/produk.php');
+    final url = Uri.parse('http://hayami.id/apps/erp/api-android/api/master_produk.php');
 
     try {
       final response = await http.get(url);

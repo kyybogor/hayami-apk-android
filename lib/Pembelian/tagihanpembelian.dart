@@ -39,11 +39,11 @@ class _TagihanPembelianPageState extends State<TagihanPembelianPage> {
 
   final Map<String, String> statusEndpoints = {
     "Belum Dibayar":
-        'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=1',
+        'https://hayami.id/apps/erp/api-android/api/daftar_tagihan.php?sts=1',
     "Dibayar Sebagian":
-        'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=3',
-    "Lunas": 'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=2',
-    "Void": 'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=4',
+        'https://hayami.id/apps/erp/api-android/api/daftar_tagihan.php?sts=2',
+    "Lunas": 'https://hayami.id/apps/erp/api-android/api/daftar_tagihan.php?sts=3',
+    "Void": 'https://hayami.id/apps/erp/api-android/api/daftar_tagihan.php?sts=1',
     // Tambahkan endpoint lain jika ada untuk status lainnya
   };
 
