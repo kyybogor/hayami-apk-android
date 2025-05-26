@@ -20,7 +20,7 @@ class _PenjualanPerKategoriPageState extends State<PenjualanPerKategoriPage> {
   }
 
   Future<List<Map<String, dynamic>>> fetchKategoriData() async {
-    final response = await http.get(Uri.parse('http://192.168.1.8/Hiyami/tessss.php'));
+    final response = await http.get(Uri.parse('http://192.168.1.8/Hiyami/produk.php'));
 
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body);

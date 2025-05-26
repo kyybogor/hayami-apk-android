@@ -25,7 +25,7 @@ class _LabaRugiPageState extends State<LabaRugiPage> {
 
   Future<void> fetchData() async {
     final response =
-        await http.get(Uri.parse('http://192.168.1.8/hiyami/tes.php'));
+        await http.get(Uri.parse('http://192.168.1.8/hiyami/labarugi.php'));
 
     if (response.statusCode == 200) {
       List jsonData = jsonDecode(response.body);

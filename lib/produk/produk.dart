@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hayami_app/produk/tambahproduk.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
@@ -40,26 +39,29 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
-Future<void> _fetchProduk() async {
-  final url = Uri.parse('http://192.168.1.8/nindo2/barang.php');
+  Future<void> _fetchProduk() async {
+    final url = Uri.parse('http://192.168.1.8/hiyami/produk.php');
 
-  try {
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
-      // decode langsung jadi List karena root JSON array
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        _produkList = data.map((e) => Map<String, dynamic>.from(e)).toList();
-        _calculateProduk();
-      });
-    } else {
-      print('Failed to load produk');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['status'] == 'success') {
+          final List<dynamic> data = jsonResponse['data'];
+          setState(() {
+            _produkList = data.map((e) => Map<String, dynamic>.from(e)).toList();
+            _calculateProduk();
+          });
+        } else {
+          print('Status not success');
+        }
+      } else {
+        print('Failed to load produk');
+      }
+    } catch (e) {
+      print('Error: $e');
     }
-  } catch (e) {
-    print('Error: $e');
   }
-}
-
 
   void _calculateProduk() {
     int total = 0;
@@ -107,15 +109,8 @@ Future<void> _fetchProduk() async {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const TambahProdukPage()),
-          );
-
-          if (result == true) {
-            _fetchProduk(); // Refresh list setelah tambah
-          }
+        onPressed: () {
+          // Tambah Produk
         },
         child: const Icon(Icons.add),
       ),
@@ -140,16 +135,10 @@ Future<void> _fetchProduk() async {
             physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
-                _buildStatusCard(
-                    'Produk Tersedia',
-                    (totalProduk - produkHampirHabis - produkHabis).toString(),
-                    Colors.green),
-                _buildStatusCard('Produk Hampir Habis',
-                    produkHampirHabis.toString(), Colors.orange),
-                _buildStatusCard(
-                    'Produk Habis', produkHabis.toString(), Colors.red),
-                _buildStatusCard(
-                    'Total Produk', totalProduk.toString(), Colors.blue),
+                _buildStatusCard('Produk Tersedia', (totalProduk - produkHampirHabis - produkHabis).toString(), Colors.green),
+                _buildStatusCard('Produk Hampir Habis', produkHampirHabis.toString(), Colors.orange),
+                _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
+                _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
               ],
             ),
           ),
@@ -166,8 +155,7 @@ Future<void> _fetchProduk() async {
               children: [
                 Text(
                   _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                  style: const TextStyle(
-                      color: Colors.blue, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
                 ),
                 Icon(_showChart ? Icons.expand_less : Icons.expand_more),
               ],
@@ -194,31 +182,27 @@ Future<void> _fetchProduk() async {
     );
   }
 
-Widget _buildProductItem(Map<String, dynamic> produk) {
-  return ListTile(
-    title: Text(produk['nm_product'] ?? ''), // sesuai key PHP "nm_product"
-    subtitle: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('${formatRupiah(produk['price'])}'), // sesuai key PHP "price"
-        Text('${produk['nm_kategori'] ?? '-'}'),  // sesuai key PHP "nm_kategori"
-      ],
-    ),
-    onTap: () async {
-      final result = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProductDetailPage(product: produk),
-        ),
-      );
-
-      if (result == true) {
-        _fetchProduk(); // Refresh data setelah edit berhasil
-      }
-    },
-  );
-}
-
+  Widget _buildProductItem(Map<String, dynamic> produk) {
+    return ListTile(
+      title: Text(produk['produk_name'] ?? ''),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${formatRupiah(produk['hpp'])} → ${formatRupiah(produk['harga_jual'])}'),
+          Text('${produk['hpp_value']} (HPP)'),
+          Text('${produk['produk_code']}', style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(product: produk),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildStatusCard(String title, String count, Color color) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -255,8 +239,7 @@ Widget _buildProductItem(Map<String, dynamic> produk) {
                 const SizedBox(height: 4),
                 Text(
                   count,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

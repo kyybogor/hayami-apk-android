@@ -22,7 +22,7 @@ class _RingkasanStokGudangPageState extends State<RingkasanStokGudangPage> {
 
   Future<void> fetchProducts() async {
     final response =
-        await http.get(Uri.parse('http://192.168.1.8/hiyami/tessss.php'));
+        await http.get(Uri.parse('http://192.168.1.8/hiyami/produk.php'));
 
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);

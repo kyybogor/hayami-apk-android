@@ -25,7 +25,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
 
   Future<void> fetchProduct() async {
     final invoiceId = widget.invoice['id']?.toString() ?? '';
-    final url = Uri.parse("http://192.168.1.8/hiyami/tessss.php");
+    final url = Uri.parse("http://192.168.1.8/hiyami/produk.php");
 
     try {
       final response = await http.get(url);

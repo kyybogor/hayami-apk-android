@@ -20,7 +20,7 @@ class _InventoryMovementPageState extends State<InventoryMovementPage> {
   }
 
   Future<void> fetchInventory() async {
-    final url = Uri.parse('http://192.168.1.8/Hiyami/tessss.php');
+    final url = Uri.parse('http://192.168.1.8/Hiyami/produk.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {

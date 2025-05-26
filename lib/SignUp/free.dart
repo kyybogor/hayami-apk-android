@@ -150,7 +150,7 @@ class _FreeRegis extends State<FreeRegis> {
                         ),
                       ),
                       onPressed: () async {
-                        var url = Uri.parse("http://192.168.1.6/connect/JSON/free.php");
+                        var url = Uri.parse("http://192.168.1.10/connect/JSON/free.php");
 
                         // Tampilkan loading dialog
                         showDialog(
