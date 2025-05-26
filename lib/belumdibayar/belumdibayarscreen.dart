@@ -31,25 +31,36 @@ class _BelumDibayarState extends State<BelumDibayar> {
 
   Future<void> fetchInvoices() async {
     try {
-      final response = await http
-          .get(Uri.parse('https://hayami.id/apps/erp/api-android/api/kontak.php'));
+      final response = await http.get(
+          Uri.parse('https://hayami.id/apps/erp/api-android/api/kontak.php'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
-        invoices = data
-            .where((item) => item["status_transaksi"] == "Belum Dibayar")
-            .map<Map<String, dynamic>>((item) {
+        invoices = data.map<Map<String, dynamic>>((item) {
           return {
-            "id": item["id"],
-            "name": item["nm_customer"],
-            'instansi': item['instansi'],
-            "invoice": item["no_inv"],
-            "date": item["tgl"],
-            "due": item["due"],
-            "alamat": item["alamat"],
-            "amount": item["hutang"],
-            "status": item["status_transaksi"],
+            "id": item["id"] ?? '-',
+            "name": (item["nm_customer"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["nm_customer"],
+            "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_group"],
+            "invoice": (item["id_customer"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_customer"],
+            "date": (item["dibuat_tgl"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["dibuat_tgl"],
+            "due": (item["diubah_tgl"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["diubah_tgl"],
+            "alamat": (item["address"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["address"],
+            "amount": (item["hutang"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["hutang"],
           };
         }).toList();
 
@@ -331,7 +342,6 @@ class _BelumDibayarState extends State<BelumDibayar> {
               MaterialPageRoute(builder: (context) => const TambahInvoice()),
             );
           },
-          child: const Icon(Icons.add),
         ),
       ),
     );
