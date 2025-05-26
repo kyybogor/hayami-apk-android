@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:hayami_app/kas%20&%20bank/giroscreen.dart';
-import 'package:hayami_app/kas%20&%20bank/rekeningbank.dart';
+import 'package:hayami_app/kas & bank/giroscreen.dart';
+import 'package:hayami_app/kas & bank/rekeningbank.dart';
+import 'package:hayami_app/kas & bank/kasscreen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
-import 'package:hayami_app/kas & bank/kasscreen.dart';
 
 class KasDanBank extends StatefulWidget {
   const KasDanBank({super.key});
@@ -18,20 +17,7 @@ class _KasDanBankState extends State<KasDanBank> {
   List<dynamic> kasData = [];
   bool isLoading = true;
 
-  // Ganti URL di bawah sesuai servermu
-  final String apiUrl = "http://192.168.1.10/connect/JSON/kasdanbank.php";
-
-  final Map<String, Color> warnaMap = {
-    "Kas": Colors.red,
-    "Rekening Bank": Colors.pink,
-    "Giro": Colors.purple,
-  };
-
-  final Map<String, Widget> halamanMap = {
-    "Kas": Kasscreen(),
-    "Rekening Bank": Rekeningbank(),
-    "Giro": Giroscreen(),
-  };
+  final String apiUrl = "http://hayami.id/apps/erp/api-android/api/kasdanbank.php";
 
   @override
   void initState() {
@@ -57,6 +43,37 @@ class _KasDanBankState extends State<KasDanBank> {
         isLoading = false;
       });
     }
+  }
+
+  Color getWarnaByNama(String nama) {
+    final lowerNama = nama.toLowerCase();
+    if (lowerNama.contains("bank")) {
+      return Colors.red;
+    } else if (lowerNama.contains("bca") ||
+        lowerNama.contains("mandiri") ||
+        lowerNama.contains("bri") ||
+        lowerNama.contains("bank")) {
+      return Colors.pink;
+    } else if (lowerNama.contains("giro")) {
+      return Colors.purple;
+    } else {
+      return Colors.grey;
+    }
+  }
+
+  Widget? getHalamanByNama(String nama) {
+    final lowerNama = nama.toLowerCase();
+    if (lowerNama.contains("kas")) {
+      return Kasscreen();
+    } else if (lowerNama.contains("bca") ||
+        lowerNama.contains("mandiri") ||
+        lowerNama.contains("bri") ||
+        lowerNama.contains("bank")) {
+      return Rekeningbank();
+    } else if (lowerNama.contains("giro")) {
+      return Giroscreen();
+    }
+    return null;
   }
 
   @override
@@ -94,11 +111,12 @@ class _KasDanBankState extends State<KasDanBank> {
                     itemCount: kasData.length,
                     itemBuilder: (context, index) {
                       final data = kasData[index];
-                      final nama = data['nama'];
-                      final kode = data['kode'];
+                      final nama = data['nama'] ?? '';
+                      final kode = data['kode'] ?? '';
                       final nominal =
                           double.tryParse(data['nominal'].toString()) ?? 0;
-                      final warna = warnaMap[nama] ?? Colors.grey;
+                      final warna = getWarnaByNama(nama);
+                      final halaman = getHalamanByNama(nama);
 
                       return ListTile(
                         leading: CircleAvatar(
@@ -135,11 +153,11 @@ class _KasDanBankState extends State<KasDanBank> {
                           ],
                         ),
                         onTap: () {
-                          if (halamanMap.containsKey(nama)) {
+                          if (halaman != null) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => halamanMap[nama]!,
+                                builder: (_) => halaman,
                               ),
                             );
                           }

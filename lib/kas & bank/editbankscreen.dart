@@ -52,7 +52,7 @@ class _EditBankScreenState extends State<EditBankScreen> {
     }
 
     final uri =
-        Uri.parse('http://192.168.1.10/connect/JSON/transaksi_bank.php');
+        Uri.parse('http://hayami.id/apps/erp/api-android/api/transaksi_bank.php');
 
     print('Data yang dikirim:');
     print({

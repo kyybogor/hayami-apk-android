@@ -32,7 +32,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
   Future<void> fetchInvoices() async {
     try {
       final response = await http
-          .get(Uri.parse('http://192.168.1.10/connect/JSON/kontak.php'));
+          .get(Uri.parse('https://hayami.id/apps/erp/api-android/api/kontak.php'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -42,13 +42,13 @@ class _BelumDibayarState extends State<BelumDibayar> {
             .map<Map<String, dynamic>>((item) {
           return {
             "id": item["id"],
-            "name": item["nama"],
+            "name": item["nm_customer"],
             'instansi': item['instansi'],
-            "invoice": item["invoice"],
-            "date": item["date"],
+            "invoice": item["no_inv"],
+            "date": item["tgl"],
             "due": item["due"],
             "alamat": item["alamat"],
-            "amount": item["amount"],
+            "amount": item["hutang"],
             "status": item["status_transaksi"],
           };
         }).toList();

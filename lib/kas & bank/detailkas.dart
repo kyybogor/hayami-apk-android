@@ -22,7 +22,7 @@ class _DetailkasState extends State<Detailkas> {
   }
 
   Future<void> fetchTransaksi() async {
-    final url = Uri.parse("http://192.168.1.10/connect/JSON/transaksi.php");
+    final url = Uri.parse("http://hayami.id/apps/erp/api-android/api/transaksi.php");
 
     try {
       final response = await http.get(url);

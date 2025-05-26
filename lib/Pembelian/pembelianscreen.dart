@@ -70,7 +70,7 @@ String formatRupiah(dynamic amount) {
 
 Future<List<Map<String, dynamic>>> fetchStatCards(
     {required bool isMonthly}) async {
-  const url = 'http://192.168.1.8/Hiyami/penjualan_bulan.php';
+  const url = 'http://hayami.id/apps/erp/api-android/api/pembelian_bulan.php';
   final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 200) {

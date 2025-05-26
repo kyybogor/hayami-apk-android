@@ -23,8 +23,8 @@ class _RekeningbankState extends State<Rekeningbank> {
   }
 
 Future<void> fetchData() async {
-  final urlHayami = Uri.parse('http://192.168.1.10/connect/JSON/transaksi.php');
-  final urlBank = Uri.parse('http://192.168.1.10/connect/JSON/transaksi_bank.php');
+  final urlHayami = Uri.parse('http://hayami.id/apps/erp/api-android/api/transaksi.php');
+  final urlBank = Uri.parse('http://hayami.id/apps/erp/api-android/api/transaksi_bank.php');
 
   try {
     final responseHayami = await http.get(urlHayami);

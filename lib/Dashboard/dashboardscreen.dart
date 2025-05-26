@@ -610,7 +610,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                           }
 
                           if (item['title'] == 'Kas & Bank') {
-                            destination = KasBankPage();
+                            destination = KasDanBank();
                           }
 
                           if (item['title'] == 'Laporan') {
