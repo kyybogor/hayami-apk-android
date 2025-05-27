@@ -24,8 +24,8 @@ class _KontakScreenState extends State<KontakScreen> {
   }
 
   Future<void> fetchContacts() async {
-    final response =
-        await http.get(Uri.parse("http://hayami.id/apps/erp/api-android/api/kontak.php"));
+    final response = await http
+        .get(Uri.parse("http://hayami.id/apps/erp/api-android/api/kontak.php"));
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       setState(() {
@@ -37,14 +37,15 @@ class _KontakScreenState extends State<KontakScreen> {
   @override
   Widget build(BuildContext context) {
     List<dynamic> filtered = allContacts
-        .where((item) =>
-            item['nama'].toLowerCase().contains(searchQuery.toLowerCase()))
+        .where((item) => item['nm_customer']
+            .toLowerCase()
+            .contains(searchQuery.toLowerCase()))
         .toList()
-      ..sort((a, b) => a['nama'].compareTo(b['nama']));
+      ..sort((a, b) => a['nm_customer'].compareTo(b['nm_customer']));
 
     Map<String, List<dynamic>> grouped = {};
     for (var contact in filtered) {
-      String huruf = contact['nama'][0].toUpperCase();
+      String huruf = contact['nm_customer'][0].toUpperCase();
       grouped.putIfAbsent(huruf, () => []).add(contact);
     }
 
@@ -84,18 +85,18 @@ class _KontakScreenState extends State<KontakScreen> {
                           ListTile(
                             leading: CircleAvatar(
                               backgroundColor: Colors.primaries[
-                                  item['nama'].codeUnitAt(0) %
+                                  item['nm_customer'].codeUnitAt(0) %
                                       Colors.primaries.length],
                               child: Text(
-                                item['nama']
+                                item['nm_customer']
                                     .toString()
                                     .substring(0, 2)
                                     .toUpperCase(),
                                 style: const TextStyle(color: Colors.white),
                               ),
                             ),
-                            title: Text(item['nama']),
-                            subtitle: Text(item['instansi']),
+                            title: Text(item['nm_customer']),
+                            subtitle: Text(item['id_customer']),
                             trailing:
                                 const Icon(Icons.arrow_forward_ios, size: 16),
                             onTap: () {
@@ -141,33 +142,36 @@ class DetailKontak extends StatelessWidget {
       // Ambil semua transaksi dari 'kontaks' berdasarkan kontak_id
       List<Map<String, dynamic>> hasil = [];
 
+      final formatter =
+          NumberFormat('#,###.00', 'id_ID'); // 2 angka desimal + titik ribuan
 
-final formatter = NumberFormat('#,###.00', 'id_ID'); // 2 angka desimal + titik ribuan
+      for (var produk in produkList) {
+        List<dynamic> kontaks = produk['kontaks'] ?? [];
 
-for (var produk in produkList) {
-  List<dynamic> kontaks = produk['kontaks'] ?? [];
+        for (var kontak in kontaks) {
+          if (int.tryParse(kontak['kontak_id'].toString()) == id) {
+            var rawTotal = kontak['barang_kontak']?['total'];
 
-  for (var kontak in kontaks) {
-    if (int.tryParse(kontak['kontak_id'].toString()) == id) {
-      var rawTotal = kontak['barang_kontak']?['total'];
+            double parsedTotal = 0.0;
+            if (rawTotal != null) {
+              String cleaned = rawTotal
+                  .toString()
+                  .replaceAll(',', '.'); // ubah koma ke titik jika perlu
+              parsedTotal = double.tryParse(cleaned) ?? 0.0;
+            }
 
-      double parsedTotal = 0.0;
-      if (rawTotal != null) {
-        String cleaned = rawTotal.toString().replaceAll(',', '.'); // ubah koma ke titik jika perlu
-        parsedTotal = double.tryParse(cleaned) ?? 0.0;
+            var formattedTotal = formatter.format(parsedTotal);
+
+            hasil.add({
+              'deskripsi': kontak['barang_kontak']?['nama_barang'] ??
+                  produk['produk_name'],
+              'tanggal': kontak['kontak_date'],
+              'jumlah': formattedTotal,
+              'detail': kontak,
+            });
+          }
+        }
       }
-
-      var formattedTotal = formatter.format(parsedTotal);
-
-      hasil.add({
-        'deskripsi': kontak['barang_kontak']?['nama_barang'] ?? produk['produk_name'],
-        'tanggal': kontak['kontak_date'],
-        'jumlah': formattedTotal,
-        'detail': kontak,
-      });
-    }
-  }
-}
 
       return hasil;
     } else {
@@ -349,7 +353,7 @@ for (var produk in produkList) {
                   CrossAxisAlignment.start, // 👈 Untuk rata kiri
               children: [
                 Text(
-                  data['nama'],
+                  data['nm_customer'],
                   style: const TextStyle(
                     fontSize: 20,
                     color: Color(0xFF005BBB),
@@ -358,7 +362,7 @@ for (var produk in produkList) {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  data['instansi'],
+                  data['id_customer'],
                   style: const TextStyle(
                     color: Colors.black,
                   ),
@@ -370,7 +374,7 @@ for (var produk in produkList) {
                     radius: 30,
                     backgroundColor: Colors.grey.shade400,
                     child: Text(
-                      data['nama'][0].toUpperCase(),
+                      data['nm_customer'][0].toUpperCase(),
                       style: const TextStyle(fontSize: 24, color: Colors.white),
                     ),
                   ),
