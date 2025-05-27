@@ -7,47 +7,46 @@ class Detailkontak extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String status = data['status'] ?? 'pegawai';
+    // Cek jika data null atau bukan Map
+    if (data == null || data is! Map) {
+      return const Scaffold(
+        body: Center(child: Text("Data tidak tersedia")),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text("Kontak")
-        ),
+        title: const Text("Kontak"),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatusTabs(status),
             const SizedBox(height: 8),
-
-            // Header Card with Padding
             Padding(
               padding: const EdgeInsets.all(16),
               child: _headerCard(data),
             ),
-
-            // Section: Detail Profil (full width)
             _buildSectionTitle("Detail Profil"),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 children: [
-                  _buildLineItem(Icons.layers, "Grup", data['grup'] ?? ''),
-                  _buildLineItem(Icons.assignment, "NPWP", data['npwp'] ?? ''),
+                  _buildLineItem(Icons.layers, "Grup", data['grup']?.toString() ?? '-'),
+                  _buildLineItem(Icons.assignment, "NPWP", data['npwp']?.toString() ?? '-'),
                 ],
               ),
             ),
-
-            // Section: Pemetaan Akun (full width)
             _buildSectionTitle("Pemetaan Akun"),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 children: [
-                  _buildLineItem(Icons.receipt_long, "Akun Hutang", data['akun_hutang'] ?? ''),
-                  _buildLineItem(Icons.receipt_long, "Akun Piutang", data['akun_piutang'] ?? ''),
-                  _buildLineItem(Icons.receipt, "Kena pajak", data['kena_pajak'] ?? ''),
+                  _buildLineItem(Icons.receipt_long, "Akun Hutang", data['ap_amount']?.toString() ?? '0.00'),
+                  _buildLineItem(Icons.receipt_long, "Akun Piutang", data['ar_amount']?.toString() ?? '0.00'),
+                  _buildLineItem(Icons.receipt, "Kena Pajak",
+                      (data['cust_class']?.toString() == "1") ? "Ya" : "Tidak"),
                 ],
               ),
             ),
@@ -57,98 +56,54 @@ class Detailkontak extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusTabs(String activeStatus) {
-    final List<Map<String, dynamic>> tabs = [
-      {"label": "Vendor", "icon": Icons.shopping_cart, "value": "vendor"},
-      {"label": "Pegawai", "icon": Icons.local_shipping, "value": "pegawai"},
-      {"label": "Pelanggan", "icon": Icons.person_outline, "value": "pelanggan"},
-      {"label": "Investor", "icon": Icons.handshake_outlined, "value": "investor"},
-    ];
+  Widget _headerCard(Map data) {
+    String nama = data['nm_customer']?.toString() ?? '-';
+    String instansi = data['name']?.toString() ?? '-';
+    String email = data['email']?.toString() ?? '-';
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: tabs.map((tab) {
-        bool isActive = tab['value'] == activeStatus;
+    String telepon = (data['telp']?.toString().isNotEmpty ?? false)
+        ? data['telp'].toString()
+        : data['telp2']?.toString() ?? '-';
 
-        return Container(
-          decoration: BoxDecoration(
-            color: isActive ? Colors.white : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.4),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    )
-                  ]
-                : [],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            children: [
-              Icon(tab['icon'], color: isActive ? Colors.blue : Colors.grey),
-              const SizedBox(height: 4),
-              Text(
-                tab['label'],
-                style: TextStyle(
-                  color: isActive ? Colors.blue : Colors.grey,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+    String alamat = data['address']?.toString() ?? '-';
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              nama,
+              style: const TextStyle(fontSize: 20, color: Color(0xFF0D47A1)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              instansi,
+              style: const TextStyle(color: Colors.black),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.grey.shade400,
+                child: Text(
+                  (nama.isNotEmpty) ? nama[0].toUpperCase() : '?',
+                  style: const TextStyle(fontSize: 24, color: Colors.white),
                 ),
               ),
-            ],
-          ),
-        );
-      }).toList(),
+            ),
+            const SizedBox(height: 16),
+            _infoRow(Icons.email, email),
+            _infoRow(Icons.phone, telepon),
+            _infoRow(Icons.location_on, alamat),
+          ],
+        ),
+      ),
     );
   }
-
-  Widget _headerCard(Map data) {
-  return Card(
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    elevation: 3,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            data['nama'],
-            textAlign: TextAlign.left,
-            style: const TextStyle(
-              fontSize: 20,
-              color: Color(0xFF0D47A1),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            data['instansi'],
-            textAlign: TextAlign.left,
-            style: const TextStyle(
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center( // Tetap pusatkan avatar
-            child: CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.grey.shade400,
-              child: Text(
-                data['nama'][0].toUpperCase(),
-                style: const TextStyle(fontSize: 24, color: Colors.white),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _infoRow(Icons.email, data['email']),
-          _infoRow(Icons.phone, data['telepon']),
-          _infoRow(Icons.location_on, data['alamat']),
-        ],
-      ),
-    ),
-  );
-}
-
 
   Widget _infoRow(IconData icon, String text) {
     return Padding(

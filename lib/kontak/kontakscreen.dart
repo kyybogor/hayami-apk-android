@@ -23,16 +23,26 @@ class _KontakScreenState extends State<KontakScreen> {
     fetchContacts();
   }
 
-  Future<void> fetchContacts() async {
-    final response = await http
-        .get(Uri.parse("http://hayami.id/apps/erp/api-android/api/kontak.php"));
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        allContacts = data;
-      });
-    }
+Future<void> fetchContacts() async {
+  final response = await http.get(
+    Uri.parse("http://hayami.id/apps/erp/api-android/api/kontak.php"),
+  );
+
+  if (response.statusCode == 200) {
+    final jsonData = json.decode(response.body);
+
+    // Pastikan ambil dari key 'customer_data'
+    final List<dynamic> data = jsonData['customer_data'] ?? [];
+
+    setState(() {
+      allContacts = data;
+    });
+  } else {
+    // Tambahkan log jika gagal
+    debugPrint('Gagal mengambil kontak. Status: ${response.statusCode}');
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

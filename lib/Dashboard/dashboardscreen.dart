@@ -21,12 +21,29 @@ import 'package:hayami_app/produk/produk.dart';
 import 'package:hayami_app/tagihan/tagihanscreen.dart';
 import 'package:hayami_app/pengiriman/pengirimanscreen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 
 void main() {
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
     home: Dashboardscreen(),
   ));
+}
+
+class KasBankModel {
+  final String nama;
+  final double nominal;
+
+  KasBankModel({required this.nama, required this.nominal});
+
+  factory KasBankModel.fromJson(Map<String, dynamic> json) {
+    return KasBankModel(
+      nama: json['nama'],
+      nominal: double.tryParse(json['nominal']) ?? 0.0,
+    );
+  }
 }
 
 class Dashboardscreen extends StatefulWidget {
@@ -37,6 +54,53 @@ class Dashboardscreen extends StatefulWidget {
 }
 
 class _DashboardscreenState extends State<Dashboardscreen> {
+  List<KasBankModel> kasList = [];
+bool isKasLoading = true;
+
+@override
+void initState() {
+  super.initState();
+  fetchKasFromApi();
+}
+
+Future<void> fetchKasFromApi() async {
+  const String apiUrl = "http://hayami.id/apps/erp/api-android/api/kasdanbank.php";
+  try {
+    final response = await http.get(Uri.parse(apiUrl));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      setState(() {
+        kasList = data.map((json) => KasBankModel.fromJson(json)).toList();
+        isKasLoading = false;
+      });
+    } else {
+      throw Exception('Failed to load Kas data');
+    }
+  } catch (e) {
+    print('Error fetching kas data: $e');
+    setState(() {
+      isKasLoading = false;
+    });
+  }
+}
+
+String formatCurrency(double amount) {
+  return 'Rp ' + amount.toStringAsFixed(0).replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]}.',
+  );
+}
+
+String getAbbreviation(String name) {
+  final words = name.split(' ');
+  if (words.length >= 2) {
+    return words.take(2).map((e) => e[0]).join().toUpperCase();
+  } else {
+    return name.substring(0, 1).toUpperCase();
+  }
+}
+
+
   final List<Map<String, dynamic>> menuItems = [
     {
       'icon': Icons.shopping_bag,
@@ -234,90 +298,28 @@ class _DashboardscreenState extends State<Dashboardscreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildKasCard(
-                      label: 'Kas',
-                      amount: 'Rp 28.454.329',
-                      color: Colors.pink[100]!,
-                      abbreviation: 'K',
-                    ),
-                    const SizedBox(width: 12),
-                    _buildKasCard(
-                      label: 'Rekening Bank',
-                      amount: 'Rp 34.848.928',
-                      color: Colors.blue[100]!,
-                      abbreviation: 'RB',
-                    ),
-                    const SizedBox(width: 12),
-                    _buildKasCard(
-                      label: 'Giro',
-                      amount: 'Rp 12.342.000',
-                      color: Colors.green[100]!,
-                      abbreviation: 'G',
-                    ),
-                  ],
-                ),
+                child: isKasLoading
+  ? const Center(child: CircularProgressIndicator())
+  : SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: kasList.map((kas) {
+          return Row(
+            children: [
+              _buildKasCard(
+                label: kas.nama,
+                amount: formatCurrency(kas.nominal),
+                color: Colors.blue[100]!,
+                abbreviation: getAbbreviation(kas.nama),
+              ),
+              const SizedBox(width: 12),
+            ],
+          );
+        }).toList(),
+      ),
+    ),
               ),
             ),
-            const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Performa Bisnis',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 160,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: 11,
-                itemBuilder: (context, index) {
-                  return Container(
-                    width: 200,
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
-                          blurRadius: 6,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text('Widget ${index + 1}',
-                          style: const TextStyle(fontSize: 16)),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Ubah Dashboard diklik')),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text('Ubah Dashboard',
-                    style: TextStyle(fontSize: 16, color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 24),
           ],
         ),
       ),

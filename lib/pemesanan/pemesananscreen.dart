@@ -5,6 +5,7 @@ import 'package:hayami_app/pemesanan/dikirimsebagian.dart';
 import 'package:hayami_app/pemesanan/jatuhtemposcreen.dart';
 import 'package:hayami_app/pemesanan/openscreen.dart';
 import 'package:hayami_app/pemesanan/selesaiscreen.dart';
+import 'package:hayami_app/pemesanan/tambahpesanan.dart';
 import 'package:hayami_app/pemesanan/transaksiberulangscreen.dart';
 import 'package:http/http.dart' as http;
 
@@ -170,12 +171,15 @@ class _PemesananPageState extends State<PemesananPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () {
-          // Tambahkan aksi jika diperlukan
-        },
-        child: const Icon(Icons.add),
-      ),
+  backgroundColor: Colors.blue,
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const Tambahpesanan()),
+    );
+  },
+  child: const Icon(Icons.add),
+),
     );
   }
 }
