@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hayami_app/kas & bank/giroscreen.dart';
-import 'package:hayami_app/kas & bank/rekeningbank.dart';
-import 'package:hayami_app/kas & bank/kasscreen.dart';
+import 'package:hayami_app/kas%20&%20bank/kasscreen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
@@ -47,7 +45,7 @@ class _KasDanBankState extends State<KasDanBank> {
 
   Color getWarnaByNama(String nama) {
     final lowerNama = nama.toLowerCase();
-    if (lowerNama.contains("bank")) {
+    if (lowerNama.contains("kas")) {
       return Colors.red;
     } else if (lowerNama.contains("bca") ||
         lowerNama.contains("mandiri") ||
@@ -59,21 +57,6 @@ class _KasDanBankState extends State<KasDanBank> {
     } else {
       return Colors.grey;
     }
-  }
-
-  Widget? getHalamanByNama(String nama) {
-    final lowerNama = nama.toLowerCase();
-    if (lowerNama.contains("kas")) {
-      return Kasscreen();
-    } else if (lowerNama.contains("bca") ||
-        lowerNama.contains("mandiri") ||
-        lowerNama.contains("bri") ||
-        lowerNama.contains("bank")) {
-      return Rekeningbank();
-    } else if (lowerNama.contains("giro")) {
-      return Giroscreen();
-    }
-    return null;
   }
 
   @override
@@ -116,7 +99,6 @@ class _KasDanBankState extends State<KasDanBank> {
                       final nominal =
                           double.tryParse(data['nominal'].toString()) ?? 0;
                       final warna = getWarnaByNama(nama);
-                      final halaman = getHalamanByNama(nama);
 
                       return ListTile(
                         leading: CircleAvatar(
@@ -153,14 +135,12 @@ class _KasDanBankState extends State<KasDanBank> {
                           ],
                         ),
                         onTap: () {
-                          if (halaman != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => halaman,
-                              ),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => Kasscreen(judul: nama),
+                            ),
+                          );
                         },
                       );
                     },
