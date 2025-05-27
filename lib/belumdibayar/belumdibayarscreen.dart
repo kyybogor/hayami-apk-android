@@ -29,61 +29,72 @@ class _BelumDibayarState extends State<BelumDibayar> {
     fetchInvoices();
   }
 
-  Future<void> fetchInvoices() async {
-    try {
-      final response = await http.get(
-          Uri.parse('https://hayami.id/apps/erp/api-android/api/kontak.php'));
+Future<void> fetchInvoices() async {
+  try {
+    final response = await http.get(
+      Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
 
-        invoices = data.map<Map<String, dynamic>>((item) {
-          return {
-            "id": item["id"] ?? '-',
-            "name": (item["nm_customer"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["nm_customer"],
-            "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["id_group"],
-            "invoice": (item["id_customer"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["id_customer"],
-            "date": (item["dibuat_tgl"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["dibuat_tgl"],
-            "due": (item["diubah_tgl"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["diubah_tgl"],
-            "alamat": (item["address"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["address"],
-            "amount": (item["hutang"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["hutang"],
-          };
-        }).toList();
+      final openInvoices = data.where((item) =>
+        item["status"] != null && item["status"].toString().toLowerCase() == 'open'
+      ).toList();
 
-        setState(() {
-          filteredInvoices = invoices;
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Gagal mengambil data');
-      }
-    } catch (e) {
-      print("Error: $e");
+      invoices = openInvoices.map<Map<String, dynamic>>((item) {
+        String? dibuatTgl = item["tgl"];
+        return {
+          "id": item["id_do1"] ?? '-',
+          "name": (item["id_cust"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["id_cust"],
+          "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["id_group"],
+          "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["no_inv"],
+          "date": dibuatTgl?.toString().trim().isEmpty ?? true
+              ? null
+              : dibuatTgl,
+          "due": (item["tgltop"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["tgltop"],
+          "alamat": (item["address"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["address"],
+          "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["grandttl"],
+          "status": 'Belum Dibayar',
+        };
+      }).toList();
+
       setState(() {
+        filteredInvoices = invoices;
         isLoading = false;
       });
+    } else {
+      throw Exception('Gagal mengambil data');
     }
+  } catch (e) {
+    print("Error: $e");
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
 
   void filterByMonthYear() {
     setState(() {
       filteredInvoices = invoices.where((invoice) {
         try {
-          final invoiceDate = DateFormat('yyyy-MM-dd').parse(invoice["date"]);
+          final dateStr = invoice["date"];
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-') return false;
+
+          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
           final matchMonth = selectedMonth == 'Semua' ||
               invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
           final matchYear = selectedYear == 'Semua' ||
@@ -100,14 +111,21 @@ class _BelumDibayarState extends State<BelumDibayar> {
     String keyword = _searchController.text.toLowerCase();
     setState(() {
       filteredInvoices = invoices.where((invoice) {
-        final invoiceDate = DateFormat('yyyy-MM-dd').parse(invoice["date"]);
-        final matchMonth = selectedMonth == 'Semua' ||
-            invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-        final matchYear = selectedYear == 'Semua' ||
-            invoiceDate.year.toString() == selectedYear;
-        return invoice["name"].toString().toLowerCase().contains(keyword) &&
-            matchMonth &&
-            matchYear;
+        final nameMatch = invoice["name"].toString().toLowerCase().contains(keyword);
+
+        try {
+          final dateStr = invoice["date"];
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-') return false;
+
+          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+          final matchMonth = selectedMonth == 'Semua' ||
+              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
+          final matchYear = selectedYear == 'Semua' ||
+              invoiceDate.year.toString() == selectedYear;
+          return nameMatch && matchMonth && matchYear;
+        } catch (e) {
+          return false;
+        }
       }).toList();
     });
   }
@@ -115,8 +133,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
   String formatRupiah(String amount) {
     try {
       final double value = double.parse(amount);
-      return NumberFormat.currency(
-              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
           .format(value);
     } catch (e) {
       return amount;
@@ -139,8 +156,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title:
-              const Text("Belum Dibayar", style: TextStyle(color: Colors.blue)),
+          title: const Text("Belum Dibayar", style: TextStyle(color: Colors.blue)),
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -169,8 +185,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
               ),
             ),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
               child: Row(
                 children: [
                   Flexible(
@@ -190,18 +205,14 @@ class _BelumDibayarState extends State<BelumDibayar> {
                       ),
                       items: [
                         'Semua',
-                        ...List.generate(12, (index) {
-                          final month = (index + 1).toString().padLeft(2, '0');
-                          return month;
-                        })
+                        ...List.generate(12, (index) => (index + 1).toString().padLeft(2, '0')),
                       ].map((month) {
                         return DropdownMenuItem(
                           value: month,
                           child: Text(
                             month == 'Semua'
                                 ? 'Semua Bulan'
-                                : DateFormat('MMMM')
-                                    .format(DateTime(0, int.parse(month))),
+                                : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
                           ),
                         );
                       }).toList(),
@@ -261,26 +272,25 @@ class _BelumDibayarState extends State<BelumDibayar> {
                           itemBuilder: (context, index) {
                             final invoice = filteredInvoices[index];
                             return ListTile(
-                              title: Text(invoice["name"]),
+                              title: Text(invoice["name"] ?? '-'),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(invoice["invoice"]),
-                                  Text(invoice["date"]),
+                                  Text(invoice["invoice"] ?? '-'),
+                                  Text(invoice["date"] ?? '-'),
                                 ],
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.pink.shade50,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      formatRupiah(invoice["amount"]),
+                                      formatRupiah(invoice["amount"] ?? '0'),
                                       style: const TextStyle(
                                         color: Colors.pink,
                                         fontWeight: FontWeight.bold,
@@ -288,8 +298,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_ios,
-                                      size: 16, color: Colors.grey),
+                                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                                 ],
                               ),
                               onTap: () async {
@@ -310,8 +319,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                                   context: context,
                                   builder: (context) => AlertDialog(
                                     title: const Text("Hapus Data"),
-                                    content: const Text(
-                                        "Yakin ingin menghapus data ini?"),
+                                    content: const Text("Yakin ingin menghapus data ini?"),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.pop(context),
@@ -320,7 +328,7 @@ class _BelumDibayarState extends State<BelumDibayar> {
                                       TextButton(
                                         onPressed: () {
                                           Navigator.pop(context);
-                                          // Tambahkan logika hapus di sini jika diperlukan
+                                          // Tambahkan logika hapus jika diperlukan
                                         },
                                         child: const Text("Hapus"),
                                       ),
@@ -333,15 +341,6 @@ class _BelumDibayarState extends State<BelumDibayar> {
                         ),
             ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const TambahInvoice()),
-            );
-          },
         ),
       ),
     );

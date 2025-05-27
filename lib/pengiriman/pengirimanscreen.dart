@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:hayami_app/Penjualan/penjualanscreen.dart';
 import 'package:hayami_app/open/openscreen.dart';
 import 'package:hayami_app/selesai/selesaiscreen.dart';
-import 'package:http/http.dart' as http;
 
 class PengirimanPage extends StatefulWidget {
   const PengirimanPage({super.key});
@@ -14,50 +14,59 @@ class PengirimanPage extends StatefulWidget {
 
 class _PengirimanPageState extends State<PengirimanPage> {
   Map<String, int> pengirimanCounts = {
-    "Open": 0,
-    "Selesai": 0,
+    "Dispatched": 0,
+    "Delivered": 0,
   };
 
   bool isLoading = true;
 
   final Map<String, Color> statusColors = {
-    "Open": Colors.pink,
-    "Selesai": Colors.green,
-  };
-
-  final Map<String, String> statusEndpoints = {
-    "Open": 'https://gmp-system.com/api-hayami/pengiriman.php?sts=1',
-    "Selesai": 'https://gmp-system.com/api-hayami/pengiriman.php?sts=3',
+    "Dispatched": Colors.pink,
+    "Delivered": Colors.green,
   };
 
   @override
   void initState() {
     super.initState();
-    fetchPengirimanCounts();
+    fetchPengirimanData();
   }
 
-  Future<void> fetchPengirimanCounts() async {
+  Future<void> fetchPengirimanData() async {
     setState(() {
       isLoading = true;
     });
 
-    Map<String, int> newCounts = {
-      for (var key in pengirimanCounts.keys) key: 0,
-    };
-
     try {
-      for (var entry in statusEndpoints.entries) {
-        final response = await http.get(Uri.parse(entry.value));
-        if (response.statusCode == 200) {
-          final List<dynamic> data = json.decode(response.body);
-          newCounts[entry.key] = data.length;
-        }
-      }
+      final response = await http.get(
+        Uri.parse(
+            'https://hayami.id/apps/erp/api-android/api/daftar_delivery.php'),
+      );
 
-      setState(() {
-        pengirimanCounts = newCounts;
-        isLoading = false;
-      });
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+
+        int dispatchedCount = 0;
+        int deliveredCount = 0;
+
+        for (var item in data) {
+          final resi = item["resi"]?.toString().trim();
+          if (resi == null || resi.isEmpty) {
+            dispatchedCount++;
+          } else {
+            deliveredCount++;
+          }
+        }
+
+        setState(() {
+          pengirimanCounts = {
+            "Dispatched": dispatchedCount,
+            "Delivered": deliveredCount,
+          };
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
     } catch (e) {
       print("Error: $e");
       setState(() {
@@ -124,21 +133,22 @@ class _PengirimanPageState extends State<PengirimanPage> {
                               radius: 10,
                             ),
                             title: Text(label),
-                            trailing: Text("$count"),
+                            subtitle: Text("$count"),
+                            trailing: const Icon(Icons.arrow_forward_ios,
+                                size: 16, color: Colors.grey),
                             onTap: () {
-                              if (label == "Open") {
+                              if (label == "Dispatched") {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const OpenPage(),
-                                  ),
+                                      builder: (context) => const OpenPage()),
                                 );
-                              } else if (label == "Selesai") {
+                              } else if (label == "Delivered") {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const SelesaiPage(),
-                                  ),
+                                      builder: (context) =>
+                                          const SelesaiPage()),
                                 );
                               }
                             },

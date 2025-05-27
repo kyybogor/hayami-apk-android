@@ -77,7 +77,7 @@ Future<List<Map<String, dynamic>>> fetchStatCards(
     final jsonData = json.decode(response.body);
     final selectedData =
         isMonthly ? jsonData['bulan_lalu'] : jsonData['tahun_ini'];
-    final subtitleText = isMonthly ? 'Bulan Lalu' : 'Tahun Ini';
+    final subtitleText = isMonthly ? 'Bulan Ini' : 'Tahun Ini';
 
     return [
       {

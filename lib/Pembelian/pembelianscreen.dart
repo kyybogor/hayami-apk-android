@@ -77,11 +77,11 @@ Future<List<Map<String, dynamic>>> fetchStatCards(
     final jsonData = json.decode(response.body);
     final selectedData =
         isMonthly ? jsonData['bulan_lalu'] : jsonData['tahun_ini'];
-    final subtitleText = isMonthly ? 'Bulan Lalu' : 'Tahun Ini';
+    final subtitleText = isMonthly ? 'Bulan Ini' : 'Tahun Ini';
 
     return [
       {
-        'title': 'Total Penjualan',
+        'title': 'Total Pembelian',
         'amount': selectedData['total_penjualan']['total_nilai'],
         'count': selectedData['total_penjualan']['jumlah_data'].toString(),
         'subtitle': subtitleText,
@@ -358,7 +358,7 @@ class _PembelianscreenState extends State<Pembelianscreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Performa Penjualan',
+          'Performa Pembelian',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -399,7 +399,7 @@ class _PembelianscreenState extends State<Pembelianscreen> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'Penjualan Per Produk Bulan Ini',
+                                    'Pembelian Per Produk Bulan Ini',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,

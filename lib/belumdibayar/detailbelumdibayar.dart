@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/produk/produkdetail.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
@@ -15,7 +14,8 @@ class Detailbelumdibayar extends StatefulWidget {
 
 class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   List<dynamic> barang = [];
-  List<dynamic> allProduk = [];
+  bool isLoading = false; // indikator loading
+  String alamat = '-';     // alamat dari API
 
   @override
   void initState() {
@@ -24,43 +24,79 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   }
 
   Future<void> fetchProduct() async {
-    final invoiceId = widget.invoice['id']?.toString() ?? '';
-    final url = Uri.parse("http://hayami.id/apps/erp/api-android/api/produk.php");
+    setState(() {
+      isLoading = true; // mulai loading
+    });
+
+    final idDo1 = widget.invoice['id']?.toString() ?? '';
+    final idCust = widget.invoice['name']?.toString() ?? '';
+
+    final url = Uri.parse("https://hayami.id/apps/erp/api-android/api/produk.php?id_do1=$idDo1&id_cust=$idCust");
 
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        allProduk = data['data'];
+        final rawBody = response.body;
 
-        final filtered = (data['data'] as List).expand((product) {
-          return (product['kontaks'] as List).where((kontak) {
-            return kontak['kontak_id'].toString() == invoiceId;
-          }).map((kontak) {
-            final barang = kontak['barang_kontak'] ?? {};
-            final jumlah = double.tryParse(barang['jumlah']?.toString() ?? '0') ?? 0;
-            final harga = double.tryParse(barang['harga']?.toString() ?? '0') ?? 0;
-            final total = jumlah * harga;
+        final splitIndex = rawBody.indexOf('}{') + 1;
+        if (splitIndex > 0 && splitIndex < rawBody.length) {
+          final json1 = rawBody.substring(0, splitIndex);
+          final json2 = rawBody.substring(splitIndex);
+
+          // Decode data barang
+          final data1 = json.decode(json1);
+          final List<dynamic> produkList = data1['data'];
+
+          // Decode data customer
+          final dataCust = json.decode(json2);
+          final List<dynamic> dataCustomerList = dataCust['data_cust'];
+
+          // Ambil alamat customer, gabungkan alamat, kota, provinsi jika ada
+          String alamatCustomer = '-';
+          if (dataCustomerList.isNotEmpty) {
+            final cust = dataCustomerList[0];
+            final parts = [
+              cust['alamat'] ?? '',
+              cust['kota'] ?? '',
+              cust['provinsi'] ?? ''
+            ].where((element) => element.trim().isNotEmpty).toList();
+
+            alamatCustomer = parts.isNotEmpty ? parts.join(', ') : '-';
+          }
+
+          // Parsing produk ke list barang
+          final List<Map<String, dynamic>> parsedProduk = produkList.map<Map<String, dynamic>>((item) {
+            final qty = double.tryParse(item['qty']?.toString() ?? '0') ?? 0;
+            final harga = double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
+            final total = qty * harga;
 
             return {
-              'nama_barang': barang['nama_barang'] ?? 'Tidak Diketahui',
-              'size': barang['size'] ?? 'Tidak Diketahui',
-              'jumlah': jumlah.toString(),
+              'nama_barang': item['sku'] ?? 'Tidak Diketahui',
+              'size': (item['size'] != null && item['size'].toString().isNotEmpty)
+                  ? item['size'].toString()
+                  : 'All Size',
+              'jumlah': qty.toString(),
               'harga': harga.toString(),
               'total': total.toString(),
-              'barang_id': barang['barang_id'],
             };
           }).toList();
-        }).toList();
 
-        setState(() {
-          barang = filtered;
-        });
+          setState(() {
+            barang = parsedProduk;
+            alamat = alamatCustomer;  // update alamat dari API
+          });
+        } else {
+          print("Format JSON tidak valid atau tidak bisa dipisahkan.");
+        }
       } else {
         print('Gagal mengambil data barang. Status: ${response.statusCode}');
       }
     } catch (e) {
       print("Error saat mengambil data barang: $e");
+    } finally {
+      setState(() {
+        isLoading = false; // selesai loading
+      });
     }
   }
 
@@ -102,12 +138,11 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   @override
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
-    final contactName = invoice['name'] ?? 'Tidak diketahui';
-    final instansi = invoice['instansi']?? '-';
     final invoiceNumber = invoice['invoice'] ?? '-';
+    final idCust = invoice['name'] ?? 'Tidak diketahui';
+    final instansi = invoice['instansi'] ?? '-';
     final date = invoice['date'] ?? '-';
     final dueDate = invoice['due'] ?? '-';
-    final address = invoice['alamat'] ?? '-';
     final status = invoice['status'] ?? 'Belum Dibayar';
     final statusColor = _getStatusColor(status);
 
@@ -133,7 +168,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       ),
       body: Column(
         children: [
-          _buildHeader(invoiceNumber, contactName, instansi, address, date, dueDate, status, statusColor),
+          _buildHeader(invoiceNumber, idCust, instansi, alamat, date, dueDate, status, statusColor),
           const SizedBox(height: 12),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -144,94 +179,62 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
             ),
           ),
           Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: barang.isEmpty
-                      ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: barang.length,
-                          itemBuilder: (context, index) {
-                            final item = barang[index];
-                            return Card(
-                              child: ListTile(
-                                title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (item['size'] != null && item['size'].isNotEmpty)
-                                      Text("Ukuran: ${item['size']}"),
-                                    Text(
-                                      "${item['jumlah']} x Rp ${formatRupiah(double.tryParse(item['harga']?.toString() ?? '0') ?? 0)}",
-                                    ),
-                                  ],
-                                ),
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : barang.isEmpty
+                    ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: barang.length,
+                        itemBuilder: (context, index) {
+                          final item = barang[index];
+                          return Card(
+                            child: ListTile(
+                              title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (item['size'] != null && item['size'].isNotEmpty)
+                                    Text("Ukuran: ${item['size']}"),
+                                  Text(
+                                    "${item['jumlah']} x Rp ${formatRupiah(double.tryParse(item['harga']?.toString() ?? '0') ?? 0)}",
                                   ),
-                                  child: Text(
-                                    "Rp ${formatRupiah(double.tryParse(item['total']?.toString() ?? '0') ?? 0)}",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ),
-                                onTap: () {
-                                  final barangId = item['barang_id']?.toString() ?? '';
-                                  Map<String, dynamic>? productDetail;
-
-                                  for (var produk in allProduk) {
-                                    final kontaks = produk['kontaks'] as List;
-                                    for (var kontak in kontaks) {
-                                      final barangKontak = kontak['barang_kontak'];
-                                      if (barangKontak != null &&
-                                          barangKontak['barang_id']?.toString() == barangId) {
-                                        productDetail = produk;
-                                        break;
-                                      }
-                                    }
-                                    if (productDetail != null) break;
-                                  }
-
-                                  if (productDetail != null) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ProductDetailPage(product: productDetail!),
-                                      ),
-                                    );
-                                  } else {
-                                    print("Produk detail tidak ditemukan");
-                                  }
-                                },
+                                ],
                               ),
-                            );
-                          },
-                        ),
-                ),
-                if (barang.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    width: double.infinity,
-                    color: Colors.grey.shade200,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("Total Semua",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text("Rp ${formatRupiah(getTotalSemuaBarang())}",
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  "Rp ${formatRupiah(double.tryParse(item['total']?.toString() ?? '0') ?? 0)}",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: statusColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
+          if (!isLoading && barang.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              color: Colors.grey.shade200,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total Semua",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text("Rp ${formatRupiah(getTotalSemuaBarang())}",
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -267,7 +270,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-            decoration: BoxDecoration(
+            decoration: BoxDecoration(  
               color: Colors.white,
               borderRadius: BorderRadius.circular(30),
             ),

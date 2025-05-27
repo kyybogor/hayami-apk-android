@@ -20,9 +20,6 @@ class _TagihanPembelianPageState extends State<TagihanPembelianPage> {
     "Dibayar Sebagian": 0,
     "Lunas": 0,
     "Void": 0,
-    "Jatuh Tempo": 0,
-    "Retur": 0,
-    "Transaksi Berulang": 0,
   };
 
   bool isLoading = true;
@@ -32,18 +29,15 @@ class _TagihanPembelianPageState extends State<TagihanPembelianPage> {
     "Dibayar Sebagian": Colors.amber,
     "Lunas": Colors.green,
     "Void": Colors.grey,
-    "Jatuh Tempo": Colors.black,
-    "Retur": Colors.orange,
-    "Transaksi Berulang": Colors.blue,
   };
 
   final Map<String, String> statusEndpoints = {
     "Belum Dibayar":
-        'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=1',
+        'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=1',
     "Dibayar Sebagian":
-        'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=3',
-    "Lunas": 'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=2',
-    "Void": 'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=4',
+        'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=3',
+    "Lunas": 'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=2',
+    "Void": 'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=4',
     // Tambahkan endpoint lain jika ada untuk status lainnya
   };
 
@@ -177,13 +171,6 @@ class _TagihanPembelianPageState extends State<TagihanPembelianPage> {
                   ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () {
-          // Tambahkan aksi jika diperlukan
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }

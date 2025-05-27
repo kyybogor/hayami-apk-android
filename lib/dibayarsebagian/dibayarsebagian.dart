@@ -29,41 +29,63 @@ class _DibayarSebagianState extends State<DibayarSebagian> {
     fetchInvoices();
   }
 
-  Future<void> fetchInvoices() async {
-    try {
-      final response = await http.get(Uri.parse(
-          'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=3'));
+Future<void> fetchInvoices() async {
+  try {
+    final response = await http.get(
+      Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
 
-        invoices = data.map<Map<String, dynamic>>((item) {
-          return {
-            "name": item["nama"] ?? item["1"],
-            "invoice": item["invoice"] ?? item["2"],
-            "date": item["date"] ?? item["3"],
-            "due": item["due"] ?? item["3"],
-            "alamat": item["alamat"] ?? item["3"],
-            "amount": item["amount"] ?? item["4"],
-            "status": item["status"] ?? item["5"],
-          };
-        }).toList();
+      final openInvoices = data.where((item) =>
+        item["status"] != null && item["status"].toString().toLowerCase() == 'Partially Paid'
+      ).toList();
 
-        setState(() {
-          isLoading = false;
-        });
+      invoices = openInvoices.map<Map<String, dynamic>>((item) {
+        String? dibuatTgl = item["tgl"];
+        return {
+          "id": item["id_do1"] ?? '-',
+          "name": (item["id_cust"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["id_cust"],
+          "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["id_group"],
+          "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["no_inv"],
+          "date": dibuatTgl?.toString().trim().isEmpty ?? true
+              ? null
+              : dibuatTgl,
+          "due": (item["tgltop"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["tgltop"],
+          "alamat": (item["address"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["address"],
+          "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["grandttl"],
+          "status": 'Dibayar Sebagian',
 
-        filterByMonthYear();
-      } else {
-        throw Exception('Gagal mengambil data');
-      }
-    } catch (e) {
-      print("Error: $e");
+        };
+      }).toList();
+
       setState(() {
+        filteredInvoices = invoices;
         isLoading = false;
       });
+    } else {
+      throw Exception('Gagal mengambil data');
     }
+  } catch (e) {
+    print("Error: $e");
+    setState(() {
+      isLoading = false;
+    });
   }
+}
 
   void filterByMonthYear() {
     setState(() {
@@ -302,6 +324,7 @@ class _DibayarSebagianState extends State<DibayarSebagian> {
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         Detailbelumdibayar(invoice: invoice),
+
                                   ),
                                 );
                                 if (result == true) {
@@ -337,16 +360,6 @@ class _DibayarSebagianState extends State<DibayarSebagian> {
                         ),
             ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const TambahInvoice()),
-            );
-          },
-          child: const Icon(Icons.add),
         ),
       ),
     );

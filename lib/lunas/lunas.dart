@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
+import 'package:hayami_app/pengiriman/detailpengiriman.dart';
 import 'package:hayami_app/tagihan/tambahtagihan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -31,29 +32,52 @@ class _LunasState extends State<Lunas> {
 
   Future<void> fetchInvoices() async {
     try {
-      final response = await http.get(Uri.parse(
-          'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=2'));
+      final response = await http.get(
+        Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
-        invoices = data.map<Map<String, dynamic>>((item) {
+        final paidInvoices = data
+            .where((item) =>
+                item["status"] != null &&
+                item["status"].toString().toLowerCase() == 'paid')
+            .toList();
+
+        invoices = paidInvoices.map<Map<String, dynamic>>((item) {
+          String? dibuatTgl = item["tgl"];
           return {
-            "name": item["nama"] ?? item["1"],
-            "invoice": item["invoice"] ?? item["2"],
-            "date": item["date"] ?? item["3"],
-            "due": item["due"] ?? item["3"],
-            "alamat": item["alamat"] ?? item["3"],
-            "amount": item["amount"] ?? item["4"],
-            "status": item["status"] ?? item["5"],
+            "id": item["id_do1"] ?? '-',
+            "name": (item["id_cust"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_cust"],
+            "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_group"],
+            "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["no_inv"],
+            "date":
+                dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
+            "due": (item["tgltop"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["tgltop"],
+            "alamat": (item["address"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["address"],
+            "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["grandttl"],
+          "status": 'Lunas',
+
           };
         }).toList();
 
         setState(() {
+          filteredInvoices = invoices;
           isLoading = false;
         });
-
-        filterByMonthYear();
       } else {
         throw Exception('Gagal mengambil data');
       }
@@ -94,7 +118,8 @@ class _LunasState extends State<Lunas> {
       if (response.statusCode == 200) {
         setState(() {
           invoices.removeWhere((item) => item['invoice'] == invoice['invoice']);
-          filteredInvoices.removeWhere((item) => item['invoice'] == invoice['invoice']);
+          filteredInvoices
+              .removeWhere((item) => item['invoice'] == invoice['invoice']);
           dataChanged = true;
         });
 
@@ -131,7 +156,8 @@ class _LunasState extends State<Lunas> {
   String formatRupiah(String amount) {
     try {
       final double value = double.parse(amount);
-      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+      return NumberFormat.currency(
+              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
           .format(value);
     } catch (e) {
       return amount;
@@ -183,7 +209,8 @@ class _LunasState extends State<Lunas> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
               child: Row(
                 children: [
                   Flexible(
@@ -201,16 +228,20 @@ class _LunasState extends State<Lunas> {
                         filled: true,
                         fillColor: Colors.blue.shade50,
                       ),
-                      items: ['Semua', ...List.generate(12, (index) {
-                        final month = (index + 1).toString().padLeft(2, '0');
-                        return month;
-                      })].map((month) {
+                      items: [
+                        'Semua',
+                        ...List.generate(12, (index) {
+                          final month = (index + 1).toString().padLeft(2, '0');
+                          return month;
+                        })
+                      ].map((month) {
                         return DropdownMenuItem(
                           value: month,
                           child: Text(
                             month == 'Semua'
                                 ? 'Semua Bulan'
-                                : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
+                                : DateFormat('MMMM')
+                                    .format(DateTime(0, int.parse(month))),
                           ),
                         );
                       }).toList(),
@@ -342,16 +373,6 @@ class _LunasState extends State<Lunas> {
                         ),
             ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const TambahInvoice()),
-            );
-          },
-          child: const Icon(Icons.add),
         ),
       ),
     );

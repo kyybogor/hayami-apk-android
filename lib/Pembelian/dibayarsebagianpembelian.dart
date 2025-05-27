@@ -31,29 +31,30 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
 
   Future<void> fetchInvoices() async {
     try {
-      final response = await http.get(Uri.parse(
-          'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=3'));
+      final response = await http
+          .get(Uri.parse('https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=3'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
-        invoices = data.map<Map<String, dynamic>>((item) {
+        invoices = data
+            .map<Map<String, dynamic>>((item) {
           return {
-            "name": item["nama"] ?? item["1"],
+            "id": item["id"] ?? 'item["0"]',
+            "name": item["name"] ?? item["2"],
             "invoice": item["invoice"] ?? item["2"],
             "date": item["date"] ?? item["3"],
-            "due": item["due"] ?? item["3"],
-            "alamat": item["alamat"] ?? item["3"],
-            "amount": item["amount"] ?? item["4"],
-            "status": item["status"] ?? item["5"],
+            "due": item["due"] ?? item["4"],
+            "alamat": item["alamat"] ?? item["6"],
+            "amount": item["amount"] ?? item["5"],
+            "status": 'Dibayar Sebagian',
           };
         }).toList();
 
         setState(() {
+          filteredInvoices = invoices;
           isLoading = false;
         });
-
-        filterByMonthYear();
       } else {
         throw Exception('Gagal mengambil data');
       }
@@ -64,6 +65,7 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
       });
     }
   }
+
 
   void filterByMonthYear() {
     setState(() {
@@ -337,16 +339,6 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
                         ),
             ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const TambahInvoice()),
-            );
-          },
-          child: const Icon(Icons.add),
         ),
       ),
     );

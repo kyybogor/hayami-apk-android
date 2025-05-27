@@ -32,23 +32,22 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
   Future<void> fetchInvoices() async {
     try {
       final response = await http
-          .get(Uri.parse('http://192.168.1.10/connect/JSON/index.php'));
+          .get(Uri.parse('https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=1'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
         invoices = data
-            .where((item) => item["status"] == "Belum Dibayar")
             .map<Map<String, dynamic>>((item) {
           return {
-            "id": item["id"] ?? item["0"],
-            "name": item["name"] ?? item["1"],
+            "id": item["id"] ?? 'item["0"]',
+            "name": item["name"] ?? item["2"],
             "invoice": item["invoice"] ?? item["2"],
             "date": item["date"] ?? item["3"],
             "due": item["due"] ?? item["4"],
             "alamat": item["alamat"] ?? item["6"],
             "amount": item["amount"] ?? item["5"],
-            "status": item["status"] ?? item["7"],
+            "status": 'Belum Dibayar',
           };
         }).toList();
 
@@ -321,16 +320,6 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
                         ),
             ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const TambahInvoice()),
-            );
-          },
-          child: const Icon(Icons.add),
         ),
       ),
     );

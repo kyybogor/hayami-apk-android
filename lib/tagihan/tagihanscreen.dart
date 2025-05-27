@@ -22,9 +22,6 @@ class _TagihanPageState extends State<TagihanPage> {
     "Dibayar Sebagian": 0,
     "Lunas": 0,
     "Void": 0,
-    "Jatuh Tempo": 0,
-    "Retur": 0,
-    "Transaksi Berulang": 0,
   };
 
   bool isLoading = true;
@@ -34,19 +31,14 @@ class _TagihanPageState extends State<TagihanPage> {
     "Dibayar Sebagian": Colors.amber,
     "Lunas": Colors.green,
     "Void": Colors.grey,
-    "Jatuh Tempo": Colors.black,
-    "Retur": Colors.orange,
-    "Transaksi Berulang": Colors.blue,
   };
 
-  final Map<String, String> statusEndpoints = {
-    "Belum Dibayar":
-        'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=1',
-    "Dibayar Sebagian":
-        'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=2',
-    "Lunas": 'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=3',
-    "Void": 'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=4',
-    // Tambahkan endpoint lain jika ada untuk status lainnya
+  // Mapping status dari API ke kategori di app kamu
+  final Map<String, String> statusMapping = {
+    "Open": "Belum Dibayar",
+    "Partial Paid": "Dibayar Sebagian",  
+    "Paid": "Lunas",
+    "Void": "Void",
   };
 
   @override
@@ -60,23 +52,42 @@ class _TagihanPageState extends State<TagihanPage> {
       isLoading = true;
     });
 
+    // Reset count
     Map<String, int> newCounts = {
       for (var key in tagihanCounts.keys) key: 0,
     };
 
     try {
-      for (var entry in statusEndpoints.entries) {
-        final response = await http.get(Uri.parse(entry.value));
-        if (response.statusCode == 200) {
-          final List<dynamic> data = json.decode(response.body);
-          newCounts[entry.key] = data.length;
-        }
-      }
+      final response = await http.get(Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
 
-      setState(() {
-        tagihanCounts = newCounts;
-        isLoading = false;
-      });
+        for (var item in data) {
+          String statusApi = (item['status'] ?? '').toString();
+          String stsVoid = (item['stsvoid'] ?? '0').toString();
+
+          // Jika stsvoid = "1", anggap Void
+          if (stsVoid == "1") {
+            newCounts["Void"] = (newCounts["Void"] ?? 0) + 1;
+            continue;
+          }
+
+          // Mapping status API ke status app
+          if (statusMapping.containsKey(statusApi)) {
+            String mappedStatus = statusMapping[statusApi]!;
+            newCounts[mappedStatus] = (newCounts[mappedStatus] ?? 0) + 1;
+          } else {
+            // Jika status tidak dikenali, bisa diabaikan atau dimasukkan kategori lain
+          }
+        }
+
+        setState(() {
+          tagihanCounts = newCounts;
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load data from API');
+      }
     } catch (e) {
       print("Error: $e");
       setState(() {
@@ -165,8 +176,7 @@ class _TagihanPageState extends State<TagihanPage> {
                                 ? () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                          builder: (context) => page),
+                                      MaterialPageRoute(builder: (context) => page),
                                     );
                                   }
                                 : null,
@@ -178,13 +188,6 @@ class _TagihanPageState extends State<TagihanPage> {
                   ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () {
-          // Tambahkan aksi jika diperlukan
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
