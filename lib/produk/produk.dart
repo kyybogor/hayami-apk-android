@@ -25,7 +25,7 @@ class _ProdukPageState extends State<ProdukPage> {
   List<Map<String, dynamic>> _allProduk = [];
   List<List<Map<String, dynamic>>> _produkGroupedList = [];
   int _loadedGroupCount = 0;
-  final int _groupLoadSize = 3; // Load 3 grup (12 produk) tiap batch
+  final int _groupLoadSize = 3;
   bool _isLoading = false;
   bool _hasMore = true;
 
@@ -70,39 +70,49 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
-  Future<void> _fetchProduk() async {
-    setState(() => _isLoading = true);
+Future<void> _fetchProduk() async {
+  setState(() => _isLoading = true);
 
-    final url =
-        Uri.parse('https://hayami.id/apps/erp/api-android/api/master_produk.php');
+  final url = Uri.parse(
+      'https://hayami.id/apps/erp/api-android/api/master_produk.php');
 
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        final List<dynamic> data = jsonResponse['all_product'];
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      final List<dynamic> data = jsonResponse['all_product'];
 
-        _calculateProduk(data);
+      // ✅ Mengambil info card dari response
+      int tersedia = int.tryParse(jsonResponse['product_tersedia'].toString()) ?? 0;
+      int sedikit = int.tryParse(jsonResponse['product_sedikit'].toString()) ?? 0;
+      int habis = int.tryParse(jsonResponse['product_habis'].toString()) ?? 0;
 
-        setState(() {
-          _allProduk = List<Map<String, dynamic>>.from(data);
-          _produkGroupedList = _groupProduk(_allProduk);
-          _loadedGroupCount =
-              (_groupLoadSize < _produkGroupedList.length) ? _groupLoadSize : _produkGroupedList.length;
-          _hasMore = _loadedGroupCount < _produkGroupedList.length;
-          _isLoading = false;
-        });
-      } else {
-        setState(() => _isLoading = false);
-        print('Gagal load produk');
-      }
-    } catch (e) {
+      setState(() {
+        _allProduk = List<Map<String, dynamic>>.from(data);
+        _produkGroupedList = _groupProduk(_allProduk);
+        _loadedGroupCount = (_groupLoadSize < _produkGroupedList.length)
+            ? _groupLoadSize
+            : _produkGroupedList.length;
+        _hasMore = _loadedGroupCount < _produkGroupedList.length;
+        _isLoading = false;
+
+        // ✅ Update status produk dari API
+        totalProduk = tersedia + sedikit + habis;
+        produkHampirHabis = sedikit;
+        produkHabis = habis;
+      });
+    } else {
       setState(() => _isLoading = false);
-      print('Error: $e');
+      print('Gagal load produk');
     }
+  } catch (e) {
+    setState(() => _isLoading = false);
+    print('Error: $e');
   }
+}
 
-  List<List<Map<String, dynamic>>> _groupProduk(List<Map<String, dynamic>> data) {
+  List<List<Map<String, dynamic>>> _groupProduk(
+      List<Map<String, dynamic>> data) {
     List<List<Map<String, dynamic>>> groups = [];
     for (int i = 0; i < data.length; i += 4) {
       groups.add(data.skip(i).take(4).toList());
@@ -197,14 +207,16 @@ class _ProdukPageState extends State<ProdukPage> {
                     'Produk Tersedia',
                     (totalProduk - produkHampirHabis - produkHabis).toString(),
                     Colors.green),
+                _buildStatusCard('Produk Hampir Habis',
+                    produkHampirHabis.toString(), Colors.orange),
                 _buildStatusCard(
-                    'Produk Hampir Habis', produkHampirHabis.toString(), Colors.orange),
-                _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
-                _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
+                    'Produk Habis', produkHabis.toString(), Colors.red),
+                _buildStatusCard(
+                    'Total Produk', totalProduk.toString(), Colors.blue),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           InkWell(
             onTap: () {
@@ -231,27 +243,21 @@ class _ProdukPageState extends State<ProdukPage> {
               final groupProduk = _produkGroupedList[groupIndex];
               final ScrollController groupScrollController = ScrollController();
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.only(
+                    bottom: 1), // Jarak antar row diperbesar
                 child: SizedBox(
                   height: 180,
-                  child: Scrollbar(
+                  child: ListView(
                     controller: groupScrollController,
-                    thumbVisibility: true,
-                    trackVisibility: true,
-                    thickness: 6,
-                    radius: const Radius.circular(10),
-                    child: ListView(
-                      controller: groupScrollController,
-                      scrollDirection: Axis.horizontal,
-                      children: groupProduk.map((produk) {
-                        return _buildChartPlaceholder(
-                          produk['sku'] ?? '',
-                          screenWidth,
-                          produk['img'] ?? '',
-                          produk['harga'] ?? '0',
-                        );
-                      }).toList(),
-                    ),
+                    scrollDirection: Axis.horizontal,
+                    children: groupProduk.map((produk) {
+                      return _buildChartPlaceholder(
+                        produk['sku'] ?? '',
+                        screenWidth,
+                        produk['img'] ?? '',
+                        produk['harga'] ?? '0',
+                      );
+                    }).toList(),
                   ),
                 ),
               );
@@ -317,72 +323,80 @@ class _ProdukPageState extends State<ProdukPage> {
       String title, double screenWidth, String imagePath, String harga) {
     final imgUrl = cleanImageUrl(imagePath);
 
-    return Container(
-      width: screenWidth * 0.35,
-      height: 150,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, 2),
+    return Column(
+      children: [
+        Container(
+          width: screenWidth * 0.35,
+          height: 150,
+          margin: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: imgUrl.isEmpty
-                  ? Container(
-                      color: Colors.grey.shade300,
-                      width: double.infinity,
-                      child: const Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
-                  : Image.network(
-                      imgUrl,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.grey.shade300,
-                        width: double.infinity,
-                        child: const Center(
-                          child: Icon(
-                            Icons.broken_image,
-                            size: 50,
-                            color: Colors.grey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: imgUrl.isEmpty
+                      ? Container(
+                          color: Colors.grey.shade300,
+                          width: double.infinity,
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : Image.network(
+                          imgUrl,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                            color: Colors.grey.shade300,
+                            width: double.infinity,
+                            child: const Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                size: 50,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-            ),
+                ),
+              ),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                formatRupiah(harga),
+                style: const TextStyle(color: Colors.green),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            formatRupiah(harga),
-            style: const TextStyle(color: Colors.green),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(
+          height: 2,
+        ),
+      ],
     );
   }
 }
