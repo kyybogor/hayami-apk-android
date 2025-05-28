@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
-import 'package:hayami_app/tagihan/tambahtagihan.dart';
+import 'package:hayami_app/Pembelian/detailpembelian.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -9,7 +8,8 @@ class DibayarSebagianPembelian extends StatefulWidget {
   const DibayarSebagianPembelian({super.key});
 
   @override
-  State<DibayarSebagianPembelian> createState() => _DibayarSebagianPembelianState();
+  State<DibayarSebagianPembelian> createState() =>
+      _DibayarSebagianPembelianState();
 }
 
 class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
@@ -31,23 +31,25 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
 
   Future<void> fetchInvoices() async {
     try {
-      final response = await http
-          .get(Uri.parse('https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=3'));
+      final response = await http.get(Uri.parse(
+          'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=3'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
-        invoices = data
-            .map<Map<String, dynamic>>((item) {
+        invoices = data.map<Map<String, dynamic>>((item) {
           return {
             "id": item["id"] ?? 'item["0"]',
             "name": item["name"] ?? item["2"],
-            "invoice": item["invoice"] ?? item["2"],
+            "invoice": item["invoice"] ?? item["1"],
             "date": item["date"] ?? item["3"],
-            "due": item["due"] ?? item["4"],
-            "alamat": item["alamat"] ?? item["6"],
-            "amount": item["amount"] ?? item["5"],
+            "due": item["due"] ?? '-',
+            "alamat": item["alamat"] ?? '-',
+            "amount": item["amount"] ?? item["4"],
+            "dibayar": item["sudah_bayar"] ?? item["5"],
             "status": 'Dibayar Sebagian',
+            "memoFull": item['memo'] ?? item["6"],
+            "memo": (item['memo'] ?? item["6"]).toString().split(" - ").first,
           };
         }).toList();
 
@@ -65,7 +67,6 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
       });
     }
   }
-
 
   void filterByMonthYear() {
     setState(() {
@@ -271,6 +272,7 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Text(invoice["memo"]),
                                   Text(invoice["invoice"]),
                                   Text(invoice["date"]),
                                 ],
@@ -303,7 +305,7 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        Detailbelumdibayar(invoice: invoice),
+                                        DetailPembelianPage(invoice: invoice),
                                   ),
                                 );
                                 if (result == true) {

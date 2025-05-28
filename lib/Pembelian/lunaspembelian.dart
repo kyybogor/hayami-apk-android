@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
-import 'package:hayami_app/tagihan/tambahtagihan.dart';
+import 'package:hayami_app/Pembelian/detailpembelian.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -42,12 +41,14 @@ class _LunasPembelianState extends State<LunasPembelian> {
           return {
             "id": item["id"] ?? 'item["0"]',
             "name": item["name"] ?? item["2"],
-            "invoice": item["invoice"] ?? item["2"],
+            "invoice": item["invoice"] ?? item["1"],
             "date": item["date"] ?? item["3"],
-            "due": item["due"] ?? item["4"],
-            "alamat": item["alamat"] ?? item["6"],
-            "amount": item["amount"] ?? item["5"],
-            "status": item["status"] ?? item["7"],
+            "due": item["due"] ?? '-',
+            "alamat": item["alamat"] ?? '-',
+            "amount": item["amount"] ?? item["4"],
+            "status": 'Lunas',
+            "memoFull": item['memo'] ?? item["6"],
+            "memo": (item['memo'] ?? item["6"]).toString().split(" - ").first,
           };
         }).toList();
 
@@ -276,6 +277,7 @@ class _LunasPembelianState extends State<LunasPembelian> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Text(invoice["memo"]),
                                   Text(invoice["invoice"]),
                                   Text(invoice["date"]),
                                 ],
@@ -308,7 +310,7 @@ class _LunasPembelianState extends State<LunasPembelian> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        Detailbelumdibayar(invoice: invoice),
+                                        DetailPembelianPage(invoice: invoice),
                                   ),
                                 );
                                 if (result == true) {

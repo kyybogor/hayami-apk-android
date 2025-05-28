@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
-class Detailbelumdibayar extends StatefulWidget {
+class DetailPembelianPage extends StatefulWidget {
   final Map<String, dynamic> invoice;
 
-  const Detailbelumdibayar({super.key, required this.invoice});
+  const DetailPembelianPage({super.key, required this.invoice});
 
   @override
-  State<Detailbelumdibayar> createState() => _DetailbelumdibayarState();
+  State<DetailPembelianPage> createState() => _DetailPembelianPageState();
 }
 
-class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
+class _DetailPembelianPageState extends State<DetailPembelianPage> {
   List<dynamic> barang = [];
   bool isLoading = false;
   String alamat = '-';
@@ -28,68 +28,37 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       isLoading = true;
     });
 
-    final idDo1 = widget.invoice['id']?.toString() ?? '';
-    final idCust = widget.invoice['name']?.toString() ?? '';
+    final memo = widget.invoice['memo']?.toString() ?? '-';
 
     final url = Uri.parse(
-        "https://hayami.id/apps/erp/api-android/api/produk.php?id_do1=$idDo1&id_cust=$idCust");
+        "https://hayami.id/apps/erp/api-android/api/barangpembelian.php?id_sj1=$memo");
 
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final rawBody = response.body;
+        final List<dynamic> data = json.decode(response.body);
 
-        final splitIndex = rawBody.indexOf('}{') + 1;
-        if (splitIndex > 0 && splitIndex < rawBody.length) {
-          final json1 = rawBody.substring(0, splitIndex);
-          final json2 = rawBody.substring(splitIndex);
+        final List<Map<String, dynamic>> parsedProduk =
+            data.map<Map<String, dynamic>>((item) {
+          final qty = double.tryParse(item['lusin']?.toString() ?? '0') ?? 0;
+          final harga = double.tryParse(item['cost']?.toString() ?? '0') ?? 0;
+          final total = double.tryParse(item['ttlcost']?.toString() ?? '0') ??
+              (qty * harga);
 
-          final data1 = json.decode(json1);
-          final List<dynamic> produkList = data1['data'];
+          return {
+            'nama_barang': item['sku'] ?? 'Tidak Diketahui',
+            'size': (item['size'] != null && item['size'].toString().isNotEmpty)
+                ? item['size'].toString()
+                : 'All Size',
+            'jumlah': qty.toStringAsFixed(0),
+            'harga': harga.toStringAsFixed(0),
+            'total': total.toStringAsFixed(0),
+          };
+        }).toList();
 
-          final dataCust = json.decode(json2);
-          final List<dynamic> dataCustomerList = dataCust['data_cust'];
-
-          String alamatCustomer = '-';
-          if (dataCustomerList.isNotEmpty) {
-            final cust = dataCustomerList[0];
-            final parts = [
-              cust['alamat'] ?? '',
-              cust['kota'] ?? '',
-              cust['provinsi'] ?? ''
-            ].where((element) => element.trim().isNotEmpty).toList();
-
-            alamatCustomer = parts.isNotEmpty ? parts.join(', ') : '-';
-          }
-
-          // Parsing produk ke list barang
-          final List<Map<String, dynamic>> parsedProduk =
-              produkList.map<Map<String, dynamic>>((item) {
-            final qty = double.tryParse(item['qty']?.toString() ?? '0') ?? 0;
-            final harga =
-                double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
-            final total =
-                double.tryParse(item['ttlharga']?.toString() ?? '0') ?? 0;
-
-            return {
-              'nama_barang': item['sku'] ?? 'Tidak Diketahui',
-              'size':
-                  (item['size'] != null && item['size'].toString().isNotEmpty)
-                      ? item['size'].toString()
-                      : 'All Size',
-              'jumlah': qty.toString(),
-              'harga': harga.toString(),
-              'total': total.toString(),
-            };
-          }).toList();
-
-          setState(() {
-            barang = parsedProduk;
-            alamat = alamatCustomer;
-          });
-        } else {
-          print("Format JSON tidak valid atau tidak bisa dipisahkan.");
-        }
+        setState(() {
+          barang = parsedProduk;
+        });
       } else {
         print('Gagal mengambil data barang. Status: ${response.statusCode}');
       }
@@ -97,7 +66,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       print("Error saat mengambil data barang: $e");
     } finally {
       setState(() {
-        isLoading = false; // selesai loading
+        isLoading = false;
       });
     }
   }
@@ -140,7 +109,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   @override
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
-    final invoiceNumber = invoice['invoice'] ?? '-';
+    final memo = widget.invoice['memo']?.toString() ?? '-';
     final idCust = invoice['name'] ?? 'Tidak diketahui';
     final instansi = invoice['instansi'] ?? '-';
     final date = invoice['date'] ?? '-';
@@ -172,8 +141,8 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       ),
       body: Column(
         children: [
-          _buildHeader(invoiceNumber, idCust, instansi, alamat, date, dueDate,
-              status, statusColor),
+          _buildHeader(memo, idCust, instansi, alamat, date, dueDate, status,
+              statusColor),
           const SizedBox(height: 12),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -293,7 +262,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
   }
 
   Widget _buildHeader(
-      String invoiceNumber,
+      String memo,
       String contactName,
       String instansi,
       String address,
@@ -318,7 +287,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(invoiceNumber,
+          Text(memo,
               style: const TextStyle(fontSize: 16, color: Colors.white70)),
           const SizedBox(height: 16),
           Text(contactName,
@@ -326,9 +295,6 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                   fontSize: 18,
                   color: Colors.white,
                   fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(address,
-              style: const TextStyle(fontSize: 13, color: Colors.white)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
-import 'package:hayami_app/tagihan/tambahtagihan.dart';
+import 'package:hayami_app/Pembelian/detailpembelian.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -31,23 +30,24 @@ class _VoidPembelianState extends State<VoidPembelian> {
 
   Future<void> fetchInvoices() async {
     try {
-      final response = await http
-          .get(Uri.parse('https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=4'));
+      final response = await http.get(Uri.parse(
+          'https://hayami.id/apps/erp/api-android/api/daftar_tagihan_pembelian.php?sts=4'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
-        invoices = data
-            .map<Map<String, dynamic>>((item) {
+        invoices = data.map<Map<String, dynamic>>((item) {
           return {
             "id": item["id"] ?? 'item["0"]',
             "name": item["name"] ?? item["2"],
-            "invoice": item["invoice"] ?? item["2"],
+            "invoice": item["invoice"] ?? item["1"],
             "date": item["date"] ?? item["3"],
-            "due": item["due"] ?? item["4"],
-            "alamat": item["alamat"] ?? item["6"],
-            "amount": item["amount"] ?? item["5"],
-            "status": 'Void'
+            "due": item["due"] ?? '-',
+            "alamat": item["alamat"] ?? '-',
+            "amount": item["amount"] ?? item["4"],
+            "status": 'Void',
+            "memoFull": item['memo'] ?? item["6"],
+            "memo": (item['memo'] ?? item["6"]).toString().split(" - ").first,
           };
         }).toList();
 
@@ -65,7 +65,6 @@ class _VoidPembelianState extends State<VoidPembelian> {
       });
     }
   }
-
 
   void filterByMonthYear() {
     setState(() {
@@ -96,7 +95,8 @@ class _VoidPembelianState extends State<VoidPembelian> {
       if (response.statusCode == 200) {
         setState(() {
           invoices.removeWhere((item) => item['invoice'] == invoice['invoice']);
-          filteredInvoices.removeWhere((item) => item['invoice'] == invoice['invoice']);
+          filteredInvoices
+              .removeWhere((item) => item['invoice'] == invoice['invoice']);
           dataChanged = true;
         });
 
@@ -133,7 +133,8 @@ class _VoidPembelianState extends State<VoidPembelian> {
   String formatRupiah(String amount) {
     try {
       final double value = double.parse(amount);
-      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+      return NumberFormat.currency(
+              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
           .format(value);
     } catch (e) {
       return amount;
@@ -185,7 +186,8 @@ class _VoidPembelianState extends State<VoidPembelian> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
               child: Row(
                 children: [
                   Flexible(
@@ -203,16 +205,20 @@ class _VoidPembelianState extends State<VoidPembelian> {
                         filled: true,
                         fillColor: Colors.blue.shade50,
                       ),
-                      items: ['Semua', ...List.generate(12, (index) {
-                        final month = (index + 1).toString().padLeft(2, '0');
-                        return month;
-                      })].map((month) {
+                      items: [
+                        'Semua',
+                        ...List.generate(12, (index) {
+                          final month = (index + 1).toString().padLeft(2, '0');
+                          return month;
+                        })
+                      ].map((month) {
                         return DropdownMenuItem(
                           value: month,
                           child: Text(
                             month == 'Semua'
                                 ? 'Semua Bulan'
-                                : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
+                                : DateFormat('MMMM')
+                                    .format(DateTime(0, int.parse(month))),
                           ),
                         );
                       }).toList(),
@@ -276,6 +282,7 @@ class _VoidPembelianState extends State<VoidPembelian> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Text(invoice["memo"]),
                                   Text(invoice["invoice"]),
                                   Text(invoice["date"]),
                                 ],
@@ -308,7 +315,7 @@ class _VoidPembelianState extends State<VoidPembelian> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        Detailbelumdibayar(invoice: invoice),
+                                        DetailPembelianPage(invoice: invoice),
                                   ),
                                 );
                                 if (result == true) {
