@@ -70,46 +70,48 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
-Future<void> _fetchProduk() async {
-  setState(() => _isLoading = true);
+  Future<void> _fetchProduk() async {
+    setState(() => _isLoading = true);
 
-  final url = Uri.parse(
-      'https://hayami.id/apps/erp/api-android/api/master_produk.php');
+    final url = Uri.parse(
+        'https://hayami.id/apps/erp/api-android/api/master_produk.php');
 
-  try {
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      final List<dynamic> data = jsonResponse['all_product'];
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final List<dynamic> data = jsonResponse['all_product'];
 
-      // ✅ Mengambil info card dari response
-      int tersedia = int.tryParse(jsonResponse['product_tersedia'].toString()) ?? 0;
-      int sedikit = int.tryParse(jsonResponse['product_sedikit'].toString()) ?? 0;
-      int habis = int.tryParse(jsonResponse['product_habis'].toString()) ?? 0;
+        // ✅ Mengambil info card dari response
+        int tersedia =
+            int.tryParse(jsonResponse['product_tersedia'].toString()) ?? 0;
+        int sedikit =
+            int.tryParse(jsonResponse['product_sedikit'].toString()) ?? 0;
+        int habis = int.tryParse(jsonResponse['product_habis'].toString()) ?? 0;
 
-      setState(() {
-        _allProduk = List<Map<String, dynamic>>.from(data);
-        _produkGroupedList = _groupProduk(_allProduk);
-        _loadedGroupCount = (_groupLoadSize < _produkGroupedList.length)
-            ? _groupLoadSize
-            : _produkGroupedList.length;
-        _hasMore = _loadedGroupCount < _produkGroupedList.length;
-        _isLoading = false;
+        setState(() {
+          _allProduk = List<Map<String, dynamic>>.from(data);
+          _produkGroupedList = _groupProduk(_allProduk);
+          _loadedGroupCount = (_groupLoadSize < _produkGroupedList.length)
+              ? _groupLoadSize
+              : _produkGroupedList.length;
+          _hasMore = _loadedGroupCount < _produkGroupedList.length;
+          _isLoading = false;
 
-        // ✅ Update status produk dari API
-        totalProduk = tersedia + sedikit + habis;
-        produkHampirHabis = sedikit;
-        produkHabis = habis;
-      });
-    } else {
+          // ✅ Update status produk dari API
+          totalProduk = tersedia + sedikit + habis;
+          produkHampirHabis = sedikit;
+          produkHabis = habis;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        print('Gagal load produk');
+      }
+    } catch (e) {
       setState(() => _isLoading = false);
-      print('Gagal load produk');
+      print('Error: $e');
     }
-  } catch (e) {
-    setState(() => _isLoading = false);
-    print('Error: $e');
   }
-}
 
   List<List<Map<String, dynamic>>> _groupProduk(
       List<Map<String, dynamic>> data) {
