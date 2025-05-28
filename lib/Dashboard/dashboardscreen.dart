@@ -24,7 +24,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-
 void main() {
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -55,51 +54,52 @@ class Dashboardscreen extends StatefulWidget {
 
 class _DashboardscreenState extends State<Dashboardscreen> {
   List<KasBankModel> kasList = [];
-bool isKasLoading = true;
+  bool isKasLoading = true;
 
-@override
-void initState() {
-  super.initState();
-  fetchKasFromApi();
-}
+  @override
+  void initState() {
+    super.initState();
+    fetchKasFromApi();
+  }
 
-Future<void> fetchKasFromApi() async {
-  const String apiUrl = "http://hayami.id/apps/erp/api-android/api/kasdanbank.php";
-  try {
-    final response = await http.get(Uri.parse(apiUrl));
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+  Future<void> fetchKasFromApi() async {
+    const String apiUrl =
+        "http://hayami.id/apps/erp/api-android/api/kasdanbank.php";
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          kasList = data.map((json) => KasBankModel.fromJson(json)).toList();
+          isKasLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load Kas data');
+      }
+    } catch (e) {
+      print('Error fetching kas data: $e');
       setState(() {
-        kasList = data.map((json) => KasBankModel.fromJson(json)).toList();
         isKasLoading = false;
       });
-    } else {
-      throw Exception('Failed to load Kas data');
     }
-  } catch (e) {
-    print('Error fetching kas data: $e');
-    setState(() {
-      isKasLoading = false;
-    });
   }
-}
 
-String formatCurrency(double amount) {
-  return 'Rp ' + amount.toStringAsFixed(0).replaceAllMapped(
-    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-    (Match m) => '${m[1]}.',
-  );
-}
-
-String getAbbreviation(String name) {
-  final words = name.split(' ');
-  if (words.length >= 2) {
-    return words.take(2).map((e) => e[0]).join().toUpperCase();
-  } else {
-    return name.substring(0, 1).toUpperCase();
+  String formatCurrency(double amount) {
+    return 'Rp ' +
+        amount.toStringAsFixed(0).replaceAllMapped(
+              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+              (Match m) => '${m[1]}.',
+            );
   }
-}
 
+  String getAbbreviation(String name) {
+    final words = name.split(' ');
+    if (words.length >= 2) {
+      return words.take(2).map((e) => e[0]).join().toUpperCase();
+    } else {
+      return name.substring(0, 1).toUpperCase();
+    }
+  }
 
   final List<Map<String, dynamic>> menuItems = [
     {
@@ -228,20 +228,18 @@ String getAbbreviation(String name) {
                                   builder: (_) => const BiayaPage()));
                           break;
                         case 'Produk':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ProdukPage()));
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => ProdukPage()));
                           break;
                         case 'Laporan':
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => LaporanPage()));
+                          break;
+                        case 'Kas & Bank':
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => LaporanPage()));
-                          break;
-                        case 'Kas & Bank':
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const KasDanBank()));
+                                  builder: (_) => const KasDanBank()));
                           break;
                         case 'Aset Tetap':
                           Navigator.push(
@@ -299,25 +297,25 @@ String getAbbreviation(String name) {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: isKasLoading
-  ? const Center(child: CircularProgressIndicator())
-  : SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: kasList.map((kas) {
-          return Row(
-            children: [
-              _buildKasCard(
-                label: kas.nama,
-                amount: formatCurrency(kas.nominal),
-                color: Colors.blue[100]!,
-                abbreviation: getAbbreviation(kas.nama),
-              ),
-              const SizedBox(width: 12),
-            ],
-          );
-        }).toList(),
-      ),
-    ),
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: kasList.map((kas) {
+                            return Row(
+                              children: [
+                                _buildKasCard(
+                                  label: kas.nama,
+                                  amount: formatCurrency(kas.nominal),
+                                  color: Colors.blue[100]!,
+                                  abbreviation: getAbbreviation(kas.nama),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
               ),
             ),
           ],
@@ -608,7 +606,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                           }
 
                           if (item['title'] == 'Produk') {
-                            destination = const ProdukPage();
+                            destination = ProdukPage();
                           }
 
                           if (item['title'] == 'Kas & Bank') {

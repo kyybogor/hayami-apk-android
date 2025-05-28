@@ -6,6 +6,15 @@ import 'package:intl/intl.dart';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/produk/produkdetail.dart';
 
+// Fungsi untuk memperbaiki path gambar agar URL valid
+// Ubah fungsi cleanImageUrl agar benar-benar valid URL
+String cleanImageUrl(String path) {
+  if (path.isEmpty) return '';
+  if (path.startsWith('http')) return path;
+  // Perbaikan path: buang backslash dan tambah https://
+  return 'https://hayami.id/apps/erp/api-android/${path.replaceAll('\\', '/')}';
+}
+
 class ProdukPage extends StatefulWidget {
   const ProdukPage({super.key});
 
@@ -15,7 +24,7 @@ class ProdukPage extends StatefulWidget {
 
 class _ProdukPageState extends State<ProdukPage> {
   bool _showChart = true;
-  List<Map<String, dynamic>> _produkList = [];
+  List<List<Map<String, dynamic>>> _produkGroupedList = [];
   int totalProduk = 0;
   int produkHampirHabis = 0;
   int produkHabis = 0;
@@ -40,35 +49,46 @@ class _ProdukPageState extends State<ProdukPage> {
   }
 
   Future<void> _fetchProduk() async {
-    final url = Uri.parse('http://hayami.id/apps/erp/api-android/api/master_produk.php');
+    final url = Uri.parse(
+        'https://hayami.id/apps/erp/api-android/api/master_produk.php');
 
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        if (jsonResponse['status'] == 'success') {
-          final List<dynamic> data = jsonResponse['data'];
+        if (jsonResponse.containsKey('all_product')) {
+          final List<dynamic> data = jsonResponse['all_product'];
+
           setState(() {
-            _produkList = data.map((e) => Map<String, dynamic>.from(e)).toList();
-            _calculateProduk();
+            _produkGroupedList = [];
+            for (int i = 0; i < data.length; i += 4) {
+              final group = data.skip(i).take(4).map((e) {
+                print('Image path raw: ${e['img']}');
+                print('Image URL cleaned: ${cleanImageUrl(e['img'] ?? '')}');
+                return Map<String, dynamic>.from(e);
+              }).toList();
+              _produkGroupedList.add(group);
+            }
+
+            _calculateProduk(data);
           });
         } else {
-          print('Status not success');
+          print('Key "all_product" tidak ditemukan');
         }
       } else {
-        print('Failed to load produk');
+        print('Gagal load produk: ${response.statusCode}');
       }
     } catch (e) {
       print('Error: $e');
     }
   }
 
-  void _calculateProduk() {
+  void _calculateProduk(List<dynamic> data) {
     int total = 0;
     int hampirHabis = 0;
     int habis = 0;
 
-    for (var produk in _produkList) {
+    for (var produk in data) {
       int stok = int.tryParse(produk['stok'].toString()) ?? 0;
       total++;
 
@@ -109,9 +129,7 @@ class _ProdukPageState extends State<ProdukPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Tambah Produk
-        },
+        onPressed: () {},
         child: const Icon(Icons.add),
       ),
       body: ListView(
@@ -132,13 +150,18 @@ class _ProdukPageState extends State<ProdukPage> {
           // Status Cards
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
-                _buildStatusCard('Produk Tersedia', (totalProduk - produkHampirHabis - produkHabis).toString(), Colors.green),
-                _buildStatusCard('Produk Hampir Habis', produkHampirHabis.toString(), Colors.orange),
-                _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
-                _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
+                _buildStatusCard(
+                    'Produk Tersedia',
+                    (totalProduk - produkHampirHabis - produkHabis).toString(),
+                    Colors.green),
+                _buildStatusCard('Produk Hampir Habis',
+                    produkHampirHabis.toString(), Colors.orange),
+                _buildStatusCard(
+                    'Produk Habis', produkHabis.toString(), Colors.red),
+                _buildStatusCard(
+                    'Total Produk', totalProduk.toString(), Colors.blue),
               ],
             ),
           ),
@@ -155,7 +178,8 @@ class _ProdukPageState extends State<ProdukPage> {
               children: [
                 Text(
                   _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                  style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.blue, fontWeight: FontWeight.bold),
                 ),
                 Icon(_showChart ? Icons.expand_less : Icons.expand_more),
               ],
@@ -164,43 +188,38 @@ class _ProdukPageState extends State<ProdukPage> {
           const SizedBox(height: 12),
 
           if (_showChart)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildChartPlaceholder('Pergerakan Stok', screenWidth),
-                  _buildChartPlaceholder('Jenis Produk', screenWidth),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-
-          // List Produk
-          ..._produkList.map((produk) => _buildProductItem(produk)).toList(),
+            ..._produkGroupedList.map((groupProduk) {
+              final ScrollController _scrollController = ScrollController();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: SizedBox(
+                  height: 180,
+                  child: Scrollbar(
+                    controller: _scrollController,
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    thickness: 6,
+                    radius: const Radius.circular(10),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      controller: _scrollController,
+                      child: Row(
+                        children: groupProduk.map((produk) {
+                          return _buildChartPlaceholder(
+                            produk['sku'] ?? '',
+                            screenWidth,
+                            produk['img'] ?? '',
+                            produk['harga'] ?? '0',
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
         ],
       ),
-    );
-  }
-
-  Widget _buildProductItem(Map<String, dynamic> produk) {
-    return ListTile(
-      title: Text(produk['produk_name'] ?? ''),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${formatRupiah(produk['hpp'])} → ${formatRupiah(produk['harga_jual'])}'),
-          Text('${produk['hpp_value']} (HPP)'),
-          Text('${produk['produk_code']}', style: const TextStyle(fontSize: 12)),
-        ],
-      ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailPage(product: produk),
-          ),
-        );
-      },
     );
   }
 
@@ -239,7 +258,8 @@ class _ProdukPageState extends State<ProdukPage> {
                 const SizedBox(height: 4),
                 Text(
                   count,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -249,20 +269,76 @@ class _ProdukPageState extends State<ProdukPage> {
     );
   }
 
-  Widget _buildChartPlaceholder(String title, double width) {
+  Widget _buildChartPlaceholder(
+      String title, double screenWidth, String imagePath, String harga) {
+    final imgUrl = cleanImageUrl(imagePath);
+    print('Final Image URL: $imgUrl');
+
     return Container(
-      width: width - 90,
-      height: 200,
+      width: screenWidth * 0.35,
+      height: 150,
       margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
-      child: Center(
-        child: Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: imgUrl.isEmpty
+                  ? Container(
+                      color: Colors.grey.shade300,
+                      width: double.infinity,
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    )
+                  : Image.network(
+                      imgUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey.shade300,
+                        width: double.infinity,
+                        child: const Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            formatRupiah(harga),
+            style: const TextStyle(color: Colors.green),
+          ),
+        ],
       ),
     );
   }
