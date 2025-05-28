@@ -6,13 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/produk/produkdetail.dart';
 
-// Fungsi untuk memperbaiki path gambar agar URL valid
-// Ubah fungsi cleanImageUrl agar benar-benar valid URL
+// Perbaiki URL gambar
 String cleanImageUrl(String path) {
   if (path.isEmpty) return '';
   if (path.startsWith('http')) return path;
-  // Perbaikan path: buang backslash dan tambah https://
-  return 'https://hayami.id/apps/erp/api-android/${path.replaceAll('\\', '/')}';
+  return 'https://hayami.id/apps/erp/${path.replaceAll('\\', '/')}';
 }
 
 class ProdukPage extends StatefulWidget {
@@ -24,15 +22,39 @@ class ProdukPage extends StatefulWidget {
 
 class _ProdukPageState extends State<ProdukPage> {
   bool _showChart = true;
+  List<Map<String, dynamic>> _allProduk = [];
   List<List<Map<String, dynamic>>> _produkGroupedList = [];
+  int _loadedGroupCount = 0;
+  final int _groupLoadSize = 3; // Load 3 grup (12 produk) tiap batch
+  bool _isLoading = false;
+  bool _hasMore = true;
+
   int totalProduk = 0;
   int produkHampirHabis = 0;
   int produkHabis = 0;
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchProduk();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 150) {
+      if (_hasMore && !_isLoading) {
+        _loadMoreGroups();
+      }
+    }
   }
 
   String formatRupiah(dynamic amount) {
@@ -49,38 +71,59 @@ class _ProdukPageState extends State<ProdukPage> {
   }
 
   Future<void> _fetchProduk() async {
-    final url = Uri.parse(
-        'https://hayami.id/apps/erp/api-android/api/master_produk.php');
+    setState(() => _isLoading = true);
+
+    final url =
+        Uri.parse('https://hayami.id/apps/erp/api-android/api/master_produk.php');
 
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        if (jsonResponse.containsKey('all_product')) {
-          final List<dynamic> data = jsonResponse['all_product'];
+        final jsonResponse = json.decode(response.body);
+        final List<dynamic> data = jsonResponse['all_product'];
 
-          setState(() {
-            _produkGroupedList = [];
-            for (int i = 0; i < data.length; i += 4) {
-              final group = data.skip(i).take(4).map((e) {
-                print('Image path raw: ${e['img']}');
-                print('Image URL cleaned: ${cleanImageUrl(e['img'] ?? '')}');
-                return Map<String, dynamic>.from(e);
-              }).toList();
-              _produkGroupedList.add(group);
-            }
+        _calculateProduk(data);
 
-            _calculateProduk(data);
-          });
-        } else {
-          print('Key "all_product" tidak ditemukan');
-        }
+        setState(() {
+          _allProduk = List<Map<String, dynamic>>.from(data);
+          _produkGroupedList = _groupProduk(_allProduk);
+          _loadedGroupCount =
+              (_groupLoadSize < _produkGroupedList.length) ? _groupLoadSize : _produkGroupedList.length;
+          _hasMore = _loadedGroupCount < _produkGroupedList.length;
+          _isLoading = false;
+        });
       } else {
-        print('Gagal load produk: ${response.statusCode}');
+        setState(() => _isLoading = false);
+        print('Gagal load produk');
       }
     } catch (e) {
+      setState(() => _isLoading = false);
       print('Error: $e');
     }
+  }
+
+  List<List<Map<String, dynamic>>> _groupProduk(List<Map<String, dynamic>> data) {
+    List<List<Map<String, dynamic>>> groups = [];
+    for (int i = 0; i < data.length; i += 4) {
+      groups.add(data.skip(i).take(4).toList());
+    }
+    return groups;
+  }
+
+  void _loadMoreGroups() {
+    setState(() => _isLoading = true);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      setState(() {
+        final nextCount = _loadedGroupCount + _groupLoadSize;
+        if (nextCount >= _produkGroupedList.length) {
+          _loadedGroupCount = _produkGroupedList.length;
+          _hasMore = false;
+        } else {
+          _loadedGroupCount = nextCount;
+        }
+        _isLoading = false;
+      });
+    });
   }
 
   void _calculateProduk(List<dynamic> data) {
@@ -91,7 +134,6 @@ class _ProdukPageState extends State<ProdukPage> {
     for (var produk in data) {
       int stok = int.tryParse(produk['stok'].toString()) ?? 0;
       total++;
-
       if (stok == 0) {
         habis++;
       } else if (stok < 10) {
@@ -99,11 +141,9 @@ class _ProdukPageState extends State<ProdukPage> {
       }
     }
 
-    setState(() {
-      totalProduk = total;
-      produkHampirHabis = hampirHabis;
-      produkHabis = habis;
-    });
+    totalProduk = total;
+    produkHampirHabis = hampirHabis;
+    produkHabis = habis;
   }
 
   @override
@@ -133,6 +173,7 @@ class _ProdukPageState extends State<ProdukPage> {
         child: const Icon(Icons.add),
       ),
       body: ListView(
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
@@ -156,12 +197,10 @@ class _ProdukPageState extends State<ProdukPage> {
                     'Produk Tersedia',
                     (totalProduk - produkHampirHabis - produkHabis).toString(),
                     Colors.green),
-                _buildStatusCard('Produk Hampir Habis',
-                    produkHampirHabis.toString(), Colors.orange),
                 _buildStatusCard(
-                    'Produk Habis', produkHabis.toString(), Colors.red),
-                _buildStatusCard(
-                    'Total Produk', totalProduk.toString(), Colors.blue),
+                    'Produk Hampir Habis', produkHampirHabis.toString(), Colors.orange),
+                _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
+                _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
               ],
             ),
           ),
@@ -188,36 +227,40 @@ class _ProdukPageState extends State<ProdukPage> {
           const SizedBox(height: 12),
 
           if (_showChart)
-            ..._produkGroupedList.map((groupProduk) {
-              final ScrollController _scrollController = ScrollController();
+            ...List.generate(_loadedGroupCount, (groupIndex) {
+              final groupProduk = _produkGroupedList[groupIndex];
+              final ScrollController groupScrollController = ScrollController();
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: SizedBox(
                   height: 180,
                   child: Scrollbar(
-                    controller: _scrollController,
+                    controller: groupScrollController,
                     thumbVisibility: true,
                     trackVisibility: true,
                     thickness: 6,
                     radius: const Radius.circular(10),
-                    child: SingleChildScrollView(
+                    child: ListView(
+                      controller: groupScrollController,
                       scrollDirection: Axis.horizontal,
-                      controller: _scrollController,
-                      child: Row(
-                        children: groupProduk.map((produk) {
-                          return _buildChartPlaceholder(
-                            produk['sku'] ?? '',
-                            screenWidth,
-                            produk['img'] ?? '',
-                            produk['harga'] ?? '0',
-                          );
-                        }).toList(),
-                      ),
+                      children: groupProduk.map((produk) {
+                        return _buildChartPlaceholder(
+                          produk['sku'] ?? '',
+                          screenWidth,
+                          produk['img'] ?? '',
+                          produk['harga'] ?? '0',
+                        );
+                      }).toList(),
                     ),
                   ),
                 ),
               );
             }).toList(),
+
+          if (_isLoading) ...[
+            const SizedBox(height: 16),
+            const Center(child: CircularProgressIndicator()),
+          ],
         ],
       ),
     );
@@ -253,6 +296,7 @@ class _ProdukPageState extends State<ProdukPage> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(title, style: const TextStyle(fontSize: 12)),
                 const SizedBox(height: 4),
@@ -272,7 +316,6 @@ class _ProdukPageState extends State<ProdukPage> {
   Widget _buildChartPlaceholder(
       String title, double screenWidth, String imagePath, String harga) {
     final imgUrl = cleanImageUrl(imagePath);
-    print('Final Image URL: $imgUrl');
 
     return Container(
       width: screenWidth * 0.35,

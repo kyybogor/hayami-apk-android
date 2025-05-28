@@ -10,94 +10,145 @@ class DetailKontakScreen extends StatelessWidget {
     final statusAktif = data['status_aktif'] == 'Y';
     final nama = data['nm_customer'] ?? '-';
     final name = data['name'] ?? '-';
-    final email = data['email'] ?? '-';
-    final telepon = (data['telp']?.isNotEmpty == true)
+    final email =
+        (data['email'] != null && (data['email'] as String).trim().isNotEmpty)
+            ? data['email']
+            : '-';
+
+    final telepon = ((data['telp'] != null &&
+            (data['telp'] as String).trim().isNotEmpty)
         ? data['telp']
-        : (data['telp2']?.isNotEmpty == true ? data['telp2'] : '-');
-    final alamat = data['address'] ?? '-';
+        : (data['telp2'] != null && (data['telp2'] as String).trim().isNotEmpty)
+            ? data['telp2']
+            : '-');
+
+    // Cek alamat jika kosong tampilkan '-'
+    final alamat = (data['address'] != null &&
+            (data['address'] as String).trim().isNotEmpty)
+        ? data['address']
+        : '-';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kontak'),
+        foregroundColor: Colors.blue,
+        title: const Text("Kontak"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tampilkan status Aktif / Tidak Aktif di sini
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildSimpleStatusCard("Aktif", Icons.check_circle, statusAktif),
-                _buildSimpleStatusCard("Tidak Aktif", Icons.cancel, !statusAktif),
-              ],
+            const SizedBox(height: 16),
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _squareStatusTab("Aktif", statusAktif),
+                  const SizedBox(width: 16),
+                  _squareStatusTab("Tidak Aktif", !statusAktif),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
-            // Card Informasi Kontak
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(nama, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(name, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-                    const Divider(height: 24),
-                    Row(
-                      children: [
-                        const Icon(Icons.email, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(email)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone, size: 20),
-                        const SizedBox(width: 8),
-                        Text(telepon),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.location_on, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(alamat)),
-                      ],
-                    ),
-                  ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                color: Colors.grey[200],
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        nama,
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        name,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      const CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.grey,
+                        child: Text(
+                          "N...",
+                          style: TextStyle(fontSize: 20, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(height: 5,),
+                      ListTile(
+                        leading: const Icon(Icons.email),
+                        title: Text(email),
+                      ),
+                      const Divider(
+                        height: 5,
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.phone),
+                        title: Text(telepon),
+                      ),
+                      const Divider(
+                        height: 5,
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.location_on),
+                        title: Text(alamat),
+                      ),
+                      const Divider(height: 5,),
+                    ],
+                  ),
                 ),
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSimpleStatusCard(String label, IconData icon, bool isActive) {
+  Widget _squareStatusTab(String label, bool selected) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      width: 90,
+      height: 70,
       decoration: BoxDecoration(
-        color: isActive ? Colors.green : Colors.grey[300],
+        color: selected ? Colors.white : Colors.grey[200],
         borderRadius: BorderRadius.circular(12),
+        boxShadow: selected
+            ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+            : null,
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 24, color: isActive ? Colors.white : Colors.grey[700]),
-          const SizedBox(height: 8),
+          Icon(
+            label == "Aktif" ? Icons.check_circle : Icons.cancel,
+            color: selected ? Colors.green : Colors.grey,
+            size: 20,
+          ),
+          const SizedBox(height: 6),
           Text(
             label,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: isActive ? Colors.white : Colors.grey[700],
+              fontSize: 12, // kecilkan ukuran font
+              color: selected ? Colors.black : Colors.grey,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ],

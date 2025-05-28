@@ -4,50 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/pemesanan/pemesananscreen.dart';
-import 'package:hayami_app/penawaran/penawaranscreen.dart';
 import 'package:hayami_app/tagihan/tagihanscreen.dart';
 import 'package:hayami_app/pengiriman/pengirimanscreen.dart';
 import 'package:intl/intl.dart';
 
 class Penjualanscreen extends StatefulWidget {
   const Penjualanscreen({super.key});
-
-  final menuItems = const [
-    {'icon': Icons.house, 'title': 'Beranda'},
-    {
-      'icon': Icons.shopping_bag,
-      'title': 'Penjualan',
-      'children': [
-        'Overview',
-        'Tagihan',
-        'Pengiriman',
-        'Pemesanan',
-        'Penawaran'
-      ]
-    },
-    {
-      'icon': Icons.shopping_cart,
-      'title': 'Pembelian',
-      'children': [
-        'Overview',
-        'Tagihan Pembelian',
-        'Pengiriman Pembelian',
-        'Pesanan Pembelian',
-        'Penawaran Pembelian'
-      ]
-    },
-    {'icon': Icons.money_off, 'title': 'Biaya'},
-    {'icon': Icons.inventory_2, 'title': 'Produk'},
-    {'icon': Icons.local_shipping, 'title': 'Inventori'},
-    {'icon': Icons.bar_chart, 'title': 'Laporan'},
-    {'icon': Icons.account_balance, 'title': 'Kas & Bank'},
-    {'icon': Icons.person, 'title': 'Akun'},
-    {'icon': Icons.domain, 'title': 'Aset Tetap'},
-    {'icon': Icons.contacts, 'title': 'Kontak'},
-    {'icon': Icons.settings, 'title': 'Pengaturan'},
-    {'icon': Icons.help_outline, 'title': 'FAQ'},
-    {'icon': Icons.exit_to_app, 'title': 'Keluar'},
-  ];
 
   @override
   State<Penjualanscreen> createState() => _PenjualanscreenState();
@@ -259,19 +221,6 @@ class _PenjualanscreenState extends State<Penjualanscreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const PemesananPage(),
-                ),
-              );
-            },
-          ),
-          _MenuIcon(
-            icon: Icons.note_add,
-            color: Colors.orangeAccent,
-            label: 'Penawaran',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PenawaranPage(),
                 ),
               );
             },
