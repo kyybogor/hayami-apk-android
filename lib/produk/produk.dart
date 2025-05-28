@@ -248,7 +248,7 @@ class _ProdukPageState extends State<ProdukPage> {
                 padding: const EdgeInsets.only(
                     bottom: 1), // Jarak antar row diperbesar
                 child: SizedBox(
-                  height: 180,
+                  height: 240,
                   child: ListView(
                     controller: groupScrollController,
                     scrollDirection: Axis.horizontal,
@@ -321,84 +321,81 @@ class _ProdukPageState extends State<ProdukPage> {
     );
   }
 
-  Widget _buildChartPlaceholder(
-      String title, double screenWidth, String imagePath, String harga) {
-    final imgUrl = cleanImageUrl(imagePath);
+Widget _buildChartPlaceholder(
+    String title, double screenWidth, String imagePath, String harga) {
+  final imgUrl = cleanImageUrl(imagePath);
 
-    return Column(
-      children: [
-        Container(
-          width: screenWidth * 0.35,
-          height: 150,
-          margin: const EdgeInsets.only(right: 12),
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: imgUrl.isEmpty
-                      ? Container(
+  return Column(
+    children: [
+      Container(
+        width: screenWidth * 0.5, // ✅ Diperbesar
+        height: 220,              // ✅ Diperbesar
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: imgUrl.isEmpty
+                    ? Container(
+                        color: Colors.grey.shade300,
+                        width: double.infinity,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : Image.network(
+                        imgUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.grey.shade300,
                           width: double.infinity,
                           child: const Center(
                             child: Icon(
-                              Icons.image_not_supported,
+                              Icons.broken_image,
                               size: 50,
                               color: Colors.grey,
                             ),
                           ),
-                        )
-                      : Image.network(
-                          imgUrl,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                            color: Colors.grey.shade300,
-                            width: double.infinity,
-                            child: const Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                size: 50,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
                         ),
-                ),
+                      ),
               ),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                formatRupiah(harga),
-                style: const TextStyle(color: Colors.green),
-              ),
-            ],
-          ),
+            ),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              formatRupiah(harga),
+              style: const TextStyle(color: Colors.green),
+            ),
+          ],
         ),
-        const SizedBox(
-          height: 2,
-        ),
-      ],
-    );
-  }
+      ),
+      const SizedBox(height: 2),
+    ],
+  );
+}
 }
