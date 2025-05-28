@@ -44,19 +44,18 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
   }
 
   double get totalDiskonOtomatis {
-  return widget.cartItems.fold(0, (sum, item) {
-    int lusin = item.orderQty.floor();
-    double sisa = item.orderQty - lusin;
-    double setengahLusinDiskon = item.diskonPerLusin / 2;
+    return widget.cartItems.fold(0, (sum, item) {
+      int lusin = item.orderQty.floor();
+      double sisa = item.orderQty - lusin;
+      double setengahLusinDiskon = item.diskonPerLusin / 2;
 
-    double diskonItem = lusin * item.diskonPerLusin;
-    if (sisa >= 0.5) {
-      diskonItem += setengahLusinDiskon;
-    }
-    return sum + diskonItem;
-  });
-}
-
+      double diskonItem = lusin * item.diskonPerLusin;
+      if (sisa >= 0.5) {
+        diskonItem += setengahLusinDiskon;
+      }
+      return sum + diskonItem;
+    });
+  }
 
   @override
   void initState() {
@@ -74,6 +73,8 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -86,60 +87,132 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("🧑 Customer: ${widget.selectedCustomer}",
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
+            Text(
+              "🧑 Customer: ${widget.selectedCustomer}",
+              style: theme.textTheme.titleMedium!
+                  .copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
 
-            Expanded(
-              child: ListView.builder(
+            // Daftar Produk
+            Text("Daftar Produk", style: theme.textTheme.titleMedium),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 240,
+              child: ListView.separated(
                 itemCount: widget.cartItems.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = widget.cartItems[index];
-                  return ListTile(
-  title: Text(item.sku),
-  subtitle: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-          "${item.orderQty.toStringAsFixed(1)} lusin x Rp ${currencyFormat.format(item.harga)}"),
-      if (item.diskonPerLusin > 0)
-        Text(
-          "Diskon otomatis: Rp ${currencyFormat.format(item.diskonPerLusin)} / lusin",
-          style: const TextStyle(fontSize: 12, color: Colors.green),
-        ),
-    ],
-  ),
-  trailing: Text(
-    "Rp ${currencyFormat.format(item.totalHarga)}",
-    style: const TextStyle(fontWeight: FontWeight.bold),
-  ),
-);
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Icon Produk (Placeholder)
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.inventory_2_outlined,
+                              color: Colors.blue,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.sku,
+                                  style: theme.textTheme.titleMedium!
+                                      .copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "${item.orderQty.toStringAsFixed(1)} lusin x Rp ${currencyFormat.format(item.harga)}",
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                if (item.diskonPerLusin > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      "Diskon Customer: Rp ${currencyFormat.format(item.diskonPerLusin)} / lusin",
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            "Rp ${currencyFormat.format(item.totalHarga)}",
+                            style: theme.textTheme.titleMedium!.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
 
+            const SizedBox(height: 24),
+            Text("Diskon", style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             _buildDiscountInput(),
+            const SizedBox(height: 24),
+            Text("Metode Pembayaran", style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             _buildPaymentMethodDropdown(),
             if (_selectedPaymentMethod == 'Kredit') _buildTOPDropdown(),
 
-            const Divider(height: 24, thickness: 1),
+            const SizedBox(height: 24),
+            const Divider(thickness: 1),
 
+            const SizedBox(height: 16),
+            Text("Ringkasan", style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
             _buildSummaryRow("Total Lusin", "${totalLusin.toStringAsFixed(1)}"),
-            _buildSummaryRow("Subtotal", "Rp ${currencyFormat.format(subtotal)}"),
-            _buildSummaryRow("Diskon Otomatis", "- Rp ${currencyFormat.format(totalDiskonOtomatis)}"),
+            _buildSummaryRow(
+                "Subtotal", "Rp ${currencyFormat.format(subtotal)}"),
+            _buildSummaryRow(
+                "Diskon Customer", "Rp ${currencyFormat.format(totalDiskonOtomatis)}"),
+            _buildSummaryRow(
+                "Diskon Produk", "Rp ${currencyFormat.format(discountNominal)}"),
             _buildSummaryRow("Total Setelah Diskon",
                 "Rp ${currencyFormat.format(totalAfterDiscount)}"),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 28),
             ElevatedButton.icon(
               icon: const Icon(Icons.check_circle_outline),
-              label: const Text("Konfirmasi Pesanan"),
+              label: const Text(
+                "Konfirmasi Pesanan",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               onPressed: () {
                 if (_selectedPaymentMethod == 'Kredit' && _selectedTOP == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -148,14 +221,17 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
                   return;
                 }
 
-                // TODO: Handle submit logic here
-                // print('Customer: ${widget.selectedCustomer}');
-                // print('Metode: $_selectedPaymentMethod, TOP: $_selectedTOP');
+                // Handle submit logic here
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Colors.blue.shade700,
                 foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
+                minimumSize: const Size(double.infinity, 52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 3,
+                shadowColor: Colors.blueAccent.shade100,
               ),
             ),
           ],
@@ -166,14 +242,16 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
 
   Widget _buildSummaryRow(String title, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title),
+          Text(title, style: const TextStyle(fontSize: 15)),
           Text(value,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.black87)),
         ],
       ),
     );
@@ -185,10 +263,16 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
         Expanded(
           child: TextField(
             controller: _percentController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
               labelText: 'Diskon (%)',
-              prefixIcon: Icon(Icons.percent),
+              prefixIcon: const Icon(Icons.percent),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             ),
             onChanged: (val) {
               if (_updatingFromNominal) return;
@@ -205,14 +289,20 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
             },
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(
           child: TextField(
             controller: _nominalController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
               labelText: 'Diskon (Rp)',
-              prefixIcon: Icon(Icons.money),
+              prefixIcon: const Icon(Icons.money),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             ),
             onChanged: (val) {
               if (_updatingFromPercent) return;
@@ -236,10 +326,13 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
   Widget _buildPaymentMethodDropdown() {
     return DropdownButtonFormField<String>(
       value: _selectedPaymentMethod,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Metode Pembayaran',
-        prefixIcon: Icon(Icons.payment),
-        border: OutlineInputBorder(),
+        prefixIcon: const Icon(Icons.payment),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       ),
       items: const [
         DropdownMenuItem(value: 'Cash', child: Text('Cash')),
@@ -256,13 +349,17 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
 
   Widget _buildTOPDropdown() {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 16),
       child: DropdownButtonFormField<int>(
         value: _selectedTOP,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           labelText: 'Durasi TOP (hari)',
-          prefixIcon: Icon(Icons.timer),
-          border: OutlineInputBorder(),
+          prefixIcon: const Icon(Icons.timer),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
         items: const [
           DropdownMenuItem(value: 30, child: Text('30 Hari')),

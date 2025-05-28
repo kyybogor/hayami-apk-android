@@ -341,82 +341,87 @@ if (item.diskonPerLusin > 0)
     style: const TextStyle(fontSize: 12, color: Colors.green),
   ),
 const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  // Available
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      'Available: ${item.availableQty.toStringAsFixed(2)}',
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
+                              Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      'Available: ${item.availableQty.toStringAsFixed(2)}',
+      style: const TextStyle(fontSize: 13),
+    ),
+    const SizedBox(height: 8),
+    Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Quantity picker
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              onPressed: () {
+                setState(() {
+                  if (item.orderQty > 0) {
+                    item.orderQty -= 0.5;
+                  }
+                });
+              },
+            ),
+            Container(
+              width: 70,
+              alignment: Alignment.center,
+              child: Text(
+                '${item.orderQty.toStringAsFixed(1)} lusin',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: () {
+                setState(() {
+                  if (item.orderQty + 0.5 <= item.availableQty) {
+                    item.orderQty += 0.5;
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Stok tidak mencukupi. Maksimum ${item.availableQty.toStringAsFixed(1)} lusin.',
+                        ),
+                      ),
+                    );
+                  }
+                });
+              },
+            ),
+          ],
+        ),
 
-                                  // Quantity Picker (0.5 step)
-                                  Expanded(
-                                    flex: 4,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.remove_circle_outline),
-                                          onPressed: () {
-                                            setState(() {
-                                              if (item.orderQty > 0) {
-                                                item.orderQty -= 0.5;
-                                              }
-                                            });
-                                          },
-                                        ),
-                                        Text(
-                                            '${item.orderQty.toStringAsFixed(1)} lusin',
-                                            style:
-                                                const TextStyle(fontSize: 14)),
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.add_circle_outline),
-                                          onPressed: () {
-                                            setState(() {
-                                              item.orderQty += 0.5;
-                                            });
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Total Harga & Delete
-                                  Expanded(
-                                    flex: 3,
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Row(
-                                        children: [
-                                          Text(
-  'Rp ${NumberFormat("#,##0", "id_ID").format(item.totalHargaNormal)}',
-  style: const TextStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.bold),
+        // Total harga dan delete icon
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            children: [
+              Text(
+                'Rp ${NumberFormat("#,##0", "id_ID").format(item.totalHargaNormal)}',
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () {
+                  setState(() {
+                    cartItems.remove(item);
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  ],
 ),
 
-                                          const SizedBox(width: 8),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete,
-                                                color: Colors.red),
-                                            onPressed: () {
-                                              setState(() {
-                                                cartItems.remove(item);
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
                         ),
@@ -429,24 +434,43 @@ const SizedBox(height: 8),
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.arrow_forward),
-                      label: const Text("Lanjut ke Konfirmasi"),
+                      label: const Text("Konfirmasi Pesanan"),
                       onPressed: () {
-  if (selectedCustomerObj != null && cartItems.isNotEmpty) {
-    Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => KonfirmasiPesanan(
-      selectedCustomer: selectedCustomerObj!.nmCustomer,
-      cartItems: cartItems,
-    ),
-  ),
-);
-  } else {
+  if (selectedCustomerObj == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lengkapi customer dan isi keranjang')),
+      const SnackBar(content: Text('Silakan pilih customer terlebih dahulu')),
     );
+    return;
   }
+
+  if (cartItems.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Keranjang masih kosong')),
+    );
+    return;
+  }
+
+  final bool hasValidQty = cartItems.any((item) => item.orderQty > 0);
+
+  if (!hasValidQty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Isi jumlah pesanan terlebih dahulu')),
+    );
+    return;
+  }
+
+  // Jika semua valid, lanjut
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => KonfirmasiPesanan(
+        selectedCustomer: selectedCustomerObj!.nmCustomer,
+        cartItems: cartItems,
+      ),
+    ),
+  );
 },
+
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
