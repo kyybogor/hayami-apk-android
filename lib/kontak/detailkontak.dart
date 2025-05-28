@@ -1,157 +1,107 @@
 import 'package:flutter/material.dart';
 
-class Detailkontak extends StatelessWidget {
-  final dynamic data;
+class DetailKontakScreen extends StatelessWidget {
+  final Map<String, dynamic> data;
 
-  const Detailkontak({super.key, required this.data});
+  const DetailKontakScreen({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-    // Cek jika data null atau bukan Map
-    if (data == null || data is! Map) {
-      return const Scaffold(
-        body: Center(child: Text("Data tidak tersedia")),
-      );
-    }
+    final statusAktif = data['status_aktif'] == 'Y';
+    final nama = data['nm_customer'] ?? '-';
+    final name = data['name'] ?? '-';
+    final email = data['email'] ?? '-';
+    final telepon = (data['telp']?.isNotEmpty == true)
+        ? data['telp']
+        : (data['telp2']?.isNotEmpty == true ? data['telp2'] : '-');
+    final alamat = data['address'] ?? '-';
 
     return Scaffold(
       appBar: AppBar(
+        title: const Text('Kontak'),
         centerTitle: true,
-        title: const Text("Kontak"),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _headerCard(data),
-            ),
-            _buildSectionTitle("Detail Profil"),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: [
-                  _buildLineItem(Icons.layers, "Grup", data['grup']?.toString() ?? '-'),
-                  _buildLineItem(Icons.assignment, "NPWP", data['npwp']?.toString() ?? '-'),
-                ],
-              ),
-            ),
-            _buildSectionTitle("Pemetaan Akun"),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: [
-                  _buildLineItem(Icons.receipt_long, "Akun Hutang", data['ap_amount']?.toString() ?? '0.00'),
-                  _buildLineItem(Icons.receipt_long, "Akun Piutang", data['ar_amount']?.toString() ?? '0.00'),
-                  _buildLineItem(Icons.receipt, "Kena Pajak",
-                      (data['cust_class']?.toString() == "1") ? "Ya" : "Tidak"),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _headerCard(Map data) {
-    String nama = data['nm_customer']?.toString() ?? '-';
-    String instansi = data['name']?.toString() ?? '-';
-    String email = data['email']?.toString() ?? '-';
-
-    String telepon = (data['telp']?.toString().isNotEmpty ?? false)
-        ? data['telp'].toString()
-        : data['telp2']?.toString() ?? '-';
-
-    String alamat = data['address']?.toString() ?? '-';
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 3,
-      child: Padding(
+      body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              nama,
-              style: const TextStyle(fontSize: 20, color: Color(0xFF0D47A1)),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              instansi,
-              style: const TextStyle(color: Colors.black),
+            // Tampilkan status Aktif / Tidak Aktif di sini
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildSimpleStatusCard("Aktif", Icons.check_circle, statusAktif),
+                _buildSimpleStatusCard("Tidak Aktif", Icons.cancel, !statusAktif),
+              ],
             ),
             const SizedBox(height: 16),
-            Center(
-              child: CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.grey.shade400,
-                child: Text(
-                  (nama.isNotEmpty) ? nama[0].toUpperCase() : '?',
-                  style: const TextStyle(fontSize: 24, color: Colors.white),
+            // Card Informasi Kontak
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(nama, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(name, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                    const Divider(height: 24),
+                    Row(
+                      children: [
+                        const Icon(Icons.email, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(email)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.phone, size: 20),
+                        const SizedBox(width: 8),
+                        Text(telepon),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.location_on, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(alamat)),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            _infoRow(Icons.email, email),
-            _infoRow(Icons.phone, telepon),
-            _infoRow(Icons.location_on, alamat),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+  Widget _buildSimpleStatusCard(String label, IconData icon, bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.green : Colors.grey[300],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
         children: [
-          Icon(icon, color: Colors.grey[700], size: 20),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text)),
+          Icon(icon, size: 24, color: isActive ? Colors.white : Colors.grey[700]),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isActive ? Colors.white : Colors.grey[700],
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Container(
-      width: double.infinity,
-      color: Colors.grey.shade300,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildLineItem(IconData icon, String label, String value) {
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Icon(icon, color: Colors.grey[600], size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: const TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 4),
-                  Text(value, style: const TextStyle(fontSize: 16)),
-                  const Divider(thickness: 1),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

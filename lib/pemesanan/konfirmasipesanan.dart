@@ -43,6 +43,21 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
     return subtotal - totalDisc;
   }
 
+  double get totalDiskonOtomatis {
+  return widget.cartItems.fold(0, (sum, item) {
+    int lusin = item.orderQty.floor();
+    double sisa = item.orderQty - lusin;
+    double setengahLusinDiskon = item.diskonPerLusin / 2;
+
+    double diskonItem = lusin * item.diskonPerLusin;
+    if (sisa >= 0.5) {
+      diskonItem += setengahLusinDiskon;
+    }
+    return sum + diskonItem;
+  });
+}
+
+
   @override
   void initState() {
     super.initState();
@@ -85,14 +100,24 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
                 itemBuilder: (context, index) {
                   final item = widget.cartItems[index];
                   return ListTile(
-                    title: Text(item.sku),
-                    subtitle: Text(
-                        "${item.orderQty.toStringAsFixed(1)} lusin x Rp ${currencyFormat.format(item.harga)}"),
-                    trailing: Text(
-                      "Rp ${currencyFormat.format(item.totalHarga)}",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  );
+  title: Text(item.sku),
+  subtitle: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+          "${item.orderQty.toStringAsFixed(1)} lusin x Rp ${currencyFormat.format(item.harga)}"),
+      if (item.diskonPerLusin > 0)
+        Text(
+          "Diskon otomatis: Rp ${currencyFormat.format(item.diskonPerLusin)} / lusin",
+          style: const TextStyle(fontSize: 12, color: Colors.green),
+        ),
+    ],
+  ),
+  trailing: Text(
+    "Rp ${currencyFormat.format(item.totalHarga)}",
+    style: const TextStyle(fontWeight: FontWeight.bold),
+  ),
+);
                 },
               ),
             ),
@@ -107,6 +132,7 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
 
             _buildSummaryRow("Total Lusin", "${totalLusin.toStringAsFixed(1)}"),
             _buildSummaryRow("Subtotal", "Rp ${currencyFormat.format(subtotal)}"),
+            _buildSummaryRow("Diskon Otomatis", "- Rp ${currencyFormat.format(totalDiskonOtomatis)}"),
             _buildSummaryRow("Total Setelah Diskon",
                 "Rp ${currencyFormat.format(totalAfterDiscount)}"),
 

@@ -115,14 +115,14 @@ class _HutangpiutangperkontakState extends State<Hutangpiutangperkontak> {
                       const Icon(Icons.chevron_right, color: Colors.grey),
                     ],
                   ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetailKontak(data: item),
-                      ),
-                    );
-                  },
+                  //onTap: () {
+                   // Navigator.push(
+                      //context,
+                      //MaterialPageRoute(
+                        //builder: (context) => DetailKontak(data: item),
+                      //),
+                    //);
+                 // },
                 );
               },
             ),
