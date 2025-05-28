@@ -7,47 +7,117 @@ import 'package:intl/intl.dart';
 class Customer {
   final String idCustomer;
   final String nmCustomer;
+  final String nmType;      // tambah ini
+  final double percentage;  // tambah ini
 
-  Customer({required this.idCustomer, required this.nmCustomer});
+  Customer({
+    required this.idCustomer,
+    required this.nmCustomer,
+    required this.nmType,
+    required this.percentage,
+  });
 
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
       idCustomer: json['id_customer'] ?? '',
       nmCustomer: json['nm_customer'] ?? '',
+      nmType: json['nm_type'] ?? '',
+      percentage: double.tryParse(json['percentage'] ?? '100') ?? 100.0,
     );
   }
 }
 
+
+class Diskon {
+  final String idCust;
+  final String idTipe;
+  final double discp;
+
+  Diskon({
+    required this.idCust,
+    required this.idTipe,
+    required this.discp,
+  });
+
+  factory Diskon.fromJson(Map<String, dynamic> json) {
+    return Diskon(
+      idCust: json['id_cust'] ?? '',
+      idTipe: json['id_tipe'] ?? '',
+      discp: double.tryParse(json['discp'] ?? '0.0') ?? 0.0,
+    );
+  }
+}
+
+
 class Produk {
   final String sku;
+  final String idTipe;
   final double qty;
   final double qtyclear;
   final double qtycleardo;
-  final double harga;
-  double orderQty; // jumlah yang dipesan dalam satuan lusin
+  final double harga; // harga dasar tanpa persentase
+  double orderQty;
+  
+  // Diskon per lusin (rupiah)
+  double diskonPerLusin;
+
+  // Persentase harga berdasarkan tipe customer (misal: 100, 120, 144, 230)
+  double percentage;
 
   Produk({
     required this.sku,
+    required this.idTipe,
     required this.qty,
     required this.qtyclear,
     required this.qtycleardo,
     required this.harga,
     this.orderQty = 0.0,
+    this.diskonPerLusin = 0.0,
+    this.percentage = 100.0, // default 100% (harga dasar)
   });
 
   factory Produk.fromJson(Map<String, dynamic> json) {
     return Produk(
       sku: json['sku'] ?? '',
+      idTipe: json['id_tipe'] ?? '',
       qty: double.tryParse(json['qty'] ?? '0') ?? 0.0,
       qtyclear: double.tryParse(json['qtyclear'] ?? '0') ?? 0.0,
       qtycleardo: double.tryParse(json['qtycleardo'] ?? '0') ?? 0.0,
       harga: double.tryParse(json['harga'] ?? '0') ?? 0.0,
+      // percentage tidak didapat dari JSON produk, harus di-set dari luar sesuai tipe customer
     );
   }
 
   double get availableQty => qty - (qtyclear + qtycleardo);
-  double get totalHarga => orderQty * harga;
+
+  // Harga sudah disesuaikan dengan persentase customer
+  double get hargaAdjusted => harga * (percentage / 100);
+
+  // Total harga dengan diskon per lusin, sudah disesuaikan harga
+  double get totalHarga {
+    double diskonPerSetengahLusin = diskonPerLusin / 2;
+
+    int lusin = orderQty.floor();
+    double sisa = orderQty - lusin;
+
+    double diskonTotal = lusin * diskonPerLusin + (sisa >= 0.5 ? diskonPerSetengahLusin : 0);
+
+    double hargaTotal = hargaAdjusted * orderQty;
+
+    double hargaSetelahDiskon = hargaTotal - diskonTotal;
+
+    return hargaSetelahDiskon < 0 ? 0 : hargaSetelahDiskon;
+  }
+
+  // Total harga normal tanpa diskon tapi dengan penyesuaian persentase
+  double get totalHargaNormal {
+    return hargaAdjusted * orderQty;
+  }
 }
+
+
+
+
 
 class Tambahpesanan extends StatefulWidget {
   const Tambahpesanan({super.key});
@@ -60,10 +130,12 @@ class _TambahpesananState extends State<Tambahpesanan> {
   String? selectedCustomer;
   String? selectedSku;
 
+  Customer? selectedCustomerObj;
   List<Customer> customers = [];
   List<Produk> skus = [];
   List<Produk> cartItems = [];
 
+  List<Diskon> diskonList = [];
   @override
   void initState() {
     super.initState();
@@ -71,30 +143,38 @@ class _TambahpesananState extends State<Tambahpesanan> {
     fetchSkus();
   }
 
-  Future<void> fetchCustomers() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://hayami.id/apps/erp/api-android/api/kontak.php'),
-      );
+Future<void> fetchCustomers() async {
+  try {
+    final response = await http.get(
+      Uri.parse('http://hayami.id/apps/erp/api-android/api/kontak.php'),
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          customers = data
-              .map((json) => Customer.fromJson(json))
-              .where((c) => c.nmCustomer.isNotEmpty)
-              .toList();
-        });
-      } else {
-        throw Exception('Gagal mengambil data customer');
-      }
-    } catch (e) {
-      print('Error fetchCustomers: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal memuat data customer')),
-      );
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      final List<dynamic> customerData = jsonResponse['customer_data'] ?? [];
+      final List<dynamic> diskonData = jsonResponse['diskon_cust_data'] ?? [];
+
+      setState(() {
+        customers = customerData
+            .map((json) => Customer.fromJson(json))
+            .where((c) => c.nmCustomer.isNotEmpty)
+            .toList();
+
+        diskonList = diskonData
+            .map((json) => Diskon.fromJson(json))
+            .toList();
+      });
+    } else {
+      throw Exception('Gagal mengambil data customer');
     }
+  } catch (e) {
+    print('Error fetchCustomers: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gagal memuat data customer')),
+    );
   }
+}
+
 
   Future<void> fetchSkus() async {
     try {
@@ -178,40 +258,42 @@ class _TambahpesananState extends State<Tambahpesanan> {
                           style: TextStyle(fontSize: 15)),
                       onPressed: () {
                         if (selectedCustomer != null && selectedSku != null) {
-                          final selectedProduct = skus.firstWhere(
-                            (p) => p.sku == selectedSku,
-                            orElse: () => Produk(
-                              sku: selectedSku!,
-                              qty: 0,
-                              qtyclear: 0,
-                              qtycleardo: 0,
-                              harga: 0,
-                              orderQty: 0.0,
-                            ),
-                          );
+  final selectedProduct = skus.firstWhere(
+    (p) => p.sku == selectedSku,
+  );
 
-                          setState(() {
-                            cartItems.add(Produk(
-                              sku: selectedProduct.sku,
-                              qty: selectedProduct.qty,
-                              qtyclear: selectedProduct.qtyclear,
-                              qtycleardo: selectedProduct.qtycleardo,
-                              harga: selectedProduct.harga,
-                              orderQty: 0.0,
-                            ));
-                            selectedSku = null;
-                          });
+  // Cari diskon untuk customer & id_tipe
+  double diskonLusin = 0.0;
+  if (selectedCustomerObj != null) {
+    final matchingDiskon = diskonList.firstWhere(
+      (d) =>
+          d.idCust == selectedCustomerObj!.idCustomer &&
+          d.idTipe == selectedProduct.idTipe,
+      orElse: () => Diskon(idCust: '', idTipe: '', discp: 0.0),
+    );
+    diskonLusin = matchingDiskon.discp;
+  }
 
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(
-                                'Pesanan untuk $selectedCustomer - ${selectedProduct.sku} disimpan.'),
-                          ));
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Lengkapi semua data.')),
-                          );
-                        }
+  setState(() {
+    cartItems.add(Produk(
+      sku: selectedProduct.sku,
+      idTipe: selectedProduct.idTipe,
+      qty: selectedProduct.qty,
+      qtyclear: selectedProduct.qtyclear,
+      qtycleardo: selectedProduct.qtycleardo,
+      harga: selectedProduct.harga,
+      orderQty: 0.0,
+      diskonPerLusin: diskonLusin, // ⬅ Diskon diterapkan langsung
+      percentage: selectedCustomerObj?.percentage ?? 100.0,
+    ));
+    selectedSku = null;
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text(
+        'Pesanan untuk $selectedCustomer - ${selectedProduct.sku} disimpan.'),
+  ));
+}
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
@@ -251,9 +333,14 @@ class _TambahpesananState extends State<Tambahpesanan> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(item.sku,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
+    style: const TextStyle(
+        fontWeight: FontWeight.bold)),
+if (item.diskonPerLusin > 0)
+  Text(
+    'Diskon: Rp ${NumberFormat("#,##0", "id_ID").format(item.diskonPerLusin)} / lusin',
+    style: const TextStyle(fontSize: 12, color: Colors.green),
+  ),
+const SizedBox(height: 8),
                               Row(
                                 children: [
                                   // Available
@@ -308,11 +395,12 @@ class _TambahpesananState extends State<Tambahpesanan> {
                                       child: Row(
                                         children: [
                                           Text(
-                                            'Rp ${NumberFormat("#,##0", "id_ID").format(item.totalHarga)}',
-                                            style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold),
-                                          ),
+  'Rp ${NumberFormat("#,##0", "id_ID").format(item.totalHargaNormal)}',
+  style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.bold),
+),
+
                                           const SizedBox(width: 8),
                                           IconButton(
                                             icon: const Icon(Icons.delete,
@@ -343,16 +431,16 @@ class _TambahpesananState extends State<Tambahpesanan> {
                       icon: const Icon(Icons.arrow_forward),
                       label: const Text("Lanjut ke Konfirmasi"),
                       onPressed: () {
-  if (selectedCustomer != null && cartItems.isNotEmpty) {
+  if (selectedCustomerObj != null && cartItems.isNotEmpty) {
     Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => KonfirmasiPesanan(
-  selectedCustomer: selectedCustomer!,
-  cartItems: cartItems,
-),
-      ),
-    );
+  context,
+  MaterialPageRoute(
+    builder: (context) => KonfirmasiPesanan(
+      selectedCustomer: selectedCustomerObj!.nmCustomer,
+      cartItems: cartItems,
+    ),
+  ),
+);
   } else {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Lengkapi customer dan isi keranjang')),
@@ -420,10 +508,12 @@ class _TambahpesananState extends State<Tambahpesanan> {
             );
           },
           onSelected: (String selection) {
-            setState(() {
-              selectedCustomer = selection;
-            });
-          },
+  final cust = customers.firstWhere((c) => c.nmCustomer == selection);
+  setState(() {
+    selectedCustomer = selection;
+    selectedCustomerObj = cust; // ⬅ simpan objek customer
+  });
+},
           optionsViewBuilder: (context, onSelected, options) {
             return Align(
               alignment: Alignment.topLeft,

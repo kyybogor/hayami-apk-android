@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
-import 'package:hayami_app/tagihan/tambahtagihan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -29,63 +28,66 @@ class _DibayarSebagianState extends State<DibayarSebagian> {
     fetchInvoices();
   }
 
-Future<void> fetchInvoices() async {
-  try {
-    final response = await http.get(
-      Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
-    );
+  Future<void> fetchInvoices() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
 
-      final openInvoices = data.where((item) =>
-        item["status"] != null && item["status"].toString().toLowerCase() == 'Partially Paid'
-      ).toList();
+        final openInvoices = data
+            .where((item) =>
+                item["status"] != null &&
+                item["status"].toString().toLowerCase() == 'partially paid')
+            .toList();
 
-      invoices = openInvoices.map<Map<String, dynamic>>((item) {
-        String? dibuatTgl = item["tgl"];
-        return {
-          "id": item["id_do1"] ?? '-',
-          "name": (item["id_cust"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["id_cust"],
-          "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["id_group"],
-          "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["no_inv"],
-          "date": dibuatTgl?.toString().trim().isEmpty ?? true
-              ? null
-              : dibuatTgl,
-          "due": (item["tgltop"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["tgltop"],
-          "alamat": (item["address"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["address"],
-          "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["grandttl"],
-          "status": 'Dibayar Sebagian',
+        invoices = openInvoices.map<Map<String, dynamic>>((item) {
+          String? dibuatTgl = item["tgl"];
+          return {
+            "id": item["id_do1"] ?? '-',
+            "name": (item["id_cust"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_cust"],
+            "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_group"],
+            "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["no_inv"],
+            "date":
+                dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
+            "due": (item["tgltop"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["tgltop"],
+            "alamat": (item["address"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["address"],
+            "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["grandttl"],
+            "dibayar": (item["sudah_bayar"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["sudah_bayar"],
+            "status": 'Dibayar Sebagian',
+          };
+        }).toList();
 
-        };
-      }).toList();
-
+        setState(() {
+          filteredInvoices = invoices;
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (e) {
+      print("Error: $e");
       setState(() {
-        filteredInvoices = invoices;
         isLoading = false;
       });
-    } else {
-      throw Exception('Gagal mengambil data');
     }
-  } catch (e) {
-    print("Error: $e");
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
   void filterByMonthYear() {
     setState(() {
@@ -324,7 +326,6 @@ Future<void> fetchInvoices() async {
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         Detailbelumdibayar(invoice: invoice),
-
                                   ),
                                 );
                                 if (result == true) {
