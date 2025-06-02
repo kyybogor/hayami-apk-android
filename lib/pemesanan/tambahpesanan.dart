@@ -155,7 +155,8 @@ Future<void> fetchCustomers() async {
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
       final List<dynamic> customerData = jsonResponse['customer_data'] ?? [];
       final List<dynamic> diskonData = jsonResponse['diskon_cust_data'] ?? [];
-      
+
+      if (!mounted) return; // ✅ CEK DULU apakah widget masih aktif
 
       setState(() {
         customers = customerData
@@ -172,6 +173,9 @@ Future<void> fetchCustomers() async {
     }
   } catch (e) {
     print('Error fetchCustomers: $e');
+
+    if (!mounted) return; // ✅ Hindari error kalau widget sudah dispose
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Gagal memuat data customer')),
     );
@@ -179,33 +183,39 @@ Future<void> fetchCustomers() async {
 }
 
 
+
   Future<void> fetchSkus() async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-            'http://hayami.id/apps/erp/api-android/api/master_produk.php'),
-      );
+  try {
+    final response = await http.get(
+      Uri.parse('http://hayami.id/apps/erp/api-android/api/master_produk.php'),
+    );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        final List<dynamic> data = jsonResponse['all_product'] ?? [];
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      final List<dynamic> data = jsonResponse['all_product'] ?? [];
 
-        setState(() {
-          skus = data
-              .map((json) => Produk.fromJson(json))
-              .where((p) => p.sku.isNotEmpty)
-              .toList();
-        });
-      } else {
-        throw Exception('Gagal mengambil data SKU');
-      }
-    } catch (e) {
-      print('Error fetchSkus: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal memuat data SKU')),
-      );
+      if (!mounted) return; // ✅ Cek apakah widget masih hidup
+
+      setState(() {
+        skus = data
+            .map((json) => Produk.fromJson(json))
+            .where((p) => p.sku.isNotEmpty)
+            .toList();
+      });
+    } else {
+      throw Exception('Gagal mengambil data SKU');
     }
+  } catch (e) {
+    print('Error fetchSkus: $e');
+
+    if (!mounted) return; // ✅ Cegah akses context setelah dispose
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gagal memuat data SKU')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

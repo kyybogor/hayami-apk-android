@@ -1,15 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/Penjualan/penjualanscreen.dart';
-import 'package:hayami_app/pemesanan/dikirimsebagian.dart';
-import 'package:hayami_app/pemesanan/jatuhtemposcreen.dart';
-import 'package:hayami_app/pemesanan/openscreen.dart';
-import 'package:hayami_app/pemesanan/selesaiscreen.dart';
 import 'package:hayami_app/pemesanan/tambahpesanan.dart';
-import 'package:hayami_app/pemesanan/transaksiberulangscreen.dart';
 import 'package:http/http.dart' as http;
-
-// Import halaman-halaman
+import 'package:intl/intl.dart';
 
 class PemesananPage extends StatefulWidget {
   const PemesananPage({super.key});
@@ -19,167 +12,265 @@ class PemesananPage extends StatefulWidget {
 }
 
 class _PemesananPageState extends State<PemesananPage> {
-  Map<String, int> pemesananCounts = {
-    "Open": 0,
-    "Dikirim Sebagian": 0,
-    "Selesai": 0,
-    "Jatuh Tempo": 0,
-    "Transaksi Berulang": 0,
-  };
-
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> dataList = [];
+  List<Map<String, dynamic>> filteredList = [];
   bool isLoading = true;
 
-  final Map<String, Color> statusColors = {
-    "Open": Colors.pink,
-    "Dikirim Sebagian": Colors.amber,
-    "Selesai": Colors.green,
-    "Jatuh Tempo": Colors.black,
-    "Transaksi Berulang": Colors.blue,
-  };
-
-  final Map<String, String> nilaiData = {
-    // "Selesai": 'https://gmp-system.com/api-hayami/daftar_tagihan.php?sts=1',
-  };
+  String selectedMonth = DateFormat('MM').format(DateTime.now());
+  String selectedYear = DateFormat('yyyy').format(DateTime.now());
 
   @override
   void initState() {
     super.initState();
-    fetchpemesananCounts();
+    _searchController.addListener(_onSearchChanged);
+    fetchPemesananData();
   }
 
-  Future<void> fetchpemesananCounts() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    Map<String, int> newCounts = {
-      for (var key in pemesananCounts.keys) key: 0,
-    };
+  Future<void> fetchPemesananData() async {
+    setState(() => isLoading = true);
 
     try {
-      for (var entry in nilaiData.entries) {
-        final response = await http.get(Uri.parse(entry.value));
-        if (response.statusCode == 200) {
-          final List<dynamic> data = json.decode(response.body);
-          newCounts[entry.key] = data.length;
-        }
-      }
+      final response = await http.get(Uri.parse('http://192.168.1.10/connect/JSON/gpo1.php'));
 
-      setState(() {
-        pemesananCounts = newCounts;
-        isLoading = false;
-      });
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = json.decode(response.body);
+        dataList = jsonData.map<Map<String, dynamic>>((item) {
+          return {
+            "id_cust": item["id_cust"] ?? "-",
+            "id_po1": item["id_po1"] ?? "-",
+            "dibuat_tgl": item["dibuat_tgl"] ?? "-",
+            "subtotal": item["subttl"] ?? "0",
+          };
+        }).toList();
+
+        filterData();
+      }
     } catch (e) {
-      print("Error: $e");
-      setState(() {
-        isLoading = false;
-      });
+      print("Error fetching data: $e");
     }
+
+    setState(() => isLoading = false);
   }
 
-  Widget? getTargetPage(String label) {
-    switch (label) {
-      case "Open":
-        return const Open();
-      case "Dikirim Sebagian":
-        return const DikirimSebagian();
-      case "Selesai":
-        return const SelesaiPemesanan();
-      case "Jatuh Tempo":
-        return const JatuhTempoPemesanan();
-      case "Transaksi Berulang":
-        return TransaksiBerulangPemesanan();
-      default:
-        return null;
+  void _onSearchChanged() {
+    filterData();
+  }
+
+  void filterData() {
+  String keyword = _searchController.text.toLowerCase();
+
+  setState(() {
+    filteredList = dataList.where((item) {
+      final dateStr = item["dibuat_tgl"];
+      bool matchMonth = true;
+      bool matchYear = true;
+
+      try {
+        DateTime parsedDate;
+        if (dateStr.contains('/')) {
+          // Misal: 01/06/2024 → dd/MM/yyyy
+          parsedDate = DateFormat('dd/MM/yyyy').parse(dateStr);
+        } else {
+          // Misal: 2024-06-01 → yyyy-MM-dd
+          parsedDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+        }
+
+        matchMonth = selectedMonth == 'Semua' ||
+            selectedMonth == parsedDate.month.toString().padLeft(2, '0');
+        matchYear = selectedYear == 'Semua' ||
+            selectedYear == parsedDate.year.toString();
+      } catch (e) {
+        print("Gagal parse tanggal: $dateStr");
+        matchMonth = true;
+        matchYear = true;
+      }
+
+      return item["id_cust"].toString().toLowerCase().contains(keyword) &&
+          matchMonth &&
+          matchYear;
+    }).toList();
+  });
+}
+
+
+  String formatRupiah(String value) {
+    try {
+      final amount = double.parse(value);
+      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    } catch (e) {
+      return "Rp 0";
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final statusList = pemesananCounts.keys.toList();
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
         title: const Text("Pemesanan", style: TextStyle(color: Colors.blue)),
         centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.blue),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const Penjualanscreen()),
-            );
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(12.0),
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
                 hintText: "Cari",
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.all(10),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedMonth,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.calendar_today),
+                      labelText: "Bulan",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.blue.shade50,
+                    ),
+                    items: [
+                      'Semua',
+                      ...List.generate(12, (index) {
+                        final month = (index + 1).toString().padLeft(2, '0');
+                        return month;
+                      })
+                    ].map((month) {
+                      return DropdownMenuItem(
+                        value: month,
+                        child: Text(
+                          month == 'Semua'
+                              ? 'Semua Bulan'
+                              : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        selectedMonth = value;
+                        filterData();
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedYear,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.date_range),
+                      labelText: "Tahun",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.blue.shade50,
+                    ),
+                    items: ['Semua', '2023', '2024', '2025'].map((year) {
+                      return DropdownMenuItem(
+                        value: year,
+                        child: Text(year == 'Semua' ? 'Semua Tahun' : year),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        selectedYear = value;
+                        filterData();
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    itemCount: statusList.length,
-                    itemBuilder: (context, index) {
-                      final label = statusList[index];
-                      final count = pemesananCounts[label]!;
-                      final color = statusColors[label] ?? Colors.grey;
-                      final page = getTargetPage(label);
+                : filteredList.isEmpty
+                    ? const Center(child: Text("Tidak ada data ditemukan"))
+                    : ListView.builder(
+                        itemCount: filteredList.length,
+                        itemBuilder: (context, index) {
+                          final data = filteredList[index];
 
-                      return Column(
-                        children: [
-                          ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: color,
-                              radius: 10,
-                            ),
-                            title: Text(label),
-                            trailing: Text("$count"),
-                            onTap: page != null
-                                ? () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => page),
-                                    );
-                                  }
-                                : null,
-                          ),
-                          const Divider(height: 1),
-                        ],
-                      );
-                    },
-                  ),
+                          return Column(
+                            children: [
+                              ListTile(
+                                title: Text(data["id_cust"]),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(data["id_po1"]),
+                                    Text(data["dibuat_tgl"]),
+                                  ],
+                                ),
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.pink.shade50,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    formatRupiah(data["subtotal"]),
+                                    style: const TextStyle(
+                                      color: Colors.pink,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                onTap: () {
+                                  // Tambahkan aksi jika perlu
+                                },
+                              ),
+                              const Divider(height: 1),
+                            ],
+                          );
+                        },
+                      ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-  backgroundColor: Colors.blue,
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const Tambahpesanan()),
-    );
-  },
-  child: const Icon(Icons.add),
-),
+        backgroundColor: Colors.blue,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Tambahpesanan()),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }

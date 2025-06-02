@@ -225,35 +225,32 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
 
   final url = Uri.parse("https://hayami.id/apps/erp/api-android/api/inputpenjualan.php"); // Ganti sesuai path file PHP
 
-  final List<Map<String, dynamic>> orderList = widget.cartItems.map((item) {
-    return {
-      'sku': item.sku,
-      'qty_order': item.orderQty,
-      'price': item.harga,
-    };
-  }).toList();
-
-  final Map<String, dynamic> payload = {
+final Map<String, dynamic> payload = {
   "id_cust": widget.selectedCustomer ?? "C123",
-  "tierlist": "Tier A", // atau dari variable kamu
-  "sku": widget.cartItems.map((e) => e.sku).join(','), // gabung sku jadi string
-  "total_qty": totalLusin,
-  "subtotal": subtotal,
-  "diskon_persen": discountPercent,
-  "diskon": discountNominal,
-  "diskon_baru": 5000, // contoh angka tetap atau bisa variabel juga
-  "top": _selectedTOP?.toString() ?? "30",
+  "tierlist": "Tier A", // bisa diganti variabel juga
+  "sku": widget.cartItems.isNotEmpty ? widget.cartItems.first.sku : "SKU001", // ambil sku pertama sebagai contoh
+  "total_qty": (totalLusin * 12).toInt(),// ambil variabel totalQty atau default 10
+  "subtotal": subtotal ?? 0,
+  "diskon": totalDiskonOtomatis,         // diskon otomatis dari produk
+"diskon_persen": discountPercent,      // input manual persen dari user
+"diskon_baru": discountNominal, 
+  "top": (_selectedTOP ?? 30).toString(), // pastikan string sesuai contoh
   "tax": 0,
   "ppn": 0,
   "remark": "Catatan",
   "payment": _selectedPaymentMethod ?? "Cash",
   "dibuat_oleh": "Admin",
-  "orders": orderList,   // langsung saja, sudah benar formatnya
+  "orders": widget.cartItems.map((item) {
+  return {
+    "sku": item.sku,
+    "qty_order": item.orderQty.toInt(),
+    "price": item.harga.toDouble(),
+  };
+}).toList(),
 };
 
-
-
-
+print("PAYLOAD YANG DIKIRIM:");
+  print(json.encode(payload));
 
   try {
   final response = await http.post(
