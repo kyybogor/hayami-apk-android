@@ -24,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email dan password wajib diisi.")),
+        const SnackBar(content: Text("Username dan password wajib diisi.")),
       );
       return;
     }
@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Silakan masukkan email dan password\nuntuk masuk ke Hayami.',
+                      'Silakan masukkan Username dan Password\nuntuk masuk ke Hayami.',
                       style: TextStyle(color: Colors.white),
                     ),
                   ],
@@ -91,7 +91,7 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _emailController,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.email_outlined),
-                        labelText: 'Email',
+                        labelText: 'Username',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
