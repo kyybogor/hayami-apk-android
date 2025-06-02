@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pemesanan/tambahpesanan.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class KonfirmasiPesanan extends StatefulWidget {
   final List<Produk> cartItems;
@@ -38,10 +40,10 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
       widget.cartItems.fold(0, (sum, item) => sum + item.totalHarga);
 
   double get totalAfterDiscount {
-    final percentDiscount = subtotal * (discountPercent / 100);
-    final totalDisc = percentDiscount + discountNominal;
-    return subtotal - totalDisc;
-  }
+  return subtotal - discountNominal;
+}
+
+
 
   double get totalDiskonOtomatis {
     return widget.cartItems.fold(0, (sum, item) {
@@ -201,8 +203,8 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
                 "Subtotal", "Rp ${currencyFormat.format(subtotal)}"),
             _buildSummaryRow(
                 "Diskon Customer", "Rp ${currencyFormat.format(totalDiskonOtomatis)}"),
-            _buildSummaryRow(
-                "Diskon Produk", "Rp ${currencyFormat.format(discountNominal)}"),
+            _buildSummaryRow("Diskon Produk", "Rp ${currencyFormat.format(discountNominal)}"),
+
             _buildSummaryRow("Total Setelah Diskon",
                 "Rp ${currencyFormat.format(totalAfterDiscount)}"),
 
@@ -213,16 +215,82 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
                 "Konfirmasi Pesanan",
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              onPressed: () {
-                if (_selectedPaymentMethod == 'Kredit' && _selectedTOP == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Pilih durasi TOP untuk Kredit')),
-                  );
-                  return;
-                }
+              onPressed: () async {
+  if (_selectedPaymentMethod == 'Kredit' && _selectedTOP == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pilih durasi TOP untuk Kredit')),
+    );
+    return;
+  }
 
-                // Handle submit logic here
-              },
+  final url = Uri.parse("https://hayami.id/apps/erp/api-android/api/inputpenjualan.php"); // Ganti sesuai path file PHP
+
+  final List<Map<String, dynamic>> orderList = widget.cartItems.map((item) {
+    return {
+      'sku': item.sku,
+      'qty_order': item.orderQty,
+      'price': item.harga,
+    };
+  }).toList();
+
+  final Map<String, dynamic> payload = {
+  "id_cust": widget.selectedCustomer ?? "C123",
+  "tierlist": "Tier A", // atau dari variable kamu
+  "sku": widget.cartItems.map((e) => e.sku).join(','), // gabung sku jadi string
+  "total_qty": totalLusin,
+  "subtotal": subtotal,
+  "diskon_persen": discountPercent,
+  "diskon": discountNominal,
+  "diskon_baru": 5000, // contoh angka tetap atau bisa variabel juga
+  "top": _selectedTOP?.toString() ?? "30",
+  "tax": 0,
+  "ppn": 0,
+  "remark": "Catatan",
+  "payment": _selectedPaymentMethod ?? "Cash",
+  "dibuat_oleh": "Admin",
+  "orders": orderList,   // langsung saja, sudah benar formatnya
+};
+
+
+
+
+
+  try {
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: json.encode(payload),
+  );
+
+  print('RESPONSE RAW:\n${response.body}');
+
+  final result = json.decode(response.body);
+
+  if (response.statusCode == 200) {
+    if (result['pesan'] == 'Sukses') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Pesanan berhasil dikirim.")),
+      );
+      Navigator.pop(context);
+    } else {
+      // Tampilkan pesan error dari server
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal mengirim pesanan: ${result['pesan']} ${result['error'] ?? ''}")),
+      );
+    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Server error: ${response.statusCode}")),
+    );
+  }
+} catch (e) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Error: $e")),
+  );
+}
+
+},
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue.shade700,
                 foregroundColor: Colors.white,
@@ -363,6 +431,7 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
         ),
         items: const [
           DropdownMenuItem(value: 30, child: Text('30 Hari')),
+          DropdownMenuItem(value: 60, child: Text('60 Hari')),
           DropdownMenuItem(value: 90, child: Text('90 Hari')),
           DropdownMenuItem(value: 120, child: Text('120 Hari')),
         ],

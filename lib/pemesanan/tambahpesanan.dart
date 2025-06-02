@@ -127,6 +127,8 @@ class Tambahpesanan extends StatefulWidget {
 }
 
 class _TambahpesananState extends State<Tambahpesanan> {
+  final TextEditingController customerController = TextEditingController();
+final TextEditingController skuController = TextEditingController();
   String? selectedCustomer;
   String? selectedSku;
 
@@ -153,6 +155,7 @@ Future<void> fetchCustomers() async {
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
       final List<dynamic> customerData = jsonResponse['customer_data'] ?? [];
       final List<dynamic> diskonData = jsonResponse['diskon_cust_data'] ?? [];
+      
 
       setState(() {
         customers = customerData
@@ -490,149 +493,157 @@ const SizedBox(height: 8),
   }
 
   Widget _autocompleteCustomerDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("🧑 Pilih Customer",
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        RawAutocomplete<String>(
-          textEditingController:
-              TextEditingController(text: selectedCustomer ?? ''),
-          focusNode: FocusNode(),
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            if (textEditingValue.text == '') {
-              return const Iterable<String>.empty();
-            }
-            return customers.map((e) => e.nmCustomer).where((option) => option
-                .toLowerCase()
-                .contains(textEditingValue.text.toLowerCase()));
-          },
-          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              decoration: InputDecoration(
-                hintText: 'Ketik nama customer',
-                filled: true,
-                fillColor: const Color(0xFFF1F3F6),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text("🧑 Pilih Customer",
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      RawAutocomplete<String>(
+        textEditingController: customerController, // ⬅ Ganti di sini
+        focusNode: FocusNode(),
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          if (textEditingValue.text == '') {
+            return const Iterable<String>.empty();
+          }
+          return customers
+              .map((e) => e.nmCustomer)
+              .where((option) => option
+                  .toLowerCase()
+                  .contains(textEditingValue.text.toLowerCase()))
+              .take(20); // ⬅ Tambahan: Batasi hasil (opsional)
+        },
+        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          return TextField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: InputDecoration(
+              hintText: 'Ketik nama customer',
+              filled: true,
+              fillColor: const Color(0xFFF1F3F6),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              onSubmitted: (value) {
-                onFieldSubmitted();
-                setState(() {
-                  selectedCustomer = value;
-                });
-              },
-            );
-          },
-          onSelected: (String selection) {
-  final cust = customers.firstWhere((c) => c.nmCustomer == selection);
-  setState(() {
-    selectedCustomer = selection;
-    selectedCustomerObj = cust; // ⬅ simpan objek customer
-  });
-},
-          optionsViewBuilder: (context, onSelected, options) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(8),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: options.length,
-                  shrinkWrap: true,
-                  itemBuilder: (context, index) {
-                    final option = options.elementAt(index);
-                    return ListTile(
-                      title: Text(option),
-                      onTap: () => onSelected(option),
-                    );
-                  },
-                ),
+            ),
+            onSubmitted: (value) {
+              onFieldSubmitted();
+              setState(() {
+                selectedCustomer = value;
+              });
+            },
+          );
+        },
+        onSelected: (String selection) {
+          final cust = customers.firstWhere((c) => c.nmCustomer == selection);
+          setState(() {
+            selectedCustomer = selection;
+            selectedCustomerObj = cust;
+            customerController.text = selection; // update controller
+          });
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(8),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: options.length,
+                shrinkWrap: true,
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  return ListTile(
+                    title: Text(option),
+                    onTap: () => onSelected(option),
+                  );
+                },
               ),
-            );
-          },
-        ),
-      ],
-    );
-  }
+            ),
+          );
+        },
+      ),
+    ],
+  );
+}
 
   Widget _autocompleteSkuDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("📦 Pilih SKU",
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        RawAutocomplete<String>(
-          textEditingController: TextEditingController(text: selectedSku ?? ''),
-          focusNode: FocusNode(),
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            if (textEditingValue.text == '') {
-              return const Iterable<String>.empty();
-            }
-            return skus.map((e) => e.sku).where((option) => option
-                .toLowerCase()
-                .contains(textEditingValue.text.toLowerCase()));
-          },
-          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              decoration: InputDecoration(
-                hintText: 'Ketik SKU produk',
-                filled: true,
-                fillColor: const Color(0xFFF1F3F6),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text("📦 Pilih SKU",
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      RawAutocomplete<String>(
+        textEditingController: skuController, // ✅ gunakan controller yang sudah dibuat
+        focusNode: FocusNode(),
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          if (textEditingValue.text.isEmpty) {
+            return const Iterable<String>.empty();
+          }
+          return skus
+              .map((e) => e.sku)
+              .where((option) => option
+                  .toLowerCase()
+                  .contains(textEditingValue.text.toLowerCase()));
+        },
+        fieldViewBuilder:
+            (context, controller, focusNode, onFieldSubmitted) {
+          return TextField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: InputDecoration(
+              hintText: 'Ketik SKU produk',
+              filled: true,
+              fillColor: const Color(0xFFF1F3F6),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              onSubmitted: (value) {
-                onFieldSubmitted();
-                setState(() {
-                  selectedSku = value;
-                });
-              },
-            );
-          },
-          onSelected: (String selection) {
-            setState(() {
-              selectedSku = selection;
-            });
-          },
-          optionsViewBuilder: (context, onSelected, options) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(8),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: options.length,
-                  shrinkWrap: true,
-                  itemBuilder: (context, index) {
-                    final option = options.elementAt(index);
-                    return ListTile(
-                      title: Text(option),
-                      onTap: () => onSelected(option),
-                    );
-                  },
-                ),
+            ),
+            onSubmitted: (value) {
+              onFieldSubmitted();
+              setState(() {
+                selectedSku = value;
+              });
+            },
+          );
+        },
+        onSelected: (String selection) {
+          setState(() {
+            selectedSku = selection;
+            skuController.text = selection; // ✅ update teks controller
+          });
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(8),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: options.length,
+                shrinkWrap: true,
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  return ListTile(
+                    title: Text(option),
+                    onTap: () => onSelected(option),
+                  );
+                },
               ),
-            );
-          },
-        ),
-      ],
-    );
-  }
+            ),
+          );
+        },
+      ),
+    ],
+  );
+}
+
 }
