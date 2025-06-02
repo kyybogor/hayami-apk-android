@@ -53,8 +53,9 @@ class _DibayarSebagianPembelianState extends State<DibayarSebagianPembelian> {
           };
         }).toList();
 
+        filterByMonthYear();
+        
         setState(() {
-          filteredInvoices = invoices;
           isLoading = false;
         });
       } else {

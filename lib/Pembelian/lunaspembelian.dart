@@ -52,8 +52,9 @@ class _LunasPembelianState extends State<LunasPembelian> {
           };
         }).toList();
 
+        filterByMonthYear();
+
         setState(() {
-          filteredInvoices = invoices;
           isLoading = false;
         });
       } else {

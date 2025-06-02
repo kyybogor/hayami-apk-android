@@ -50,9 +50,10 @@ class _BelumDibayarPembelianState extends State<BelumDibayarPembelian> {
             "memo": (item['memo'] ?? item["6"]).toString().split(" - ").first,
           };
         }).toList();
+        
+        filterByMonthYear();
 
         setState(() {
-          filteredInvoices = invoices;
           isLoading = false;
         });
       } else {

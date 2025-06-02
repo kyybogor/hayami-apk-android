@@ -51,8 +51,9 @@ class _VoidPembelianState extends State<VoidPembelian> {
           };
         }).toList();
 
+        filterByMonthYear();
+
         setState(() {
-          filteredInvoices = invoices;
           isLoading = false;
         });
       } else {

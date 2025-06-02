@@ -200,19 +200,6 @@ class _PembelianscreenState extends State<Pembelianscreen> {
             },
           ),
           _MenuIcon(
-            icon: Icons.local_shipping,
-            color: Colors.lightBlue,
-            label: 'Pengiriman',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PengirimanPembelianPage(),
-                ),
-              );
-            },
-          ),
-          _MenuIcon(
             icon: Icons.access_time,
             color: Colors.lightGreen,
             label: 'Pemesanan',
