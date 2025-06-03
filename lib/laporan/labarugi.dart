@@ -115,7 +115,10 @@ class _LabaRugiPageState extends State<LabaRugiPage> {
     return Scaffold(
       appBar: AppBar(
         foregroundColor: Colors.blueAccent,
-        title: const Text("Laba Rugi", style: TextStyle(color: Colors.blueAccent, fontSize: 20),),
+        title: const Text(
+          "Laba Rugi",
+          style: TextStyle(color: Colors.blueAccent, fontSize: 20),
+        ),
         centerTitle: true,
       ),
       body: isLoading
@@ -141,7 +144,7 @@ class _LabaRugiPageState extends State<LabaRugiPage> {
                     ),
                   ...entry.value.map((item) => buildItem(
                         "${item.kode.isNotEmpty ? "(${item.kode}) " : ""}${item.deskripsi}",
-                        formatRupiah(item.nilai),
+                        (item.nilai),
                         isBold: item.kode.isEmpty,
                         item: item,
                       )),
@@ -234,7 +237,6 @@ class LabaRugiDetail {
   }
 }
 
- 
 class DetailLabaRugiPage extends StatelessWidget {
   final LabaRugiItem item;
 
@@ -257,18 +259,18 @@ class DetailLabaRugiPage extends StatelessWidget {
               0.0;
     }
 
-String formatRupiah(double nominal, {int decimalDigits = 2}) {
-  if (nominal == nominal.roundToDouble()) {
-    decimalDigits = 0;
-  }
+    String formatRupiah(double nominal, {int decimalDigits = 2}) {
+      if (nominal == nominal.roundToDouble()) {
+        decimalDigits = 0;
+      }
 
-  final formatter = NumberFormat.currency(
-    locale: 'id',
-    symbol: 'Rp ',
-    decimalDigits: decimalDigits,
-  );
-  return formatter.format(nominal);
-}
+      final formatter = NumberFormat.currency(
+        locale: 'id',
+        symbol: 'Rp ',
+        decimalDigits: decimalDigits,
+      );
+      return formatter.format(nominal);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -353,7 +355,7 @@ String formatRupiah(double nominal, {int decimalDigits = 2}) {
               color: Colors.pink[100],
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Text(formatRupiah(item.nilai),
+            child: Text((item.nilai),
                 style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ),
@@ -370,7 +372,7 @@ String formatRupiah(double nominal, {int decimalDigits = 2}) {
             color: Colors.pink[100],
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Text(formatRupiah(detail.nominal),
+          child: Text((detail.nominal),
               style: const TextStyle(fontWeight: FontWeight.bold)),
         ),
       );
