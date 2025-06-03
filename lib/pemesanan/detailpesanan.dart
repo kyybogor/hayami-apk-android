@@ -24,7 +24,7 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
 
 void _parseItems() async {
   final idPo1 = widget.invoice['id_po1'];
-  final url = Uri.parse('http://192.168.1.17/hayami/po2.php?id_po1=$idPo1');
+  final url = Uri.parse('http://hayami.id/apps/erp/api-android/api/po2.php?id_po1=$idPo1');
 
   try {
     final response = await http.get(url);
@@ -36,18 +36,32 @@ void _parseItems() async {
         final List<Map<String, dynamic>> parsed = [];
 
         for (var item in items) {
-          final qty = (double.tryParse(item['qty']?.toString() ?? '0') ?? 0) * 12;
-          final harga = double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
-          final total = double.tryParse(item['ttl_harga']?.toString() ?? '0') ?? 0;
+  final qty = double.tryParse(item['qty']?.toString() ?? '0') ?? 0;
+  final qtyClear = double.tryParse(item['qtyclear']?.toString() ?? '0') ?? 0;
+  final harga = double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
+  final total = double.tryParse(item['ttl_harga']?.toString() ?? '0') ?? 0;
 
-          parsed.add({
-            'nama_barang': item['sku'] ?? 'Tidak diketahui',
-            'size': item['size']?.toString().isNotEmpty == true ? item['size'] : 'All Size',
-            'jumlah': qty.toStringAsFixed(0),
-            'harga': harga.toStringAsFixed(0),
-            'total': total.toStringAsFixed(0),
-          });
-        }
+  String statusProses;
+  if (qtyClear == 0) {
+    statusProses = 'Belum diproses';
+  } else if (qtyClear < qty) {
+    statusProses = 'Diproses sebagian';
+  } else if (qtyClear == qty) {
+    statusProses = 'Sedang diproses';
+  } else {
+    statusProses = 'Tidak diketahui';
+  }
+
+  parsed.add({
+    'nama_barang': item['sku'] ?? 'Tidak diketahui',
+    'size': item['size']?.toString().isNotEmpty == true ? item['size'] : 'All Size',
+    'jumlah': (qty * 12).toStringAsFixed(0),
+    'harga': harga.toStringAsFixed(0),
+    'total': total.toStringAsFixed(0),
+    'status_proses': statusProses,
+  });
+}
+
 
         setState(() {
           barang = parsed;
@@ -98,7 +112,17 @@ void _parseItems() async {
     final idCust = invoice['id_cust'] ?? 'Tidak diketahui';
     final instansi = invoice['instansi'] ?? '-';
     final date = invoice['dibuat_tgl'] ?? '-';
-    final status = invoice['status'] ?? 'Pemesanan';
+    final rawFlag = invoice['flag']?.toString() ?? '';
+String status;
+
+if (rawFlag.toLowerCase() == 'so partially created') {
+  status = 'Partially Created';
+} else if (rawFlag.isNotEmpty) {
+  status = rawFlag; // tampilkan apa adanya kalau bukan yang di atas
+} else {
+  status = 'Pemesanan'; // default kalau flag kosong
+}
+
     final sudahDibayar = invoice['dibayar'] ?? '0';
     final statusColor = _getStatusColor(status);
 
@@ -114,9 +138,11 @@ void _parseItems() async {
             ),
           ),
           child: AppBar(
-            title: const Text('Detail Pemesanan', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text('Detail Pemesanan',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             centerTitle: true,
             backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
             elevation: 0,
           ),
         ),
@@ -155,20 +181,35 @@ void _parseItems() async {
                                   Text("${item['jumlah']} pcs"),
                                 ],
                               ),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  formatRupiah(item['total']),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: statusColor,
-                                  ),
-                                ),
-                              ),
+                              trailing: Column(
+  mainAxisSize: MainAxisSize.min,
+  crossAxisAlignment: CrossAxisAlignment.end,
+  children: [
+    Container(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        formatRupiah(item['total']),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: statusColor,
+        ),
+      ),
+    ),
+    const SizedBox(height: 4),
+    Text(
+      "Status: ${item['status_proses']}",
+      style: const TextStyle(
+        fontSize: 12,
+        color: Colors.black87,
+      ),
+    ),
+  ],
+),
+
                             ),
                           );
                         },

@@ -32,7 +32,7 @@ Future<void> fetchPemesananData() async {
   setState(() => isLoading = true);
 
   try {
-    final response = await http.get(Uri.parse('http://192.168.1.17/hayami/po1.php'));
+    final response = await http.get(Uri.parse('http://hayami.id/apps/erp/api-android/api/po1.php'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -260,43 +260,65 @@ Future<void> fetchPemesananData() async {
                         itemCount: filteredList.length,
                         itemBuilder: (context, index) {
                           final data = filteredList[index];
+                          final rawFlag = data['flag']?.toString() ?? '';
+String status;
+if (rawFlag.toLowerCase() == 'so partially created') {
+  status = 'Partially Created';
+} else if (rawFlag.isNotEmpty) {
+  status = rawFlag;
+} else {
+  status = 'Pemesanan';
+}
 
                           return Column(
                             children: [
                               ListTile(
-                                title: Text(data["id_cust"].toString().isEmpty ? "-" : data["id_cust"]),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(data["id_po1"]),
-                                    Text(data["dibuat_tgl"]),
-                                  ],
-                                ),
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    formatRupiah(data["subtotal"]),
-                                    style: const TextStyle(
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DetailPemesananPage(
-                                        invoice: data,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+  title: Text(data["id_cust"].toString().isEmpty ? "-" : data["id_cust"]),
+  subtitle: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(data["id_po1"]),
+      Text(data["dibuat_tgl"]),
+    ],
+  ),
+  trailing: Column(
+  mainAxisSize: MainAxisSize.min, // ⬅ penting: biar tinggi menyesuaikan isi
+  crossAxisAlignment: CrossAxisAlignment.end,
+  children: [
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        formatRupiah(data["subtotal"]),
+        style: const TextStyle(
+          color: Colors.blue,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+    const SizedBox(height: 4),
+    Flexible( // ⬅ opsional, membantu jika teks terlalu panjang
+      child: Text(
+        status,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  ],
+),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailPemesananPage(invoice: data),
+      ),
+    );
+  },
+),
+
                               const Divider(height: 1),
                             ],
                           );
