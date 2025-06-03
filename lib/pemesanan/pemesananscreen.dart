@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/Pembelian/detailpemesanan.dart';
+import 'package:hayami_app/pemesanan/detailpesanan.dart';
 import 'package:hayami_app/pemesanan/tambahpesanan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -32,37 +32,41 @@ class _PemesananPageState extends State<PemesananPage> {
     setState(() => isLoading = true);
 
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.11/connect/JSON/gpo1.php'));
+      final response = await http.get(Uri.parse('http://192.168.1.17/hayami/po.php'));
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = json.decode(response.body);
+
         dataList = jsonData.map<Map<String, dynamic>>((item) {
           return {
             "id_cust": item["id_cust"] ?? "-",
             "id_po1": item["id_po1"] ?? "-",
             "dibuat_tgl": item["dibuat_tgl"] ?? "-",
             "subtotal": item["subttl"] ?? "0",
-            "qty":item["qty"] ?? "0",
-            "disc":item["disc"] ?? "-",
-            "tierlist":item["tierlist"] ?? "-",
-            "payment":item["payment"] ?? "-",
-            "top":item["top"] ?? "-",
-            "tgltop":item["tgltop"] ?? "-",
-            "site":item["site"] ?? "-",
-            "tax":item["tax"] ?? "-",
-            "ppn":item["ppn"] ?? "-",
-            "disc_persen":item["disc_persen"] ?? "-",
-            "disc_baru":item["disc_baru"] ?? "-",
-            "remark":item["remark"] ?? "-",
-            "dibuat_oleh":item["dibuat_oleh"] ?? "-",
-            "flag":item["flag"] ?? "-",
-            "hide":item["hide"] ?? "-",
-            "notif":item["notif"] ?? "-",
-            "id_gudang":item["id_gudang"] ?? "-",
+            "qty": item["qty"] ?? "0",
+            "disc": item["disc"] ?? "-",
+            "tierlist": item["tierlist"] ?? "-",
+            "payment": item["payment"] ?? "-",
+            "top": item["top"].toString(),
+            "tgltop": item["tgltop"] ?? "-",
+            "site": item["site"] ?? "-",
+            "tax": item["tax"] ?? "-",
+            "ppn": item["ppn"] ?? "-",
+            "disc_persen": item["disc_persen"].toString(),
+            "disc_baru": item["disc_baru"] ?? "-",
+            "remark": item["remark"] ?? "-",
+            "dibuat_oleh": item["dibuat_oleh"] ?? "-",
+            "flag": item["flag"] ?? "-",
+            "hide": item["hide"].toString(),
+            "notif": item["notif"].toString(),
+            "id_gudang": item["id_gudang"] ?? "-",
+            "items": item["items"] ?? [],
           };
         }).toList();
 
         filterData();
+      } else {
+        print("Failed to load data. Status code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching data: $e");
@@ -76,41 +80,47 @@ class _PemesananPageState extends State<PemesananPage> {
   }
 
   void filterData() {
-  String keyword = _searchController.text.toLowerCase();
+    String keyword = _searchController.text.toLowerCase();
 
-  setState(() {
-    filteredList = dataList.where((item) {
-      final dateStr = item["dibuat_tgl"];
-      bool matchMonth = true;
-      bool matchYear = true;
+    setState(() {
+      filteredList = dataList.where((item) {
+        final dateStr = item["dibuat_tgl"];
+        bool matchMonth = true;
+        bool matchYear = true;
 
-      try {
-        DateTime parsedDate;
-        if (dateStr.contains('/')) {
-          // Misal: 01/06/2024 → dd/MM/yyyy
-          parsedDate = DateFormat('dd/MM/yyyy').parse(dateStr);
+        // Handle tanggal "0000-00-00" atau kosong supaya tidak error parsing
+        if (dateStr == "0000-00-00" || dateStr.isEmpty || dateStr == "-") {
+          matchMonth = true;
+          matchYear = true;
         } else {
-          // Misal: 2024-06-01 → yyyy-MM-dd
-          parsedDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+          try {
+            DateTime parsedDate;
+            if (dateStr.contains('/')) {
+              parsedDate = DateFormat('dd/MM/yyyy').parse(dateStr);
+            } else {
+              parsedDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+            }
+
+            matchMonth = selectedMonth == 'Semua' ||
+                selectedMonth == parsedDate.month.toString().padLeft(2, '0');
+            matchYear = selectedYear == 'Semua' ||
+                selectedYear == parsedDate.year.toString();
+          } catch (e) {
+            print("Gagal parse tanggal: $dateStr");
+            matchMonth = true;
+            matchYear = true;
+          }
         }
 
-        matchMonth = selectedMonth == 'Semua' ||
-            selectedMonth == parsedDate.month.toString().padLeft(2, '0');
-        matchYear = selectedYear == 'Semua' ||
-            selectedYear == parsedDate.year.toString();
-      } catch (e) {
-        print("Gagal parse tanggal: $dateStr");
-        matchMonth = true;
-        matchYear = true;
-      }
+        // Pencarian keyword fleksibel: cari di id_cust dan id_po1
+        bool matchKeyword = keyword.isEmpty ||
+            item["id_cust"].toString().toLowerCase().contains(keyword) ||
+            item["id_po1"].toString().toLowerCase().contains(keyword);
 
-      return item["id_cust"].toString().toLowerCase().contains(keyword) &&
-          matchMonth &&
-          matchYear;
-    }).toList();
-  });
-}
-
+        return matchKeyword && matchMonth && matchYear;
+      }).toList();
+    });
+  }
 
   String formatRupiah(String value) {
     try {
@@ -194,8 +204,10 @@ class _PemesananPageState extends State<PemesananPage> {
                     }).toList(),
                     onChanged: (value) {
                       if (value != null) {
-                        selectedMonth = value;
-                        filterData();
+                        setState(() {
+                          selectedMonth = value;
+                          filterData();
+                        });
                       }
                     },
                   ),
@@ -222,8 +234,10 @@ class _PemesananPageState extends State<PemesananPage> {
                     }).toList(),
                     onChanged: (value) {
                       if (value != null) {
-                        selectedYear = value;
-                        filterData();
+                        setState(() {
+                          selectedYear = value;
+                          filterData();
+                        });
                       }
                     },
                   ),
@@ -245,7 +259,7 @@ class _PemesananPageState extends State<PemesananPage> {
                           return Column(
                             children: [
                               ListTile(
-                                title: Text(data["id_cust"]),
+                                title: Text(data["id_cust"].toString().isEmpty ? "-" : data["id_cust"]),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -256,27 +270,27 @@ class _PemesananPageState extends State<PemesananPage> {
                                 trailing: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.pink.shade50,
+                                    color: Colors.blue.shade50,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
                                     formatRupiah(data["subtotal"]),
                                     style: const TextStyle(
-                                      color: Colors.pink,
+                                      color: Colors.blue,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                                 onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => DetailPemesananPage(invoice: data),
-    ),
-  );
-},
-
-
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DetailPemesananPage(
+                                        invoice: data,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                               const Divider(height: 1),
                             ],
