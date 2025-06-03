@@ -58,19 +58,7 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'belum dibayar':
-        return Colors.red;
-      case 'dibayar sebagian':
-        return Colors.orange;
-      case 'lunas':
-        return Colors.green;
-      case 'void':
-        return Colors.grey;
-      case 'jatuh tempo':
-        return Colors.black;
-      case 'retur':
-        return Colors.deepOrange;
-      case 'transaksi berulang':
+      case 'pemesanan':
         return Colors.blue;
       default:
         return Colors.white;
@@ -80,13 +68,12 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
   @override
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
-    final memo = widget.invoice['memo']?.toString() ?? '-';
+    final memo = widget.invoice['invoice']?.toString() ?? '-';
     final idCust = invoice['name'] ?? 'Tidak diketahui';
     final instansi = invoice['instansi'] ?? '-';
     final date = invoice['date'] ?? '-';
-    final dueDate = invoice['due'] ?? '-';
     final sudahDibayar = invoice['dibayar'] ?? '-';
-    final status = invoice['status'] ?? 'Belum Dibayar';
+    final status = invoice['status'] ?? 'Pemesanan';
     final statusColor = _getStatusColor(status);
 
     return Scaffold(
@@ -112,7 +99,7 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
       ),
       body: Column(
         children: [
-          _buildHeader(memo, idCust, instansi, alamat, date, dueDate, status,
+          _buildHeader(memo, idCust, instansi, alamat, date, status,
               statusColor),
           const SizedBox(height: 12),
           const Padding(
@@ -238,7 +225,6 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
       String instansi,
       String address,
       String date,
-      String dueDate,
       String status,
       Color statusColor) {
     return Container(
@@ -301,13 +287,6 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
                       size: 16, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(date, style: const TextStyle(color: Colors.white)),
-                ],
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.access_time, size: 16, color: Colors.white),
-                  const SizedBox(width: 6),
-                  Text(dueDate, style: const TextStyle(color: Colors.white)),
                 ],
               ),
             ],
