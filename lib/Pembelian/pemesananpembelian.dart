@@ -46,13 +46,13 @@ Future<void> fetchInvoices() async {
           "invoice": item["id_sj1"],
           "date": item["tgl"],
           "amount": item["ttlcost_sum"].toString(),
-          "memo": item["id_sj1"], // bisa ganti sesuai keperluan
-          "items": item["items"],  // kirim semua item untuk detail page
+          "items": item["items"],
         };
       }).toList();
+      
+      filterByMonthYear();
 
       setState(() {
-        filteredInvoices = invoices;
         isLoading = false;
       });
     } else {
@@ -252,7 +252,6 @@ Future<void> fetchInvoices() async {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(invoice["memo"]),
                                   Text(invoice["invoice"]),
                                   Text(invoice["date"]),
                                 ],
@@ -264,13 +263,13 @@ Future<void> fetchInvoices() async {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.pink.shade50,
+                                      color: Colors.blue.shade50,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
                                       formatRupiah(invoice["amount"]),
                                       style: const TextStyle(
-                                        color: Colors.pink,
+                                        color: Colors.blue,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),

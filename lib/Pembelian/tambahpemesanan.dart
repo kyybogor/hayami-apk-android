@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Pembelian/pemesananpembelian.dart';
 import 'package:http/http.dart' as http;
 
 class TambahPesananPage extends StatefulWidget {
@@ -10,7 +11,6 @@ class TambahPesananPage extends StatefulWidget {
 }
 
 class _TambahPesananPageState extends State<TambahPesananPage> {
-
   List<String> supplierList = [];
   String selectedSupplier = '';
 
@@ -24,7 +24,8 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
   Map<String, TextEditingController> priceControllers = {};
 
   final TextEditingController _keteranganController = TextEditingController();
-  final TextEditingController _seriPekerjaanController = TextEditingController();
+  final TextEditingController _seriPekerjaanController =
+      TextEditingController();
 
   late String tanggalHariIni;
 
@@ -37,7 +38,8 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
     fetchProducts();
 
     final now = DateTime.now();
-    tanggalHariIni = "${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    tanggalHariIni =
+        "${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
   }
 
   @override
@@ -51,14 +53,16 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
   }
 
   Future<void> fetchSuppliers() async {
-    final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/supplier.php');
+    final url =
+        Uri.parse('https://hayami.id/apps/erp/api-android/api/supplier.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final suppliers = data['data'] as List;
         setState(() {
-          supplierList = suppliers.map((e) => e['nm_supplier'] as String).toList();
+          supplierList =
+              suppliers.map((e) => e['nm_supplier'] as String).toList();
         });
       } else {
         print('Gagal ambil data supplier');
@@ -68,87 +72,96 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
     }
   }
 
-Future<void> simpanPesananKeServer() async {
-  final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/tambahpesanan.php');
+  Future<void> simpanPesananKeServer() async {
+    final url = Uri.parse(
+        'https://hayami.id/apps/erp/api-android/api/tambahpesanan.php');
 
-  final items = cart.entries.map((entry) {
-    final sku = entry.key;
-    final lusin = entry.value;
-    final cost = manualPrices[sku] ?? 0.0;
+    final items = cart.entries.map((entry) {
+      final sku = entry.key;
+      final lusin = entry.value;
+      final cost = manualPrices[sku] ?? 0.0;
 
-    // Cari produk berdasarkan sku
-    final product = productList.firstWhere((p) => p['sku'] == sku, orElse: () => {});
+      // Cari produk berdasarkan sku
+      final product =
+          productList.firstWhere((p) => p['sku'] == sku, orElse: () => {});
 
-    final idTipe = product['id_tipe'] ?? '';
-    final size = product['size'] ?? '';
+      final idTipe = product['id_tipe'] ?? '';
+      final size = product['size'] ?? '';
 
-    return {
-      "sku": sku,
-      "lusin": lusin,
-      "cost": cost,
-      "id_tipe": idTipe,
-      "size": size,
-    };
-  }).toList();
+      return {
+        "sku": sku,
+        "lusin": lusin,
+        "cost": cost,
+        "id_tipe": idTipe,
+        "size": size,
+      };
+    }).toList();
 
-  final body = jsonEncode({
-    "supplier": selectedSupplier,
-    "keterangan": _keteranganController.text,
-    "seri": _seriPekerjaanController.text,
-    "tanggal": tanggalHariIni,
-    "items": items,
-  });
+    final body = jsonEncode({
+      "supplier": selectedSupplier,
+      "keterangan": _keteranganController.text,
+      "seri": _seriPekerjaanController.text,
+      "tanggal": tanggalHariIni,
+      "items": items,
+    });
 
-  try {
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: body,
-    );
-
-    final data = json.decode(response.body);
-    if (data['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${data['message']}")),
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: body,
       );
-      setState(() {
-        cart.clear();
-        manualPrices.clear();
-        priceControllers.clear();
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal: ${data['message']}")),
-      );
-    }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: $e")),
-    );
-  }
-}
 
-
-List<Map<String, dynamic>> productList = [];
-
-Future<void> fetchProducts() async {
-  final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/master_produk.php');
-  try {
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final products = data['all_product'] as List;
-      setState(() {
-        productList = products.map((e) => e as Map<String, dynamic>).toList();
-        skuList = productList.map((e) => e['sku'] as String).toList();
-      });
-    } else {
-      print('Gagal ambil data produk');
+      if (data['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("${data['message']}")),
+        );
+        setState(() {
+          cart.clear();
+          manualPrices.clear();
+          priceControllers.clear();
+        });
+        Future.delayed(const Duration(seconds: 1), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const PemesananPembelianPage()),
+          );
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal: ${data['message']}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     }
-  } catch (e) {
-    print('Error fetch produk: $e');
   }
-}
+
+  List<Map<String, dynamic>> productList = [];
+
+  Future<void> fetchProducts() async {
+    final url = Uri.parse(
+        'https://hayami.id/apps/erp/api-android/api/master_produk.php');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final products = data['all_product'] as List;
+        setState(() {
+          productList = products.map((e) => e as Map<String, dynamic>).toList();
+          skuList = productList.map((e) => e['sku'] as String).toList();
+        });
+      } else {
+        print('Gagal ambil data produk');
+      }
+    } catch (e) {
+      print('Error fetch produk: $e');
+    }
+  }
 
   void addToCart(String sku) {
     setState(() {
@@ -200,7 +213,17 @@ Future<void> fetchProducts() async {
       appBar: AppBar(
         title: const Text('Tambah Pesanan'),
         centerTitle: true,
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) =>
+                      const PemesananPembelianPage()), // halaman yang kamu tuju
+            );
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -209,7 +232,8 @@ Future<void> fetchProducts() async {
           children: [
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -226,28 +250,33 @@ Future<void> fetchProducts() async {
                         children: [
                           const Text(
                             "Tambah Pesanan",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
-                          Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
+                          Icon(isExpanded
+                              ? Icons.expand_less
+                              : Icons.expand_more),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
-
-
                     if (isExpanded) ...[
-                      const Text("Pilih Supplier", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text("Pilih Supplier",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Autocomplete<String>(
                         optionsBuilder: (TextEditingValue textEditingValue) {
-                          if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
-                          return supplierList.where((supplier) =>
-                              supplier.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                          if (textEditingValue.text.isEmpty)
+                            return const Iterable<String>.empty();
+                          return supplierList.where((supplier) => supplier
+                              .toLowerCase()
+                              .contains(textEditingValue.text.toLowerCase()));
                         },
                         onSelected: (selection) {
                           setState(() => selectedSupplier = selection);
                         },
-                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                        fieldViewBuilder: (context, controller, focusNode,
+                            onEditingComplete) {
                           controller.text = selectedSupplier;
                           return TextField(
                             controller: controller,
@@ -266,19 +295,22 @@ Future<void> fetchProducts() async {
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      const Text("Pilih SKU", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text("Pilih SKU",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Autocomplete<String>(
                         optionsBuilder: (TextEditingValue textEditingValue) {
-                          if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
-                          return skuList.where((sku) =>
-                              sku.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                          if (textEditingValue.text.isEmpty)
+                            return const Iterable<String>.empty();
+                          return skuList.where((sku) => sku
+                              .toLowerCase()
+                              .contains(textEditingValue.text.toLowerCase()));
                         },
                         onSelected: (selection) {
                           setState(() => selectedSKU = selection);
                         },
-                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                        fieldViewBuilder: (context, controller, focusNode,
+                            onEditingComplete) {
                           controller.text = selectedSKU;
                           return TextField(
                             controller: controller,
@@ -297,8 +329,8 @@ Future<void> fetchProducts() async {
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      const Text("Keterangan", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text("Keterangan",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _keteranganController,
@@ -314,8 +346,8 @@ Future<void> fetchProducts() async {
                         ),
                       ),
                       const SizedBox(height: 16),
-
-                      const Text("Seri Pekerjaan", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text("Seri Pekerjaan",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _seriPekerjaanController,
@@ -330,8 +362,8 @@ Future<void> fetchProducts() async {
                         ),
                       ),
                       const SizedBox(height: 16),
-
-                      const Text("Tanggal", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text("Tanggal",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: TextEditingController(text: tanggalHariIni),
@@ -348,14 +380,17 @@ Future<void> fetchProducts() async {
                     ] else ...[
                       Autocomplete<String>(
                         optionsBuilder: (TextEditingValue textEditingValue) {
-                          if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
-                          return skuList.where((sku) =>
-                              sku.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                          if (textEditingValue.text.isEmpty)
+                            return const Iterable<String>.empty();
+                          return skuList.where((sku) => sku
+                              .toLowerCase()
+                              .contains(textEditingValue.text.toLowerCase()));
                         },
                         onSelected: (selection) {
                           setState(() => selectedSKU = selection);
                         },
-                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                        fieldViewBuilder: (context, controller, focusNode,
+                            onEditingComplete) {
                           controller.text = selectedSKU;
                           return TextField(
                             controller: controller,
@@ -375,14 +410,14 @@ Future<void> fetchProducts() async {
                       ),
                       const SizedBox(height: 16),
                     ],
-
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () {
                           if (selectedSupplier.isEmpty && isExpanded) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Supplier harus diisi')),
+                              const SnackBar(
+                                  content: Text('Supplier harus diisi')),
                             );
                             return;
                           }
@@ -413,12 +448,10 @@ Future<void> fetchProducts() async {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            const Text("Keranjang Pesanan:", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text("Keranjang Pesanan:",
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-
             if (cart.isEmpty)
               const Text("Keranjang kosong")
             else
@@ -427,7 +460,8 @@ Future<void> fetchProducts() async {
                   final sku = entry.key;
                   final qty = entry.value;
                   return Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 2,
                     child: Padding(
                       padding: const EdgeInsets.all(12),
@@ -445,7 +479,8 @@ Future<void> fetchProducts() async {
                                 icon: const Icon(Icons.remove_circle_outline),
                                 onPressed: () => removeFromCart(sku),
                               ),
-                              Text("${qty.toStringAsFixed(1)} lusin", style: const TextStyle(fontSize: 16)),
+                              Text("${qty.toStringAsFixed(1)} lusin",
+                                  style: const TextStyle(fontSize: 16)),
                               IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
                                 onPressed: () => addToCart(sku),
@@ -463,20 +498,26 @@ Future<void> fetchProducts() async {
                                   onChanged: (value) {
                                     String formatted = formatRupiah(value);
                                     if (formatted != value) {
-                                      final cursorPos = priceControllers[sku]!.selection.baseOffset;
+                                      final cursorPos = priceControllers[sku]!
+                                          .selection
+                                          .baseOffset;
                                       priceControllers[sku]!.text = formatted;
-                                      priceControllers[sku]!.selection = TextSelection.fromPosition(
+                                      priceControllers[sku]!.selection =
+                                          TextSelection.fromPosition(
                                         TextPosition(offset: formatted.length),
                                       );
                                     }
                                     setState(() {
-                                      manualPrices[sku] = double.tryParse(formatted.replaceAll('.', '')) ?? 0.0;
+                                      manualPrices[sku] = double.tryParse(
+                                              formatted.replaceAll('.', '')) ??
+                                          0.0;
                                     });
                                   },
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () => deleteFromCart(sku),
                               ),
                             ],
@@ -493,21 +534,22 @@ Future<void> fetchProducts() async {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16),
         child: ElevatedButton.icon(
-onPressed: () {
-  if (cart.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Keranjang masih kosong")),
-    );
-    return;
-  }
-  simpanPesananKeServer();
-},
+          onPressed: () {
+            if (cart.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Keranjang masih kosong")),
+              );
+              return;
+            }
+            simpanPesananKeServer();
+          },
           icon: const Icon(Icons.check),
           label: const Text("Konfirmasi Pesanan"),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
