@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Pembelian/detailpemesanan.dart';
 import 'package:hayami_app/pemesanan/tambahpesanan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -31,7 +32,7 @@ class _PemesananPageState extends State<PemesananPage> {
     setState(() => isLoading = true);
 
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.10/connect/JSON/gpo1.php'));
+      final response = await http.get(Uri.parse('http://192.168.1.11/connect/JSON/gpo1.php'));
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = json.decode(response.body);
@@ -41,6 +42,23 @@ class _PemesananPageState extends State<PemesananPage> {
             "id_po1": item["id_po1"] ?? "-",
             "dibuat_tgl": item["dibuat_tgl"] ?? "-",
             "subtotal": item["subttl"] ?? "0",
+            "qty":item["qty"] ?? "0",
+            "disc":item["disc"] ?? "-",
+            "tierlist":item["tierlist"] ?? "-",
+            "payment":item["payment"] ?? "-",
+            "top":item["top"] ?? "-",
+            "tgltop":item["tgltop"] ?? "-",
+            "site":item["site"] ?? "-",
+            "tax":item["tax"] ?? "-",
+            "ppn":item["ppn"] ?? "-",
+            "disc_persen":item["disc_persen"] ?? "-",
+            "disc_baru":item["disc_baru"] ?? "-",
+            "remark":item["remark"] ?? "-",
+            "dibuat_oleh":item["dibuat_oleh"] ?? "-",
+            "flag":item["flag"] ?? "-",
+            "hide":item["hide"] ?? "-",
+            "notif":item["notif"] ?? "-",
+            "id_gudang":item["id_gudang"] ?? "-",
           };
         }).toList();
 
@@ -250,8 +268,15 @@ class _PemesananPageState extends State<PemesananPage> {
                                   ),
                                 ),
                                 onTap: () {
-                                  // Tambahkan aksi jika perlu
-                                },
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => DetailPemesananPage(invoice: data),
+    ),
+  );
+},
+
+
                               ),
                               const Divider(height: 1),
                             ],
