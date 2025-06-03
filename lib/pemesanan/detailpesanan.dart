@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class DetailPemesananPage extends StatefulWidget {
   final Map<String, dynamic> invoice;
@@ -20,29 +22,52 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
     _parseItems();
   }
 
-  void _parseItems() {
-    final rawItems = widget.invoice['items'] ?? [];
-    final List<Map<String, dynamic>> parsed = [];
+void _parseItems() async {
+  final idPo1 = widget.invoice['id_po1'];
+  final url = Uri.parse('http://192.168.1.17/hayami/po2.php?id_po1=$idPo1');
 
-    for (var item in rawItems) {
-      final qty = (double.tryParse(item['qty']?.toString() ?? '0') ?? 0) * 12;
-      final harga = double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
-      final total = double.tryParse(item['ttl_harga']?.toString() ?? '0') ?? 0;
+  try {
+    final response = await http.get(url);
 
-      parsed.add({
-        'nama_barang': item['sku'] ?? 'Tidak diketahui',
-        'size': (item['size'] != null && item['size'].toString().isNotEmpty) ? item['size'].toString() : 'All Size',
-        'jumlah': qty.toStringAsFixed(0),
-        'harga': harga.toStringAsFixed(0),
-        'total': total.toStringAsFixed(0),
-      });
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      if (jsonResponse['status'] == 'success' && jsonResponse['data'] != null) {
+        final List<dynamic> items = jsonResponse['data'];
+        final List<Map<String, dynamic>> parsed = [];
+
+        for (var item in items) {
+          final qty = (double.tryParse(item['qty']?.toString() ?? '0') ?? 0) * 12;
+          final harga = double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
+          final total = double.tryParse(item['ttl_harga']?.toString() ?? '0') ?? 0;
+
+          parsed.add({
+            'nama_barang': item['sku'] ?? 'Tidak diketahui',
+            'size': item['size']?.toString().isNotEmpty == true ? item['size'] : 'All Size',
+            'jumlah': qty.toStringAsFixed(0),
+            'harga': harga.toStringAsFixed(0),
+            'total': total.toStringAsFixed(0),
+          });
+        }
+
+        setState(() {
+          barang = parsed;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          barang = [];
+          isLoading = false;
+        });
+      }
+    } else {
+      print("Gagal load data detail barang: ${response.statusCode}");
+      setState(() => isLoading = false);
     }
-
-    setState(() {
-      barang = parsed;
-      isLoading = false;
-    });
+  } catch (e) {
+    print("Terjadi error saat mengambil data: $e");
+    setState(() => isLoading = false);
   }
+}
 
   double getTotalSemuaBarang() {
     return barang.fold(0, (sum, item) => sum + (double.tryParse(item['total'] ?? '0') ?? 0));

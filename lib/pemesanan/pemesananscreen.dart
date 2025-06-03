@@ -28,14 +28,16 @@ class _PemesananPageState extends State<PemesananPage> {
     fetchPemesananData();
   }
 
-  Future<void> fetchPemesananData() async {
-    setState(() => isLoading = true);
+Future<void> fetchPemesananData() async {
+  setState(() => isLoading = true);
 
-    try {
-      final response = await http.get(Uri.parse('http://192.168.1.17/hayami/po.php'));
+  try {
+    final response = await http.get(Uri.parse('http://192.168.1.17/hayami/po1.php'));
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonData = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      if (jsonResponse["status"] == "success" && jsonResponse["data"] != null) {
+        final List<dynamic> jsonData = jsonResponse["data"];
 
         dataList = jsonData.map<Map<String, dynamic>>((item) {
           return {
@@ -66,14 +68,17 @@ class _PemesananPageState extends State<PemesananPage> {
 
         filterData();
       } else {
-        print("Failed to load data. Status code: ${response.statusCode}");
+        print("Data kosong atau status bukan success");
       }
-    } catch (e) {
-      print("Error fetching data: $e");
+    } else {
+      print("Failed to load data. Status code: ${response.statusCode}");
     }
-
-    setState(() => isLoading = false);
+  } catch (e) {
+    print("Error fetching data: $e");
   }
+
+  setState(() => isLoading = false);
+}
 
   void _onSearchChanged() {
     filterData();
