@@ -678,21 +678,6 @@ class _KledoDrawerState extends State<KledoDrawer> {
                 );
               }
             }).toList(),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // WhatsApp action
-                },
-                icon: const FaIcon(FontAwesomeIcons.whatsapp),
-                label: const Text('Halo, ada yang bisa saya bantu?'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 40),
-                ),
-              ),
-            ),
           ],
         ),
       ),

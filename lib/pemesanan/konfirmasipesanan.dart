@@ -4,6 +4,7 @@ import 'package:hayami_app/pemesanan/tambahpesanan.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class KonfirmasiPesanan extends StatefulWidget {
   final List<Produk> cartItems;
@@ -22,6 +23,10 @@ class KonfirmasiPesanan extends StatefulWidget {
 class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
   double discountPercent = 0.0;
   double discountNominal = 0.0;
+
+  String? idGudang;
+  String? dibuatOleh;
+
 
   final _percentController = TextEditingController();
   final _nominalController = TextEditingController();
@@ -60,12 +65,23 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _percentController.text = discountPercent.toStringAsFixed(1);
-    _nominalController.text = discountNominal.toStringAsFixed(0);
-  }
+@override
+void initState() {
+  super.initState();
+  _loadUserData();
+
+  _percentController.text = discountPercent.toStringAsFixed(1);
+  _nominalController.text = discountNominal.toStringAsFixed(0);
+}
+
+void _loadUserData() async {
+  final prefs = await SharedPreferences.getInstance();
+  setState(() {
+    idGudang = prefs.getString('id_gudang') ?? '';
+    dibuatOleh = prefs.getString('id_user') ?? '';
+  });
+}
+
 
   @override
   void dispose() {
@@ -227,28 +243,30 @@ class _KonfirmasiPesananState extends State<KonfirmasiPesanan> {
   final url = Uri.parse("https://hayami.id/apps/erp/api-android/api/inputpenjualan.php"); // Ganti sesuai path file PHP
 
 final Map<String, dynamic> payload = {
-  "id_cust": widget.selectedCustomer ?? "C123",
-  "tierlist": "Tier A", // bisa diganti variabel juga
-  "sku": widget.cartItems.isNotEmpty ? widget.cartItems.first.sku : "SKU001", // ambil sku pertama sebagai contoh
-  "total_qty": (totalLusin * 12).toInt(),// ambil variabel totalQty atau default 10
-  "subtotal": subtotal ?? 0,
-  "diskon": totalDiskonOtomatis,         // diskon otomatis dari produk
-"diskon_persen": discountPercent,      // input manual persen dari user
-"diskon_baru": discountNominal, 
-  "top": (_selectedTOP ?? 30).toString(), // pastikan string sesuai contoh
+  "id_cust": widget.selectedCustomer,
+  "tierlist": "Tier A",
+  "sku": widget.cartItems.isNotEmpty ? widget.cartItems.first.sku : "SKU001",
+  "total_qty": (totalLusin * 12).toInt(),
+  "subtotal": subtotal,
+  "diskon": totalDiskonOtomatis,
+  "diskon_persen": discountPercent,
+  "diskon_baru": discountNominal,
+  "top": (_selectedTOP ?? 30).toString(),
   "tax": 0,
   "ppn": 0,
   "remark": "Catatan",
-  "payment": _selectedPaymentMethod ?? "Cash",
-  "dibuat_oleh": "Admin",
+  "payment": _selectedPaymentMethod,
+  "dibuat_oleh": dibuatOleh ?? 'Admin',
+  "id_gudang": idGudang ?? 'GUD001',
   "orders": widget.cartItems.map((item) {
-  return {
-    "sku": item.sku,
-    "qty_order": item.orderQty.toInt(),
-    "price": item.harga.toDouble(),
-  };
-}).toList(),
+    return {
+      "sku": item.sku,
+      "qty_order": item.orderQty.toInt(),
+      "price": item.harga.toDouble(),
+    };
+  }).toList(),
 };
+
 
 print("PAYLOAD YANG DIKIRIM:");
   print(json.encode(payload));
