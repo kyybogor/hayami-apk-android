@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/pemesanan/pemesananscreen.dart';
 import 'package:hayami_app/pemesanan/tambahpesanan.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -268,7 +269,12 @@ print("PAYLOAD YANG DIKIRIM:");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Pesanan berhasil dikirim.")),
       );
-      Navigator.pop(context);
+      Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(builder: (_) => const PemesananPage()),
+  (Route<dynamic> route) => false,
+);
+
     } else {
       // Tampilkan pesan error dari server
       ScaffoldMessenger.of(context).showSnackBar(
