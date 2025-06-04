@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Pembelian/pemesananpembelian.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TambahPesananPage extends StatefulWidget {
   const TambahPesananPage({super.key});
@@ -73,8 +74,10 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
   }
 
   Future<void> simpanPesananKeServer() async {
-    final url = Uri.parse(
-        'https://hayami.id/apps/erp/api-android/api/tambahpesanan.php');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final idUser = prefs.getString('id_user') ?? '';
+    final idGudang = prefs.getString('id_gudang') ?? '';
+    final url = Uri.parse('http://192.168.1.17/hayami/tambahpesanan.php');
 
     final items = cart.entries.map((entry) {
       final sku = entry.key;
@@ -102,9 +105,10 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
       "keterangan": _keteranganController.text,
       "seri": _seriPekerjaanController.text,
       "tanggal": tanggalHariIni,
+      "id_user": idUser,
+      "id_gudang": idGudang,
       "items": items,
     });
-
     try {
       final response = await http.post(
         url,
@@ -188,7 +192,7 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
       manualPrices.remove(sku);
       priceControllers[sku]?.dispose();
       priceControllers.remove(sku);
-    });
+    }); 
   }
 
   String formatRupiah(String s) {
