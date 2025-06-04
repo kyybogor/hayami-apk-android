@@ -178,7 +178,7 @@ if (rawFlag.toLowerCase() == 'so partially created') {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text("Ukuran: ${item['size']}"),
-                                  Text("${item['jumlah']} pcs"),
+                                  Text("${item['jumlah']} lusin"),
                                 ],
                               ),
                               trailing: Column(
