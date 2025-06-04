@@ -23,6 +23,7 @@ import 'package:hayami_app/pengiriman/pengirimanscreen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -53,6 +54,7 @@ class Dashboardscreen extends StatefulWidget {
 }
 
 class _DashboardscreenState extends State<Dashboardscreen> {
+  String nmUser = '';
   List<KasBankModel> kasList = [];
   bool isKasLoading = true;
 
@@ -60,6 +62,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
   void initState() {
     super.initState();
     fetchKasFromApi();
+    loadUserName();
   }
 
   Future<void> fetchKasFromApi() async {
@@ -82,6 +85,13 @@ class _DashboardscreenState extends State<Dashboardscreen> {
         isKasLoading = false;
       });
     }
+  }
+
+  Future<void> loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      nmUser = prefs.getString('nm_user') ?? 'pengguna';
+    });
   }
 
   String formatCurrency(double amount) {
@@ -168,16 +178,16 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                 ),
               ),
               padding: const EdgeInsets.all(20),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Hi pengguna!',
-                      style: TextStyle(
+                  Text('Hi $nmUser!',
+                      style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Colors.white)),
-                  SizedBox(height: 6),
-                  Text('Yuk mudahkan keuangan bisnis dengan Hayami',
+                  const SizedBox(height: 6),
+                  const Text('Yuk mudahkan keuangan bisnis dengan Hayami',
                       style: TextStyle(color: Colors.white70, fontSize: 14)),
                 ],
               ),
@@ -390,6 +400,9 @@ class KledoDrawer extends StatefulWidget {
 }
 
 class _KledoDrawerState extends State<KledoDrawer> {
+  String nmUser = '';
+  String grupUser = '';
+
   int? selectedIndex;
   String? selectedSubItem;
 
@@ -430,6 +443,20 @@ class _KledoDrawerState extends State<KledoDrawer> {
     {'icon': Icons.exit_to_app, 'title': 'Keluar'},
   ];
 
+  Future<void> loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      nmUser = prefs.getString('nm_user') ?? 'User';
+      grupUser = prefs.getString('grup') ?? 'Instansi Anda';
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -456,18 +483,19 @@ class _KledoDrawerState extends State<KledoDrawer> {
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Hayami',
+                    children: [
+                      const Text('Hayami',
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Text('User',
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
-                      Text('Your Instation',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      Text(nmUser,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16)),
+                      Text(grupUser,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 14)),
                     ],
                   ),
                   Positioned(

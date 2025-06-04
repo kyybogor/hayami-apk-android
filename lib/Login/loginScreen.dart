@@ -4,6 +4,7 @@ import 'package:hayami_app/Login/forget.dart';
 import 'package:hayami_app/Login/otp.dart';
 import 'package:hayami_app/SignUp/dashboardSignUp.dart';
 import 'package:hayami_app/api/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,11 +35,24 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = false);
 
     if (response['status'] == 'success') {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final user = response['user'];
+
+      await prefs.setString('id_user', user['id_user'] ?? '');
+      await prefs.setString('nm_user', user['nm_user'] ?? '');
+      await prefs.setString('jabatan', user['jabatan'] ?? '');
+      await prefs.setString('email_user', user['email_user'] ?? '');
+      await prefs.setString('karyawan', user['karyawan'] ?? '');
+      await prefs.setString('grup', user['grup'] ?? '');
+      await prefs.setString('id_cabang', user['id_cabang'] ?? '');
+      await prefs.setString('id_gudang', user['id_gudang'] ?? '');
+      await prefs.setString('sts', user['sts'] ?? '');
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const Dashboardscreen()),
       );
     } else {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(response['message'] ?? 'Login gagal.')),
       );
@@ -81,7 +95,6 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
