@@ -15,29 +15,70 @@ class ProdukDetailPage extends StatelessWidget {
     ).format(value);
   }
 
-  Widget buildInfoRow(String label, String value, {bool isHarga = false}) {
+  // Map untuk memilih icon berdasarkan label
+  IconData getIconForLabel(String label) {
+    switch (label.toLowerCase()) {
+      case 'tipe':
+        return Icons.category;
+      case 'id tipe':
+        return Icons.confirmation_num;
+      case 'ukuran':
+        return Icons.straighten;
+      case 'qty':
+        return Icons.inventory_2;
+      case 'qty clear':
+        return Icons.check_circle;
+      case 'qty clear do':
+        return Icons.local_shipping;
+      case 'harga':
+        return Icons.attach_money;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  Widget buildInfoTile(String label, String value,
+      {bool isHarga = false, IconData? icon}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(
+            icon ?? getIconForLabel(label),
+            size: 20,
+            color: Colors.blueAccent,
+          ),
+          const SizedBox(width: 12),
+
+          // Label
           SizedBox(
-            width: 110,
+            width: 100, // fixed lebar untuk label agar sejajar
             child: Text(
               label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ),
-          const Text(': ',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+
+          const Text(
+            ": ",
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+
+          // Value
           Expanded(
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 16,
-                color: isHarga ? Colors.blue : Colors.black,
-                fontWeight: isHarga ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 15,
+                color: isHarga ? Colors.blue[700] : Colors.grey[800],
+                fontWeight: isHarga ? FontWeight.bold : FontWeight.normal,
               ),
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -53,71 +94,100 @@ class ProdukDetailPage extends StatelessWidget {
         : 'https://hayami.id/apps/erp/${produk['img'].toString().replaceAll('\\', '/')}';
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         centerTitle: true,
-        title:
-            const Text('Detail Produk', style: TextStyle(color: Colors.blue)),
+        backgroundColor: Colors.white,
+        elevation: 2,
+        iconTheme: const IconThemeData(color: Colors.blue),
+        title: const Text(
+          'Detail Produk',
+          style: TextStyle(
+            color: Colors.blue,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gambar Produk
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+            // Gambar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                decoration: BoxDecoration(boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]),
                 child: Image.network(
                   imageUrl,
+                  height: 240,
                   width: double.infinity,
-                  height: 250,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.broken_image,
-                    size: 100,
-                    color: Colors.grey,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 240,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Icon(Icons.broken_image,
+                          size: 60, color: Colors.grey),
+                    ),
                   ),
+                  loadingBuilder: (_, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 240,
+                      color: Colors.grey[200],
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  },
                 ),
               ),
             ),
-            const SizedBox(height: 20),
 
-            // Informasi Produk
+            const SizedBox(height: 24),
+
+            // Kartu Info Produk
             Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
               elevation: 4,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Judul / SKU
                     Text(
                       produk['sku'] ?? '',
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const Divider(height: 16),
+                    const SizedBox(height: 16),
+
                     if (produk['tipe'] != null)
-                      buildInfoRow('Tipe', produk['tipe'].toString()),
+                      buildInfoTile('Tipe', produk['tipe'].toString()),
                     if (produk['id_tipe'] != null)
-                      buildInfoRow('ID Tipe', produk['id_tipe'].toString()),
-                    if (produk['gambar'] != null)
-                      buildInfoRow('Gambar', produk['gambar'].toString()),
+                      buildInfoTile('ID Tipe', produk['id_tipe'].toString()),
                     if (produk['size'] != null)
-                      buildInfoRow('Ukuran', produk['size'].toString()),
+                      buildInfoTile('Ukuran', produk['size'].toString()),
                     if (produk['qty'] != null)
-                      buildInfoRow('Qty', produk['qty'].toString()),
+                      buildInfoTile('Qty', produk['qty'].toString()),
                     if (produk['qtyclear'] != null)
-                      buildInfoRow('Qty Clear', produk['qtyclear'].toString()),
+                      buildInfoTile('Qty Clear', produk['qtyclear'].toString()),
                     if (produk['qtycleardo'] != null)
-                      buildInfoRow(
+                      buildInfoTile(
                           'Qty Clear DO', produk['qtycleardo'].toString()),
-                    const SizedBox(height: 8),
-                    buildInfoRow('Harga', formatRupiah(produk['harga']),
+                    // Harga
+                    buildInfoTile('Harga', formatRupiah(produk['harga']),
                         isHarga: true),
                   ],
                 ),

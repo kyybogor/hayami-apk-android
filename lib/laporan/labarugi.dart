@@ -6,23 +6,6 @@ import 'package:intl/intl.dart';
 
 void main() => runApp(const MaterialApp(home: LabaRugiPage()));
 
-// Fungsi global untuk format Rupiah
-String formatRupiah(double nominal, {int decimalDigits = 0}) {
-  final formatter = NumberFormat.currency(
-    locale: 'id_ID',
-    symbol: 'Rp ',
-    decimalDigits: decimalDigits,
-  );
-  return formatter.format(nominal);
-}
-
-// Helper untuk convert String ke double aman
-double parseToDouble(String value) {
-  // Hapus titik atau koma yang biasanya pemisah ribuan, lalu parse
-  final cleaned = value.replaceAll('.', '').replaceAll(',', '.');
-  return double.tryParse(cleaned) ?? 0.0;
-}
-
 class LabaRugiPage extends StatefulWidget {
   const LabaRugiPage({super.key});
 
@@ -161,7 +144,7 @@ class _LabaRugiPageState extends State<LabaRugiPage> {
                     ),
                   ...entry.value.map((item) => buildItem(
                         "${item.kode.isNotEmpty ? "(${item.kode}) " : ""}${item.deskripsi}",
-                        formatRupiah(parseToDouble(item.nilai)),
+                        (item.nilai),
                         isBold: item.kode.isEmpty,
                         item: item,
                       )),
@@ -212,15 +195,16 @@ class LabaRugiItem {
   factory LabaRugiItem.fromJson(Map<String, dynamic> json) {
     var detailList = <LabaRugiDetail>[];
     if (json['detail'] != null && json['detail'] is List) {
-      detailList =
-          (json['detail'] as List).map((d) => LabaRugiDetail.fromJson(d)).toList();
+      detailList = (json['detail'] as List)
+          .map((d) => LabaRugiDetail.fromJson(d))
+          .toList();
     }
 
     return LabaRugiItem(
       kategori: json['kategori'] ?? '',
       kode: json['kode'] ?? '',
       deskripsi: json['deskripsi'] ?? '',
-      nilai: json['nilai'] ?? '0',
+      nilai: json['nilai'] ?? '',
       date: json['date'] ?? '',
       detail: detailList,
     );
@@ -248,7 +232,7 @@ class LabaRugiDetail {
       id: json['id'] ?? '',
       nama: json['nama'] ?? '',
       tanggal: json['tanggal'] ?? '',
-      nominal: json['nominal'] ?? '0',
+      nominal: json['nominal'] ?? '',
     );
   }
 }
@@ -264,24 +248,43 @@ class DetailLabaRugiPage extends StatelessWidget {
 
     double totalNominal = 0.0;
     for (var detail in item.detail) {
-      totalNominal += parseToDouble(detail.nominal);
+      totalNominal += double.tryParse(
+              detail.nominal.replaceAll('.', '').replaceAll(',', '')) ??
+          0.0;
     }
 
     if (item.detail.isEmpty) {
-      totalNominal = parseToDouble(item.nilai);
+      totalNominal =
+          double.tryParse(item.nilai.replaceAll('.', '').replaceAll(',', '')) ??
+              0.0;
+    }
+
+    String formatRupiah(double nominal, {int decimalDigits = 2}) {
+      if (nominal == nominal.roundToDouble()) {
+        decimalDigits = 0;
+      }
+
+      final formatter = NumberFormat.currency(
+        locale: 'id',
+        symbol: 'Rp ',
+        decimalDigits: decimalDigits,
+      );
+      return formatter.format(nominal);
     }
 
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
         centerTitle: true,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Transaksi ${item.deskripsi}",
-                style: const TextStyle(fontSize: 16)),
-            Text(item.kode, style: const TextStyle(fontSize: 12)),
-          ],
+        title: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Transaksi ${item.deskripsi}",
+                  style: const TextStyle(fontSize: 16)),
+              Text(item.kode, style: const TextStyle(fontSize: 12)),
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -352,7 +355,7 @@ class DetailLabaRugiPage extends StatelessWidget {
               color: Colors.pink[100],
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Text(formatRupiah(parseToDouble(item.nilai)),
+            child: Text((item.nilai),
                 style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ),
@@ -369,7 +372,7 @@ class DetailLabaRugiPage extends StatelessWidget {
             color: Colors.pink[100],
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Text(formatRupiah(parseToDouble(detail.nominal)),
+          child: Text((detail.nominal),
               style: const TextStyle(fontWeight: FontWeight.bold)),
         ),
       );

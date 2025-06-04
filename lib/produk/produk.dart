@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/produk/produkdetail.dart';
 
-// Perbaiki URL gambar
 String cleanImageUrl(String path) {
   if (path.isEmpty) return '';
   if (path.startsWith('http')) return path;
@@ -34,17 +33,25 @@ class _ProdukPageState extends State<ProdukPage> {
   int produkHabis = 0;
 
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _fetchProduk();
     _scrollController.addListener(_scrollListener);
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -82,7 +89,6 @@ class _ProdukPageState extends State<ProdukPage> {
         final jsonResponse = json.decode(response.body);
         final List<dynamic> data = jsonResponse['all_product'];
 
-        // ✅ Mengambil info card dari response
         int tersedia =
             int.tryParse(jsonResponse['product_tersedia'].toString()) ?? 0;
         int sedikit =
@@ -98,7 +104,6 @@ class _ProdukPageState extends State<ProdukPage> {
           _hasMore = _loadedGroupCount < _produkGroupedList.length;
           _isLoading = false;
 
-          // ✅ Update status produk dari API
           totalProduk = tersedia + sedikit + habis;
           produkHampirHabis = sedikit;
           produkHabis = habis;
@@ -138,35 +143,27 @@ class _ProdukPageState extends State<ProdukPage> {
     });
   }
 
-  void _calculateProduk(List<dynamic> data) {
-    int total = 0;
-    int hampirHabis = 0;
-    int habis = 0;
+  List<Map<String, dynamic>> _filterProduk(
+      List<Map<String, dynamic>> produkList) {
+    if (_searchQuery.isEmpty) return produkList;
 
-    for (var produk in data) {
-      int stok = int.tryParse(produk['stok'].toString()) ?? 0;
-      total++;
-      if (stok == 0) {
-        habis++;
-      } else if (stok < 10) {
-        hampirHabis++;
-      }
-    }
-
-    totalProduk = total;
-    produkHampirHabis = hampirHabis;
-    produkHabis = habis;
+    return produkList.where((produk) {
+      final sku = (produk['sku'] ?? '').toString().toLowerCase();
+      final nama = (produk['nama'] ?? '').toString().toLowerCase();
+      return sku.contains(_searchQuery) || nama.contains(_searchQuery);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // Gabungkan produk yang sudah di-load
     final loadedProduk = _produkGroupedList
         .take(_loadedGroupCount)
         .expand((group) => group)
         .toList();
+
+    final filteredProduk = _filterProduk(loadedProduk);
 
     return Scaffold(
       drawer: const KledoDrawer(),
@@ -195,9 +192,10 @@ class _ProdukPageState extends State<ProdukPage> {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
+            controller: _searchController,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),
-              hintText: 'Cari',
+              hintText: 'Cari produk...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -250,16 +248,20 @@ class _ProdukPageState extends State<ProdukPage> {
             GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              itemCount: loadedProduk.length,
+              itemCount: filteredProduk.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // 2 kotak per baris
-                mainAxisSpacing: 2,
-                crossAxisSpacing: 1,
+                crossAxisCount: 2,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
                 childAspectRatio: 0.95,
               ),
               itemBuilder: (context, index) {
-                final produk = loadedProduk[index];
-                return InkWell(
+                final produk = filteredProduk[index];
+                return _buildChartPlaceholder(
+                  produk['sku'] ?? '',
+                  screenWidth / 2,
+                  produk['img'] ?? '',
+                  produk['harga'] ?? '0',
                   onTap: () {
                     Navigator.push(
                       context,
@@ -268,12 +270,6 @@ class _ProdukPageState extends State<ProdukPage> {
                       ),
                     );
                   },
-                  child: _buildChartPlaceholder(
-                    produk['sku'] ?? '',
-                    screenWidth / 2,
-                    produk['img'] ?? '',
-                    produk['harga'] ?? '0',
-                  ),
                 );
               },
             ),
@@ -335,84 +331,97 @@ class _ProdukPageState extends State<ProdukPage> {
   }
 
   Widget _buildChartPlaceholder(
-      String title, double width, String imagePath, String harga) {
+      String title, double width, String imagePath, String harga,
+      {required VoidCallback onTap}) {
     final imgUrl = cleanImageUrl(imagePath);
 
-    return Column(
-      children: [
-        Container(
-          width: width - 24, // dikurangi margin horisontal (12+12)
-          height: 220,
-          margin: const EdgeInsets.only(right: 12),
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: imgUrl.isEmpty
-                      ? Container(
-                          color: Colors.grey.shade300,
-                          width: double.infinity,
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        )
-                      : Image.network(
-                          imgUrl,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                            color: Colors.grey.shade300,
-                            width: double.infinity,
-                            child: const Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                size: 50,
-                                color: Colors.grey,
+    return GestureDetector(
+      onTap: onTap,
+      child: StatefulBuilder(
+        builder: (context, setInnerState) {
+          bool isPressed = false;
+          return Listener(
+            onPointerDown: (_) => setInnerState(() => isPressed = true),
+            onPointerUp: (_) => setInnerState(() => isPressed = false),
+            child: AnimatedScale(
+              scale: isPressed ? 0.97 : 1.0,
+              duration: const Duration(milliseconds: 120),
+              child: Container(
+                width: width - 24,
+                height: 220,
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: imgUrl.isEmpty
+                            ? Container(
+                                color: Colors.grey.shade300,
+                                width: double.infinity,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              )
+                            : Image.network(
+                                imgUrl,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                  color: Colors.grey.shade300,
+                                  width: double.infinity,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      FormatRupiah(harga),
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                FormatRupiah(harga),
-                style: const TextStyle(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
