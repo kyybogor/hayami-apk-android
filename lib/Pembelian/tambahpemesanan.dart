@@ -77,7 +77,7 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final idUser = prefs.getString('id_user') ?? '';
     final idGudang = prefs.getString('id_gudang') ?? '';
-    final url = Uri.parse('http://192.168.1.17/hayami/tambahpesanan.php');
+    final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/tambahpesanan.php');
 
     final items = cart.entries.map((entry) {
       final sku = entry.key;
@@ -167,15 +167,17 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
     }
   }
 
-  void addToCart(String sku) {
-    setState(() {
-      cart[sku] = (cart[sku] ?? 0.0) + 0.5;
-      if (!priceControllers.containsKey(sku)) {
-        priceControllers[sku] = TextEditingController(text: '');
-      }
-      manualPrices[sku] = manualPrices[sku] ?? 0.0;
-    });
-  }
+void addToCart(String sku) {
+  setState(() {
+    if (!cart.containsKey(sku)) {
+      cart[sku] = 0.0; // Mulai dari 0.0
+    }
+    if (!priceControllers.containsKey(sku)) {
+      priceControllers[sku] = TextEditingController(text: '');
+    }
+    manualPrices[sku] = manualPrices[sku] ?? 0.0;
+  });
+}
 
   void removeFromCart(String sku) {
     setState(() {
