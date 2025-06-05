@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -9,21 +10,27 @@ class WebViewPage extends StatefulWidget {
 }
 
 class _WebViewPageState extends State<WebViewPage> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('https://www.google.com'));
+    if (!kIsWeb) {
+      _controller = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..loadRequest(Uri.parse('https://www.instagram.com/'));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('WebView - Google')),
-      body: WebViewWidget(controller: _controller),
+      body: kIsWeb
+          ? const Center(child: Text('WebView tidak tersedia di platform Web'))
+          : _controller == null
+              ? const Center(child: CircularProgressIndicator())
+              : WebViewWidget(controller: _controller!),
     );
   }
 }

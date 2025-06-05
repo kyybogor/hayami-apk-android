@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Pembelian/detailpembelian.dart';
 import 'package:hayami_app/Pembelian/detailpemesanan.dart';
+import 'package:hayami_app/Pembelian/pembelianscreen.dart';
 import 'package:hayami_app/Pembelian/tambahpemesanan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -130,12 +131,18 @@ Future<void> fetchInvoices() async {
               const Text("Pemesanan", style: TextStyle(color: Colors.blue)),
           backgroundColor: Colors.white,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.blue),
-            onPressed: () {
-              Navigator.pop(context, dataChanged);
-            },
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
           ),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const Pembelianscreen()),
+            );  
+          },
+        ),
+
         ),
         body: Column(
           children: [

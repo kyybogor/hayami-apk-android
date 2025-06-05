@@ -1,19 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
-import 'package:intl/intl.dart';
 
+import 'package:flutter/material.dart';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/produk/produkdetail.dart';
-
-String cleanImageUrl(String path) {
-  if (path.isEmpty) return '';
-  if (path.startsWith('http')) return path;
-  return 'https://hayami.id/apps/erp/${path.replaceAll('\\', '/')}';
-}
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 class ProdukPage extends StatefulWidget {
-  const ProdukPage({super.key});
+  const ProdukPage({Key? key}) : super(key: key);
 
   @override
   State<ProdukPage> createState() => _ProdukPageState();
@@ -21,10 +16,13 @@ class ProdukPage extends StatefulWidget {
 
 class _ProdukPageState extends State<ProdukPage> {
   bool _showChart = true;
+
   List<Map<String, dynamic>> _allProduk = [];
   List<List<Map<String, dynamic>>> _produkGroupedList = [];
+
   int _loadedGroupCount = 0;
   final int _groupLoadSize = 3;
+
   bool _isLoading = false;
   bool _hasMore = true;
 
@@ -34,47 +32,62 @@ class _ProdukPageState extends State<ProdukPage> {
 
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+
   String _searchQuery = '';
+  Timer? _debounce;
+
+  // Untuk pagination hasil search di client side
+  List<Map<String, dynamic>> _searchResults = [];
+  int _searchDisplayCount = 0;
+  final int _searchLoadSize = 6;
+  bool _searchHasMore = false;
 
   @override
   void initState() {
     super.initState();
     _fetchProduk();
     _scrollController.addListener(_scrollListener);
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.trim().toLowerCase();
-      });
-    });
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
-  void _scrollListener() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 150) {
-      if (_hasMore && !_isLoading) {
-        _loadMoreGroups();
-      }
-    }
-  }
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
 
-  String FormatRupiah(dynamic amount) {
-    try {
-      final value = double.tryParse(amount.toString()) ?? 0;
-      return NumberFormat.currency(
-        locale: 'id_ID',
-        symbol: 'Rp ',
-        decimalDigits: 0,
-      ).format(value);
-    } catch (e) {
-      return 'Rp 0';
-    }
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      final query = _searchController.text.trim();
+      if (query.isEmpty) {
+        setState(() {
+          _searchQuery = '';
+          _searchResults = [];
+          _searchDisplayCount = 0;
+          _searchHasMore = false;
+          _hasMore = true;
+          _loadedGroupCount = (_groupLoadSize < _produkGroupedList.length)
+              ? _groupLoadSize
+              : _produkGroupedList.length;
+        });
+      } else {
+        setState(() {
+          _searchQuery = query.toLowerCase();
+          _searchResults = [];
+          _searchDisplayCount = 0;
+          _searchHasMore = false;
+          _hasMore = false;
+          _loadedGroupCount = 0;
+          _isLoading = true;
+        });
+        _fetchSearchProduk(query);
+      }
+    });
   }
 
   Future<void> _fetchProduk() async {
@@ -118,6 +131,41 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
+  Future<void> _fetchSearchProduk(String skuQuery) async {
+    final encodedSku = Uri.encodeComponent(skuQuery);
+    final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/searchproduk.php?sku=$encodedSku');
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        List<Map<String, dynamic>> results = [];
+
+        if (jsonResponse is List) {
+          results = List<Map<String, dynamic>>.from(jsonResponse);
+        } else if (jsonResponse['all_product'] != null) {
+          results =
+              List<Map<String, dynamic>>.from(jsonResponse['all_product']);
+        }
+
+        setState(() {
+          _searchResults = results;
+          _searchDisplayCount = results.length > _searchLoadSize
+              ? _searchLoadSize
+              : results.length;
+          _searchHasMore = results.length > _searchDisplayCount;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        print('Gagal load search produk');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print('Error saat search produk: $e');
+    }
+  }
+
   List<List<Map<String, dynamic>>> _groupProduk(
       List<Map<String, dynamic>> data) {
     List<List<Map<String, dynamic>>> groups = [];
@@ -128,19 +176,43 @@ class _ProdukPageState extends State<ProdukPage> {
   }
 
   void _loadMoreGroups() {
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        final nextCount = _loadedGroupCount + _groupLoadSize;
-        if (nextCount >= _produkGroupedList.length) {
-          _loadedGroupCount = _produkGroupedList.length;
-          _hasMore = false;
-        } else {
-          _loadedGroupCount = nextCount;
-        }
-        _isLoading = false;
-      });
-    });
+    if (_isLoading) return;
+
+    if (_searchQuery.isNotEmpty) {
+      if (_searchHasMore) {
+        setState(() {
+          final remaining = _searchResults.length - _searchDisplayCount;
+          final loadCount =
+              remaining > _searchLoadSize ? _searchLoadSize : remaining;
+          _searchDisplayCount += loadCount;
+          _searchHasMore = _searchResults.length > _searchDisplayCount;
+        });
+      }
+    } else {
+      // load more produk normal
+      if (_hasMore) {
+        setState(() => _isLoading = true);
+        Future.delayed(const Duration(milliseconds: 500), () {
+          setState(() {
+            final nextCount = _loadedGroupCount + _groupLoadSize;
+            if (nextCount >= _produkGroupedList.length) {
+              _loadedGroupCount = _produkGroupedList.length;
+              _hasMore = false;
+            } else {
+              _loadedGroupCount = nextCount;
+            }
+            _isLoading = false;
+          });
+        });
+      }
+    }
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 150) {
+      _loadMoreGroups();
+    }
   }
 
   List<Map<String, dynamic>> _filterProduk(
@@ -154,16 +226,42 @@ class _ProdukPageState extends State<ProdukPage> {
     }).toList();
   }
 
+  String FormatRupiah(dynamic amount) {
+    try {
+      final value = double.tryParse(amount.toString()) ?? 0;
+      return NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: 'Rp ',
+        decimalDigits: 0,
+      ).format(value);
+    } catch (e) {
+      return 'Rp 0';
+    }
+  }
+
+String cleanImageUrl(String url) {
+  if (url.isEmpty) return '';
+  if (!url.startsWith('http')) {
+    return 'https://hayami.id/apps/erp/' + url;
+  }
+  return url;
+}
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final loadedProduk = _produkGroupedList
-        .take(_loadedGroupCount)
-        .expand((group) => group)
-        .toList();
+    List<Map<String, dynamic>> displayProduk;
 
-    final filteredProduk = _filterProduk(loadedProduk);
+    if (_searchQuery.isNotEmpty) {
+      displayProduk = _searchResults.take(_searchDisplayCount).toList();
+    } else {
+      final loadedProduk = _produkGroupedList
+          .take(_loadedGroupCount)
+          .expand((group) => group)
+          .toList();
+      displayProduk = _filterProduk(loadedProduk);
+    }
 
     return Scaffold(
       drawer: const KledoDrawer(),
@@ -187,98 +285,101 @@ class _ProdukPageState extends State<ProdukPage> {
         onPressed: () {},
         child: const Icon(Icons.add),
       ),
-      body: ListView(
+      body: SingleChildScrollView(
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Cari produk...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Status Cards
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildStatusCard(
-                    'Produk Tersedia',
-                    (totalProduk - produkHampirHabis - produkHabis).toString(),
-                    Colors.green),
-                _buildStatusCard('Produk Hampir Habis',
-                    produkHampirHabis.toString(), Colors.orange),
-                _buildStatusCard(
-                    'Produk Habis', produkHabis.toString(), Colors.red),
-                _buildStatusCard(
-                    'Total Produk', totalProduk.toString(), Colors.blue),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          InkWell(
-            onTap: () {
-              setState(() {
-                _showChart = !_showChart;
-              });
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                  style: const TextStyle(
-                      color: Colors.blue, fontWeight: FontWeight.bold),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: 'Cari produk...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
                 ),
-                Icon(_showChart ? Icons.expand_less : Icons.expand_more),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          if (_showChart)
-            GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: filteredProduk.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 0.95,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
-              itemBuilder: (context, index) {
-                final produk = filteredProduk[index];
-                return _buildChartPlaceholder(
-                  produk['sku'] ?? '',
-                  screenWidth / 2,
-                  produk['img'] ?? '',
-                  produk['harga'] ?? '0',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProdukDetailPage(produk: produk),
-                      ),
-                    );
-                  },
-                );
-              },
             ),
-
-          if (_isLoading) ...[
-            const SizedBox(height: 16),
-            const Center(child: CircularProgressIndicator()),
+            const SizedBox(height: 12),
+            if (_searchQuery.isEmpty)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildStatusCard(
+                        'Produk Tersedia',
+                        (totalProduk - produkHampirHabis - produkHabis)
+                            .toString(),
+                        Colors.green),
+                    _buildStatusCard('Produk Hampir Habis',
+                        produkHampirHabis.toString(), Colors.orange),
+                    _buildStatusCard(
+                        'Produk Habis', produkHabis.toString(), Colors.red),
+                    _buildStatusCard(
+                        'Total Produk', totalProduk.toString(), Colors.blue),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+            if (_searchQuery.isEmpty)
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _showChart = !_showChart;
+                  });
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
+                      style: const TextStyle(
+                          color: Colors.blue, fontWeight: FontWeight.bold),
+                    ),
+                    Icon(_showChart ? Icons.expand_less : Icons.expand_more),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            if ((_searchQuery.isEmpty && _showChart) || _searchQuery.isNotEmpty)
+              GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: displayProduk.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio:
+                      1.2, // kamu naikkan dari 0.95 ke 1.2 supaya tinggi item tidak terlalu padat
+                ),
+                itemBuilder: (context, index) {
+                  final produk = displayProduk[index];
+                  return _buildChartPlaceholder(
+                    produk['sku'] ?? '',
+                    MediaQuery.of(context).size.width /
+                        3, // Ukuran lebar item setengah layar
+                    produk['img'] ?? '',
+                    produk['harga'] ?? '0',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProdukDetailPage(produk: produk),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            if (_isLoading) ...[
+              const SizedBox(height: 16),
+              const Center(child: CircularProgressIndicator()),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
