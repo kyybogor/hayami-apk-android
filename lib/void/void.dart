@@ -29,63 +29,66 @@ class _VoidState extends State<Void> {
     fetchInvoices();
   }
 
-Future<void> fetchInvoices() async {
-  try {
-    final response = await http.get(
-      Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
-    );
+  Future<void> fetchInvoices() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
 
-      final openInvoices = data.where((item) =>
-        item["status"] != null && item["status"].toString().toLowerCase() == 'void'
-      ).toList();
+        final openInvoices = data
+            .where((item) =>
+                item["status"] != null &&
+                item["status"].toString().toLowerCase() == 'void')
+            .toList();
 
-      invoices = openInvoices.map<Map<String, dynamic>>((item) {
-        String? dibuatTgl = item["tgl"];
-        return {
-          "id": item["id_do1"] ?? '-',
-          "name": (item["id_cust"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["id_cust"],
-          "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["id_group"],
-          "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["no_inv"],
-          "date": dibuatTgl?.toString().trim().isEmpty ?? true
-              ? null
-              : dibuatTgl,
-          "due": (item["tgltop"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["tgltop"],
-          "alamat": (item["address"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["address"],
-          "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["grandttl"],
-          "status": 'Void',
+        invoices = openInvoices.map<Map<String, dynamic>>((item) {
+          String? dibuatTgl = item["tgl"];
+          return {
+            "id": item["id_do1"] ?? '-',
+            "name": (item["id_cust"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_cust"],
+            "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_group"],
+            "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["no_inv"],
+            "date":
+                dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
+            "due": (item["tgltop"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["tgltop"],
+            "alamat": (item["address"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["address"],
+            "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["grandttl"],
+            "ppn": (item["ppn"] ?? '0.00').toString(),
+            "tax": (item["tax"] ?? '0.00').toString(),
+            "status": 'Void',
+          };
+        }).toList();
 
-        };
-      }).toList();
-
+        setState(() {
+          filteredInvoices = invoices;
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (e) {
+      print("Error: $e");
       setState(() {
-        filteredInvoices = invoices;
         isLoading = false;
       });
-    } else {
-      throw Exception('Gagal mengambil data');
     }
-  } catch (e) {
-    print("Error: $e");
-    setState(() {
-      isLoading = false;
-    });
   }
-}
+
   void filterByMonthYear() {
     setState(() {
       filteredInvoices = invoices.where((invoice) {
@@ -115,7 +118,8 @@ Future<void> fetchInvoices() async {
       if (response.statusCode == 200) {
         setState(() {
           invoices.removeWhere((item) => item['invoice'] == invoice['invoice']);
-          filteredInvoices.removeWhere((item) => item['invoice'] == invoice['invoice']);
+          filteredInvoices
+              .removeWhere((item) => item['invoice'] == invoice['invoice']);
           dataChanged = true;
         });
 
@@ -152,7 +156,8 @@ Future<void> fetchInvoices() async {
   String formatRupiah(String amount) {
     try {
       final double value = double.parse(amount);
-      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+      return NumberFormat.currency(
+              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
           .format(value);
     } catch (e) {
       return amount;
@@ -204,7 +209,8 @@ Future<void> fetchInvoices() async {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
               child: Row(
                 children: [
                   Flexible(
@@ -222,16 +228,20 @@ Future<void> fetchInvoices() async {
                         filled: true,
                         fillColor: Colors.blue.shade50,
                       ),
-                      items: ['Semua', ...List.generate(12, (index) {
-                        final month = (index + 1).toString().padLeft(2, '0');
-                        return month;
-                      })].map((month) {
+                      items: [
+                        'Semua',
+                        ...List.generate(12, (index) {
+                          final month = (index + 1).toString().padLeft(2, '0');
+                          return month;
+                        })
+                      ].map((month) {
                         return DropdownMenuItem(
                           value: month,
                           child: Text(
                             month == 'Semua'
                                 ? 'Semua Bulan'
-                                : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
+                                : DateFormat('MMMM')
+                                    .format(DateTime(0, int.parse(month))),
                           ),
                         );
                       }).toList(),

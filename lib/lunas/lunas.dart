@@ -69,8 +69,9 @@ class _LunasState extends State<Lunas> {
             "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
                 ? '-'
                 : item["grandttl"],
-          "status": 'Lunas',
-
+            "ppn": (item["ppn"] ?? '0.00').toString(),
+            "tax": (item["tax"] ?? '0.00').toString(),
+            "status": 'Lunas',
           };
         }).toList();
 
