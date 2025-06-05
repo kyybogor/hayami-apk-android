@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebViewPage extends StatefulWidget {
@@ -18,14 +19,33 @@ class _WebViewPageState extends State<WebViewPage> {
     if (!kIsWeb) {
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..loadRequest(Uri.parse('https://www.instagram.com/'));
+        ..loadRequest(Uri.parse('https://www.tradingview.com/'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('WebView - Google')),
+      appBar: AppBar(
+  backgroundColor: Colors.white,
+  elevation: 0,
+  iconTheme: const IconThemeData(color: Colors.black),
+  title: const Text(
+    'Laporan',
+    style: TextStyle(color: Colors.blue),
+  ),
+  centerTitle: true,
+  leading: IconButton(
+    icon: const Icon(Icons.arrow_back),
+    onPressed: () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const Dashboardscreen()),
+      );
+    },
+  ),
+),
+
       body: kIsWeb
           ? const Center(child: Text('WebView tidak tersedia di platform Web'))
           : _controller == null
