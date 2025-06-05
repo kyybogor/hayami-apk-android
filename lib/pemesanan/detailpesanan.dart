@@ -94,11 +94,11 @@ void _parseItems() async {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'pemesanan':
+      case 'Partially Created':
         return Colors.blue;
-      case 'dibayar sebagian':
+      case 'newPO':
         return Colors.orange;
-      case 'lunas':
+      case '':
         return Colors.green;
       default:
         return Colors.grey;
@@ -113,6 +113,7 @@ void _parseItems() async {
     final instansi = invoice['instansi'] ?? '-';
     final date = invoice['dibuat_tgl'] ?? '-';
     final rawFlag = invoice['flag']?.toString() ?? '';
+    final tgltop = widget.invoice['tgltop']?.toString() ?? '-';
 String status;
 
 if (rawFlag.toLowerCase() == 'so partially created') {
@@ -149,7 +150,7 @@ if (rawFlag.toLowerCase() == 'so partially created') {
       ),
       body: Column(
         children: [
-          _buildHeader(memo, idCust, instansi, date, status, statusColor),
+          _buildHeader(memo, idCust, instansi, date, tgltop, status, statusColor),
           const SizedBox(height: 12),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -268,67 +269,81 @@ if (rawFlag.toLowerCase() == 'so partially created') {
   }
 
   Widget _buildHeader(
-      String memo,
-      String contactName,
-      String instansi,
-      String date,
-      String status,
-      Color statusColor) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
+    String memo,
+    String contactName,
+    String instansi,
+    String date,
+    String tgltop,
+    String status,
+    Color statusColor) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(memo, style: const TextStyle(fontSize: 16, color: Colors.white70)),
-          const SizedBox(height: 16),
-          Text(contactName,
-              style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 25,
-                  height: 25,
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.6),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(status, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
-              ],
-            ),
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(24),
+        bottomRight: Radius.circular(24),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(memo, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+        const SizedBox(height: 16),
+        Text(contactName,
+            style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.calendar_today, size: 16, color: Colors.white),
-              const SizedBox(width: 6),
-              Text(date, style: const TextStyle(color: Colors.white)),
+              Container(
+                width: 25,
+                height: 25,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(status, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
             ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 16),
+        // Bagian tanggal bawah kiri dan kanan
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 16, color: Colors.white),
+                const SizedBox(width: 6),
+                Text(date, style: const TextStyle(color: Colors.white)),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.event_available, size: 16, color: Colors.white),
+                const SizedBox(width: 6),
+                Text(tgltop, style: const TextStyle(color: Colors.white)),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 }

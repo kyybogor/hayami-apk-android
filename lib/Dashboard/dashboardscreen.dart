@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Login/akundetail.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
 import 'package:hayami_app/Pembelian/pembelianscreen.dart';
 import 'package:hayami_app/Pembelian/pemesananpembelian.dart';
@@ -147,12 +148,21 @@ class _DashboardscreenState extends State<Dashboardscreen> {
           fit: BoxFit.contain,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Icon(Icons.notifications_none, color: Colors.white),
-          )
-        ],
+        actions: [
+  Padding(
+    padding: const EdgeInsets.only(right: 12),
+    child: IconButton(
+      icon: const Icon(Icons.account_circle, color: Colors.white),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AkunDetailscreen()),
+        );
+      },
+    ),
+  ),
+],
+
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
