@@ -19,28 +19,55 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
 
   @override
   void initState() {
-  super.initState();
-  final List<dynamic> data = widget.invoice['items'] ?? [];
-  final List<Map<String, dynamic>> parsedProduk = data.map<Map<String, dynamic>>((item) {
-    final qty = double.tryParse(item['pcs']?.toString() ?? '0') ?? 0;
-    final total = double.tryParse(item['ttlcost']?.toString() ?? '0') ?? 0;
+    super.initState();
+    fetchDetailBarang();
+  }
 
-    return {
-      'nama_barang': item['sku'] ?? 'Tidak Diketahui',
-      'size': (item['size'] != null && item['size'].toString().isNotEmpty)
-          ? item['size'].toString()
-          : 'All Size',
-      'jumlah': qty.toStringAsFixed(0),
-      'harga': qty == 0 ? '0' : (total / qty).toStringAsFixed(0),
-      'total': total.toStringAsFixed(0),
-    };
-  }).toList();
+  Future<void> fetchDetailBarang() async {
+    setState(() {
+      isLoading = true;
+    });
 
-  setState(() {
-    barang = parsedProduk;
-    isLoading = false;
-  });
-}
+    try {
+      final idSj1 = widget.invoice['id'] ?? widget.invoice['invoice'];
+      final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/gsj2detail.php?id_sj1=$idSj1');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        List<dynamic> items = data;
+
+        final parsedProduk = items.map<Map<String, dynamic>>((item) {
+          final qty = double.tryParse(item['pcs']?.toString() ?? '0') ?? 0;
+          final total = double.tryParse(item['ttlcost']?.toString() ?? '0') ?? 0;
+
+          return {
+            'nama_barang': item['sku'] ?? 'Tidak Diketahui',
+            'size': (item['size'] != null && item['size'].toString().isNotEmpty)
+                ? item['size'].toString()
+                : 'All Size',
+            'jumlah': qty.toStringAsFixed(0),
+            'harga': qty == 0 ? '0' : (total / qty).toStringAsFixed(0),
+            'total': total.toStringAsFixed(0),
+            'ket': item['ket'] ?? '-',
+          };
+        }).toList();
+
+        setState(() {
+          barang = parsedProduk;
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Gagal mengambil detail barang');
+      }
+    } catch (e) {
+      print('Error fetchDetailBarang: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   double getTotalSemuaBarang() {
     double total = 0;
@@ -60,15 +87,21 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
     switch (status.toLowerCase()) {
       case 'pemesanan':
         return Colors.blue;
+      case 'dibayar sebagian':
+        return Colors.orange;
+      case 'lunas':
+        return Colors.green;
+      case 'batal':
+        return Colors.red;
       default:
-        return Colors.white;
+        return Colors.grey;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
-    final memo = widget.invoice['invoice']?.toString() ?? '-';
+    final memo = invoice['invoice']?.toString() ?? '-';
     final idCust = invoice['name'] ?? 'Tidak diketahui';
     final instansi = invoice['instansi'] ?? '-';
     final date = invoice['date'] ?? '-';
@@ -99,8 +132,7 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
       ),
       body: Column(
         children: [
-          _buildHeader(memo, idCust, instansi, alamat, date, status,
-              statusColor),
+          _buildHeader(memo, idCust, instansi, alamat, date, status, statusColor),
           const SizedBox(height: 12),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -114,8 +146,7 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : barang.isEmpty
-                    ? const Center(
-                        child: Text("Tidak ada barang untuk invoice ini."))
+                    ? const Center(child: Text("Tidak ada barang untuk invoice ini."))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: barang.length,
@@ -123,28 +154,23 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
                           final item = barang[index];
                           return Card(
                             child: ListTile(
-                              title: Text(
-                                  item['nama_barang'] ?? 'Tidak Diketahui'),
+                              title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (item['size'] != null &&
-                                      item['size'].isNotEmpty)
+                                  if (item['size'] != null && item['size'].isNotEmpty)
                                     Text("Ukuran: ${item['size']}"),
-                                  Text(
-                                    "${item['jumlah']} pcs",
-                                  ),
+                                  Text("${item['jumlah']} pcs"),
                                 ],
                               ),
                               trailing: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 4, horizontal: 8),
+                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                                 decoration: BoxDecoration(
                                   color: statusColor.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  "Rp ${formatRupiah(double.tryParse(item['total']?.toString() ?? '0') ?? 0)}",
+                                  "Rp ${formatRupiah(double.tryParse(item['total'] ?? '0') ?? 0)}",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: statusColor,
@@ -167,18 +193,15 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("Total Semua",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       Text("Rp ${formatRupiah(getTotalSemuaBarang())}",
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
                 if (status.toLowerCase() == 'dibayar sebagian')
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     width: double.infinity,
                     color: Colors.grey.shade100,
                     child: Column(
@@ -187,12 +210,11 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text("Sudah Dibayar",
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w500)),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                             Text(
-                                "Rp ${formatRupiah(double.tryParse(sudahDibayar.toString()) ?? 0)}",
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w600)),
+                              "Rp ${formatRupiah(double.tryParse(sudahDibayar.toString()) ?? 0)}",
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -200,12 +222,10 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text("Sisa Tagihan",
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w500)),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                             Text(
                               "Rp ${formatRupiah(getTotalSemuaBarang() - (double.tryParse(sudahDibayar.toString()) ?? 0))}",
-                              style: const TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w600),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -220,13 +240,14 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
   }
 
   Widget _buildHeader(
-      String memo,
-      String contactName,
-      String instansi,
-      String address,
-      String date,
-      String status,
-      Color statusColor) {
+    String memo,
+    String contactName,
+    String instansi,
+    String address,
+    String date,
+    String status,
+    Color statusColor,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -244,14 +265,10 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(memo,
-              style: const TextStyle(fontSize: 16, color: Colors.white70)),
+          Text(memo, style: const TextStyle(fontSize: 16, color: Colors.white70)),
           const SizedBox(height: 16),
           Text(contactName,
-              style: const TextStyle(
-                  fontSize: 18,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -271,9 +288,7 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(status,
-                    style: const TextStyle(
-                        color: Colors.black, fontWeight: FontWeight.w500)),
+                Text(status, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -283,8 +298,7 @@ class _DetailPemesananPageState extends State<DetailPemesananPage> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.calendar_today,
-                      size: 16, color: Colors.white),
+                  const Icon(Icons.calendar_today, size: 16, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(date, style: const TextStyle(color: Colors.white)),
                 ],
