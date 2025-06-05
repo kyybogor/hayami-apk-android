@@ -67,6 +67,9 @@ Future<void> fetchInvoices() async {
           "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
               ? '-'
               : item["grandttl"],
+    "disc": (item["disc"] ?? '0.00').toString(),
+    "ppn": (item["ppn"] ?? '0.00').toString(),
+    "tax": (item["tax"] ?? '0.00').toString(),
           "status": 'Belum Dibayar',
         };
       }).toList();

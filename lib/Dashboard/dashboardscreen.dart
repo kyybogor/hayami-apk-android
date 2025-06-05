@@ -22,6 +22,7 @@ import 'package:hayami_app/produk/produk.dart';
 import 'package:hayami_app/tagihan/tagihanscreen.dart';
 import 'package:hayami_app/pengiriman/pengirimanscreen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:hayami_app/webview/webview.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -253,7 +254,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                           break;
                         case 'Laporan':
                           Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => LaporanPage()));
+                              MaterialPageRoute(builder: (_) => WebViewPage()));
                           break;
                         case 'Kas & Bank':
                           Navigator.push(
@@ -652,7 +653,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                           }
 
                           if (item['title'] == 'Laporan') {
-                            destination = LaporanPage();
+                            destination = WebViewPage();
                           }
 
                           if (item['title'] == 'Aset Tetap') {

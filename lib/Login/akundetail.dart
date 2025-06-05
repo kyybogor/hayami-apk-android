@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AkunDetailscreen extends StatefulWidget {
@@ -68,16 +69,26 @@ class _AkunDetailscreenState extends State<AkunDetailscreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-  centerTitle: true,
-  title: const Text(
-    'Detail Akun',
-    style: TextStyle(color: Colors.white), // Warna teks putih
-  ),
-  backgroundColor: const Color(0xFF2A5298),
-  elevation: 0,
-  iconTheme: const IconThemeData(color: Colors.white), // Warna ikon putih
-),
-
+        centerTitle: true,
+        title: const Text(
+          'Detail Akun',
+          style: TextStyle(color: Colors.white), // Warna teks putih
+        ),
+        backgroundColor: const Color(0xFF2A5298),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+          ),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const Dashboardscreen()),
+            );
+          },
+        ),
+      ),
       body: userData.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -93,7 +104,8 @@ class _AkunDetailscreenState extends State<AkunDetailscreen> {
                       const CircleAvatar(
                         radius: 48,
                         backgroundColor: Colors.white,
-                        child: Icon(Icons.person, color: Color(0xFF2A5298), size: 50),
+                        child: Icon(Icons.person,
+                            color: Color(0xFF2A5298), size: 50),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -135,7 +147,8 @@ class _AkunDetailscreenState extends State<AkunDetailscreen> {
                       String value = userData[key] ?? '';
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),

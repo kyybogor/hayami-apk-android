@@ -97,7 +97,7 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
       print("Error saat mengambil data barang: $e");
     } finally {
       setState(() {
-        isLoading = false; // selesai loading
+        isLoading = false;
       });
     }
   }
@@ -148,6 +148,17 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
     final sudahDibayar = invoice['dibayar'] ?? '-';
     final status = invoice['status'] ?? 'Belum Dibayar';
     final statusColor = _getStatusColor(status);
+    double getDisc() {
+      return double.tryParse(widget.invoice['disc']?.toString() ?? '0') ?? 0;
+    }
+
+    double getPpn() {
+      return double.tryParse(widget.invoice['ppn']?.toString() ?? '0') ?? 0;
+    }
+
+    double getTax() {
+      return double.tryParse(widget.invoice['tax']?.toString() ?? '0') ?? 0;
+    }
 
     return Scaffold(
       appBar: PreferredSize(
@@ -236,15 +247,65 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                   padding: const EdgeInsets.all(16),
                   width: double.infinity,
                   color: Colors.grey.shade200,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text("Total Semua",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text("Rp ${formatRupiah(getTotalSemuaBarang())}",
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Sub Total",
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text("Rp ${formatRupiah(getTotalSemuaBarang())}",
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Diskon",
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500)),
+                          Text("Rp ${formatRupiah(getDisc())}",
+                              style: const TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("PPN",
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500)),
+                          Text("Rp ${formatRupiah(getPpn())}",
+                              style: const TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Tax",
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500)),
+                          Text("Rp ${formatRupiah(getTax())}",
+                              style: const TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                      const Divider(height: 20, thickness: 1),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Total Semua",
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            "Rp ${formatRupiah(double.tryParse(widget.invoice['amount']?.toString() ?? '0') ?? 0)}",
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -272,13 +333,13 @@ class _DetailbelumdibayarState extends State<Detailbelumdibayar> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text("Sisa Tagihan",
+                            const Text("Total Semua",
                                 style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w500)),
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
                             Text(
-                              "Rp ${formatRupiah(getTotalSemuaBarang() - (double.tryParse(sudahDibayar.toString()) ?? 0))}",
+                              "Rp ${formatRupiah(double.tryParse(widget.invoice['amount']?.toString() ?? '0') ?? 0)}",
                               style: const TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w600),
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
