@@ -26,10 +26,8 @@ class ProdukDetailPage extends StatelessWidget {
         return Icons.straighten;
       case 'qty':
         return Icons.inventory_2;
-      case 'qty clear':
-        return Icons.check_circle;
-      case 'qty clear do':
-        return Icons.local_shipping;
+      case 'qty reserved':
+        return Icons.assignment_turned_in;
       case 'harga':
         return Icons.attach_money;
       default:
@@ -50,10 +48,8 @@ class ProdukDetailPage extends StatelessWidget {
             color: Colors.blueAccent,
           ),
           const SizedBox(width: 12),
-
-          // Label
           SizedBox(
-            width: 100, // fixed lebar untuk label agar sejajar
+            width: 100,
             child: Text(
               label,
               style: const TextStyle(
@@ -63,13 +59,10 @@ class ProdukDetailPage extends StatelessWidget {
               ),
             ),
           ),
-
           const Text(
             ": ",
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
-
-          // Value
           Expanded(
             child: Text(
               value,
@@ -92,6 +85,11 @@ class ProdukDetailPage extends StatelessWidget {
     final String imageUrl = produk['img'].toString().startsWith('http')
         ? produk['img']
         : 'https://hayami.id/apps/erp/${produk['img'].toString().replaceAll('\\', '/')}';
+
+    // Hitung Qty Reserved
+    final int qtyClear = int.tryParse(produk['qtyclear'].toString()) ?? 0;
+    final int qtyClearDO = int.tryParse(produk['qtycleardo'].toString()) ?? 0;
+    final int qtyReserved = qtyClear + qtyClearDO;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
@@ -161,7 +159,7 @@ class ProdukDetailPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Judul / SKU
+                    // SKU
                     Text(
                       produk['sku'] ?? '',
                       style: const TextStyle(
@@ -181,12 +179,9 @@ class ProdukDetailPage extends StatelessWidget {
                       buildInfoTile('Ukuran', produk['size'].toString()),
                     if (produk['qty'] != null)
                       buildInfoTile('Qty', produk['qty'].toString()),
-                    if (produk['qtyclear'] != null)
-                      buildInfoTile('Qty Clear', produk['qtyclear'].toString()),
-                    if (produk['qtycleardo'] != null)
-                      buildInfoTile(
-                          'Qty Clear DO', produk['qtycleardo'].toString()),
-                    // Harga
+
+                    buildInfoTile('Qty Reserved', qtyReserved.toString()),
+
                     buildInfoTile('Harga', formatRupiah(produk['harga']),
                         isHarga: true),
                   ],

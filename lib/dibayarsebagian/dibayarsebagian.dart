@@ -70,6 +70,8 @@ class _DibayarSebagianState extends State<DibayarSebagian> {
             "dibayar": (item["sudah_bayar"] ?? '').toString().trim().isEmpty
                 ? '-'
                 : item["sudah_bayar"],
+            "ppn": (item["ppn"] ?? '0.00').toString(),
+            "tax": (item["tax"] ?? '0.00').toString(),
             "status": 'Dibayar Sebagian',
           };
         }).toList();
