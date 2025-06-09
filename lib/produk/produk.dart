@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/produk/produkdetail.dart';
@@ -21,7 +20,7 @@ class _ProdukPageState extends State<ProdukPage> {
   List<List<Map<String, dynamic>>> _produkGroupedList = [];
 
   int _loadedGroupCount = 0;
-  final int _groupLoadSize = 3;
+  final int _groupLoadSize = 10;
 
   bool _isLoading = false;
   bool _hasMore = true;
@@ -39,7 +38,7 @@ class _ProdukPageState extends State<ProdukPage> {
   // Untuk pagination hasil search di client side
   List<Map<String, dynamic>> _searchResults = [];
   int _searchDisplayCount = 0;
-  final int _searchLoadSize = 6;
+  final int _searchLoadSize = 20;
   bool _searchHasMore = false;
 
   @override
