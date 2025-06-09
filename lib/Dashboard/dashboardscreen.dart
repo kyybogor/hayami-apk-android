@@ -459,14 +459,11 @@ class _KledoDrawerState extends State<KledoDrawer> {
     },
     {'icon': Icons.money_off, 'title': 'Biaya'},
     {'icon': Icons.inventory_2, 'title': 'Produk'},
-    {'icon': Icons.local_shipping, 'title': 'Inventori'},
     {'icon': Icons.bar_chart, 'title': 'Laporan'},
     {'icon': Icons.account_balance, 'title': 'Kas & Bank'},
     {'icon': Icons.person, 'title': 'Akun'},
     {'icon': Icons.domain, 'title': 'Aset Tetap'},
     {'icon': Icons.contacts, 'title': 'Kontak'},
-    {'icon': Icons.settings, 'title': 'Pengaturan'},
-    {'icon': Icons.help_outline, 'title': 'FAQ'},
     {'icon': Icons.exit_to_app, 'title': 'Keluar'},
   ];
 

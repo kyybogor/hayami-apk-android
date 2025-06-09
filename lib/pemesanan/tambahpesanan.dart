@@ -254,13 +254,9 @@ Future<void> fetchCustomers() async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  customers.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
-                      : _autocompleteCustomerDropdown(),
+                  _autocompleteCustomerDropdown(),
                   const SizedBox(height: 24),
-                  skus.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
-                      : _autocompleteSkuDropdown(),
+                  _autocompleteSkuDropdown(),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,

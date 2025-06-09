@@ -139,12 +139,12 @@ class _KontakScreenState extends State<KontakScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
+      //floatingActionButton: FloatingActionButton(
+        //onPressed: () {
           // Tambahkan logika untuk tambah kontak jika diperlukan
-        },
-        child: const Icon(Icons.add),
-      ),
+        //},
+        //child: const Icon(Icons.add),
+      //),
     );
   }
 }
