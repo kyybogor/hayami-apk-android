@@ -78,7 +78,7 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
     final idUser = prefs.getString('id_user') ?? '';
     final nmUser = prefs.getString('nm_user') ?? '';
     final idGudang = prefs.getString('id_gudang') ?? '';
-    final url = Uri.parse('http://192.168.1.10/hayami/tambahpesanan.php');
+    final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/tambahpesanan.php');
 
     final items = cart.entries.map((entry) {
       final sku = entry.key;
