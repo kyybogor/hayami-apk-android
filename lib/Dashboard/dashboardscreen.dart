@@ -417,7 +417,7 @@ class KledoDrawer extends StatefulWidget {
 
 class _KledoDrawerState extends State<KledoDrawer> {
   String nmUser = '';
-  String grupUser = '';
+  String id_gudangUser = '';
 
   int? selectedIndex;
   String? selectedSubItem;
@@ -474,7 +474,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       nmUser = prefs.getString('nm_user') ?? 'User';
-      grupUser = prefs.getString('grup') ?? 'Instansi Anda';
+      id_gudangUser = prefs.getString('id_gudang') ?? 'Instansi Anda';
     });
   }
 
@@ -520,7 +520,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                       Text(nmUser,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 16)),
-                      Text(grupUser,
+                      Text(id_gudangUser,
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 14)),
                     ],

@@ -175,81 +175,84 @@ Future<void> fetchPemesananData() async {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedMonth,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.calendar_today),
-                      labelText: "Bulan",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.blue.shade50,
-                    ),
-                    items: [
-                      'Semua',
-                      ...List.generate(12, (index) {
-                        final month = (index + 1).toString().padLeft(2, '0');
-                        return month;
-                      })
-                    ].map((month) {
-                      return DropdownMenuItem(
-                        value: month,
-                        child: Text(
-                          month == 'Semua'
-                              ? 'Semua Bulan'
-                              : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          selectedMonth = value;
-                          filterData();
-                        });
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedYear,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.date_range),
-                      labelText: "Tahun",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.blue.shade50,
-                    ),
-                    items: ['Semua', '2023', '2024', '2025'].map((year) {
-                      return DropdownMenuItem(
-                        value: year,
-                        child: Text(year == 'Semua' ? 'Semua Tahun' : year),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          selectedYear = value;
-                          filterData();
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
+  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+  child: Row(
+    children: [
+      Expanded(
+        child: DropdownButtonFormField<String>(
+          value: selectedMonth,
+          isExpanded: true, // Tambahkan ini
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.calendar_today),
+            labelText: "Bulan",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
             ),
+            filled: true,
+            fillColor: Colors.blue.shade50,
           ),
+          items: [
+            'Semua',
+            ...List.generate(12, (index) {
+              final month = (index + 1).toString().padLeft(2, '0');
+              return month;
+            })
+          ].map((month) {
+            return DropdownMenuItem(
+              value: month,
+              child: Text(
+                month == 'Semua'
+                    ? 'Semua Bulan'
+                    : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                selectedMonth = value;
+                filterData();
+              });
+            }
+          },
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: DropdownButtonFormField<String>(
+          value: selectedYear,
+          isExpanded: true, // Tambahkan ini
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.date_range),
+            labelText: "Tahun",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.blue.shade50,
+          ),
+          items: ['Semua', '2023', '2024', '2025'].map((year) {
+            return DropdownMenuItem(
+              value: year,
+              child: Text(year == 'Semua' ? 'Semua Tahun' : year),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                selectedYear = value;
+                filterData();
+              });
+            }
+          },
+        ),
+      ),
+    ],
+  ),
+),
+
           const SizedBox(height: 8),
           Expanded(
             child: isLoading
