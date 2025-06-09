@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Laporan%20%20Perusahaan/laporanaruskas.dart';
+import 'package:hayami_app/Laporan%20%20Perusahaan/laporanhutangpiutang.dart';
+import 'package:hayami_app/Laporan%20%20Perusahaan/laporanlabarugi.dart';
+import 'package:hayami_app/Laporan%20%20Perusahaan/laporanneracasaldo.dart';
+import 'package:hayami_app/Laporan%20%20Perusahaan/laporanperubahanmodal.dart';
 import 'package:hayami_app/Login/akundetail.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
 import 'package:hayami_app/Pembelian/pembelianscreen.dart';
@@ -254,7 +259,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                           break;
                         case 'Laporan':
                           Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => WebViewPage()));
+                              MaterialPageRoute(builder: (_) => Laporanperusahaan()));
                           break;
                         case 'Kas & Bank':
                           Navigator.push(
@@ -441,6 +446,17 @@ class _KledoDrawerState extends State<KledoDrawer> {
         'Penawaran Pembelian'
       ]
     },
+    {
+      'icon': Icons.bar_chart,
+      'title': 'Laporan',
+      'children': [
+        'Arus Kas',
+        'Neraca Saldo',
+        'Laba Rugi',
+        'Hutang Piutang',
+        'Perubahan Modal'
+      ]
+    },
     {'icon': Icons.money_off, 'title': 'Biaya'},
     {'icon': Icons.inventory_2, 'title': 'Produk'},
     {'icon': Icons.local_shipping, 'title': 'Inventori'},
@@ -601,6 +617,27 @@ class _KledoDrawerState extends State<KledoDrawer> {
                                   destination = const PenawaranPembelianPage();
                                   break;
                               }
+                              switch (subItem) {
+                                case 'Laporan':
+                                  destination =
+                                      const Penjualanscreen(); // ganti sesuai nama halamanmu
+                                  break;
+                                case 'Arus Kas':
+                                  destination = const Laporanaruskas();
+                                  break;
+                                case 'Neraca Saldo':
+                                  destination = const Laporanneracasaldo();
+                                  break;
+                                case 'Laba Rugi':
+                                  destination = const Laporanlabarugi();
+                                  break;
+                                case 'Hutang Piutang':
+                                  destination = const Laporanhutangpiutang();
+                                  break;
+                                case 'Perubahan Modal':
+                                  destination = const Laporanperubahanmodal();
+                                  break;
+                              }
 
                               if (destination != null) {
                                 Navigator.pushReplacement(
@@ -653,7 +690,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                           }
 
                           if (item['title'] == 'Laporan') {
-                            destination = WebViewPage();
+                            destination = Laporanperusahaan();
                           }
 
                           if (item['title'] == 'Aset Tetap') {
