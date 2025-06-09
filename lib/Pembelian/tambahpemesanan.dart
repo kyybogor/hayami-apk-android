@@ -76,15 +76,15 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
   Future<void> simpanPesananKeServer() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final idUser = prefs.getString('id_user') ?? '';
+    final nmUser = prefs.getString('nm_user') ?? '';
     final idGudang = prefs.getString('id_gudang') ?? '';
-    final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/tambahpesanan.php');
+    final url = Uri.parse('http://192.168.1.10/hayami/tambahpesanan.php');
 
     final items = cart.entries.map((entry) {
       final sku = entry.key;
       final lusin = entry.value;
       final cost = manualPrices[sku] ?? 0.0;
 
-      // Cari produk berdasarkan sku
       final product =
           productList.firstWhere((p) => p['sku'] == sku, orElse: () => {});
 
@@ -106,6 +106,7 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
       "seri": _seriPekerjaanController.text,
       "tanggal": tanggalHariIni,
       "id_user": idUser,
+      "nm_user": nmUser,
       "id_gudang": idGudang,
       "items": items,
     });
@@ -170,7 +171,9 @@ class _TambahPesananPageState extends State<TambahPesananPage> {
 void addToCart(String sku) {
   setState(() {
     if (!cart.containsKey(sku)) {
-      cart[sku] = 0.0; // Mulai dari 0.0
+      cart[sku] = 0.5; // Mulai dari 0.5
+    } else {
+      cart[sku] = (cart[sku] ?? 0.0) + 0.5; // Tambah 0.5
     }
     if (!priceControllers.containsKey(sku)) {
       priceControllers[sku] = TextEditingController(text: '');
