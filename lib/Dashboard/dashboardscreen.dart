@@ -155,20 +155,19 @@ class _DashboardscreenState extends State<Dashboardscreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-  Padding(
-    padding: const EdgeInsets.only(right: 12),
-    child: IconButton(
-      icon: const Icon(Icons.account_circle, color: Colors.white),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AkunDetailscreen()),
-        );
-      },
-    ),
-  ),
-],
-
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              icon: const Icon(Icons.account_circle, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AkunDetailscreen()),
+                );
+              },
+            ),
+          ),
+        ],
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -320,29 +319,29 @@ class _DashboardscreenState extends State<Dashboardscreen> {
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: isKasLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: kasList.map((kas) {
-                            return Row(
-                              children: [
-                                _buildKasCard(
-                                  label: kas.nama,
-                                  amount: formatCurrency(kas.nominal),
-                                  color: Colors.blue[100]!,
-                                  abbreviation: getAbbreviation(kas.nama),
-                                ),
-                                const SizedBox(width: 12),
-                              ],
-                            );
-                          }).toList(),
-                        ),
+              child: isKasLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: kasList.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 2.5,
                       ),
-              ),
+                      itemBuilder: (context, index) {
+                        final kas = kasList[index];
+                        return _buildKasCard(
+                          label: kas.nama,
+                          amount: formatCurrency(kas.nominal),
+                          color: Colors.blue[100]!,
+                          abbreviation: getAbbreviation(kas.nama),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -356,53 +355,68 @@ class _DashboardscreenState extends State<Dashboardscreen> {
     required Color color,
     required String abbreviation,
   }) {
-    return Container(
-      width: 180,
+    return SizedBox(
       height: 80,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                abbreviation,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  abbreviation,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Text(amount,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600),
-                    overflow: TextOverflow.ellipsis),
-              ],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 4),
+
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      amount,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -417,12 +431,12 @@ class KledoDrawer extends StatefulWidget {
 
 class _KledoDrawerState extends State<KledoDrawer> {
   String nmUser = '';
-  String id_gudangUser = '';
+  String jabatanUser = '';
 
   int? selectedIndex;
   String? selectedSubItem;
 
-  final menuItems = const [
+final menuItems = const [
     {'icon': Icons.house, 'title': 'Beranda'},
     {
       'icon': Icons.shopping_bag,
@@ -466,12 +480,11 @@ class _KledoDrawerState extends State<KledoDrawer> {
     {'icon': Icons.contacts, 'title': 'Kontak'},
     {'icon': Icons.exit_to_app, 'title': 'Keluar'},
   ];
-
   Future<void> loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       nmUser = prefs.getString('nm_user') ?? 'User';
-      id_gudangUser = prefs.getString('id_gudang') ?? 'Instansi Anda';
+      jabatanUser = prefs.getString('jabatan') ?? 'Instansi Anda';
     });
   }
 
@@ -490,9 +503,9 @@ class _KledoDrawerState extends State<KledoDrawer> {
             colors: [
               Color(0xFF1E3C72),
               Color.fromARGB(255, 33, 83, 167),
-              Color(0xFF2A5298), // Menahan warna akhir biar flat di bawah
+              Color(0xFF2A5298),
             ],
-            stops: [0.2, 0.6, 0.5], // Stop gradasi di tengah
+            stops: [0.2, 0.6, 0.5],
             begin: Alignment.topLeft,
 
             end: Alignment.bottomRight,
@@ -517,7 +530,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                       Text(nmUser,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 16)),
-                      Text(id_gudangUser,
+                      Text(jabatanUser,
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 14)),
                     ],
@@ -687,7 +700,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                           }
 
                           if (item['title'] == 'Laporan') {
-                            destination = Laporanperusahaan();
+                            destination = LaporanPage();
                           }
 
                           if (item['title'] == 'Aset Tetap') {
@@ -699,7 +712,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
                           }
 
                           if (item['title'] == 'Akun') {
-                            destination = const Akunscreen();
+                            destination = const AkunDetailscreen();
                           }
 
                           if (item['title'] == 'Keluar') {

@@ -54,16 +54,8 @@ class Laporanperusahaan extends StatelessWidget {
       style: TextStyle(color: Colors.blue),
     ),
     centerTitle: true,
-    leading: IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Dashboardscreen()),
-      );
-    },
-    ),
   ),
+  drawer: const KledoDrawer(),
   backgroundColor: const Color(0xFFF5F5F5),
   body: Padding(
     padding: const EdgeInsets.all(16.0),
