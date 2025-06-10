@@ -52,7 +52,6 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (context) => const Dashboardscreen()),
       );
     } else {
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(response['message'] ?? 'Login gagal.')),
       );
@@ -61,15 +60,24 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Ambil ukuran layar
+    final size = MediaQuery.of(context).size;
+    final isTablet = size.width > 600; // Contoh threshold tablet
+    final paddingHorizontal = isTablet ? size.width * 0.2 : 20.0;
+    final logoHeight = isTablet ? 100.0 : 60.0;
+    final containerHeight = isTablet ? 300.0 : 200.0;
+    final fontSize = isTablet ? 20.0 : 14.0;
+    final buttonHeight = isTablet ? 60.0 : 50.0;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
               Container(
-                height: 200,
+                height: containerHeight,
                 width: double.infinity,
-                padding: const EdgeInsets.only(top: 50, left: 10, right: 10),
+                padding: EdgeInsets.only(top: isTablet ? 70 : 50, left: 10, right: 10),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
@@ -79,25 +87,29 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Center(
                       child: Image.asset(
                         'assets/image/hayamilogo.png',
-                        height: 60,
+                        height: logoHeight,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    const Text(
+                    SizedBox(height: isTablet ? 30 : 20),
+                    Text(
                       'Silakan masukkan Username dan Password\nuntuk masuk ke Hayami.',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: fontSize,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isTablet ? 40 : 24),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: paddingHorizontal),
                 child: Column(
                   children: [
                     TextField(
@@ -109,8 +121,9 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
+                      style: TextStyle(fontSize: fontSize),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: isTablet ? 24 : 16),
                     TextField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
@@ -131,8 +144,9 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
+                      style: TextStyle(fontSize: fontSize),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: isTablet ? 16 : 10),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -144,10 +158,14 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           );
                         },
-                        child: const Text("Lupa password?"),
+                        child: Text(
+                          "Lupa password?",
+                          style: TextStyle(fontSize: fontSize * 0.9),
+                        ),
                       ),
                     ),
                     Container(
+                      width: double.infinity,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
@@ -157,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
+                          minimumSize: Size(double.infinity, buttonHeight),
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(
@@ -165,26 +183,31 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text(
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
                                 "MASUK",
-                                style: TextStyle(color: Colors.white),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: fontSize,
+                                ),
                               ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text("Atau login dengan"),
-                    const SizedBox(height: 8),
+                    SizedBox(height: isTablet ? 24 : 16),
+                    Text(
+                      "Atau login dengan",
+                      style: TextStyle(fontSize: fontSize * 0.9),
+                    ),
+                    SizedBox(height: isTablet ? 12 : 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton.icon(
                           onPressed: () {},
                           icon: const Icon(Icons.g_mobiledata),
-                          label: const Text("Google"),
+                          label: Text("Google", style: TextStyle(fontSize: fontSize)),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: isTablet ? 20 : 10),
                         ElevatedButton.icon(
                           onPressed: () {
                             Navigator.push(
@@ -195,33 +218,35 @@ class _LoginPageState extends State<LoginPage> {
                             );
                           },
                           icon: const Icon(Icons.lock),
-                          label: const Text("OTP"),
+                          label: Text("OTP", style: TextStyle(fontSize: fontSize)),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: isTablet ? 30 : 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Belum punya akun? "),
+                        Text(
+                          "Belum punya akun? ",
+                          style: TextStyle(fontSize: fontSize),
+                        ),
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const PackageSelectionPage(),
+                                builder: (context) => const PackageSelectionPage(),
                               ),
                             );
                           },
-                          child: const Text(
+                          child: Text(
                             "Daftar sekarang",
-                            style: TextStyle(color: Colors.blue),
+                            style: TextStyle(color: Colors.blue, fontSize: fontSize),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: isTablet ? 30 : 20),
                   ],
                 ),
               ),
