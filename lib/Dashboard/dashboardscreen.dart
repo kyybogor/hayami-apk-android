@@ -225,9 +225,11 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: menuItems.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  mainAxisSpacing: 9,
-                  crossAxisSpacing: 9,
+                  crossAxisCount: 4, // 4 ikon per baris
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio:
+                      0.85, // Sesuaikan agar ikon dan label sejajar rapi
                 ),
                 itemBuilder: (context, index) {
                   var item = menuItems[index];
@@ -257,8 +259,10 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                               MaterialPageRoute(builder: (_) => ProdukPage()));
                           break;
                         case 'Laporan':
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => Laporanperusahaan()));
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => Laporanperusahaan()));
                           break;
                         case 'Kas & Bank':
                           Navigator.push(
@@ -287,6 +291,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                       }
                     },
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
                           width: 48,
@@ -299,10 +304,14 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                               color: item['color'], size: 26),
                         ),
                         const SizedBox(height: 6),
-                        Text(item['label'],
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w500),
-                            textAlign: TextAlign.center),
+                        Text(
+                          item['label'],
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ],
                     ),
                   );
@@ -311,34 +320,54 @@ class _DashboardscreenState extends State<Dashboardscreen> {
             ),
 
             // SISA ISI TETAP (Kas & Bank, Performa Bisnis, Button)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Kas & Bank',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  double screenWidth = MediaQuery.of(context).size.width;
+                  double fontSize = screenWidth > 600 ? 24 : 16; // Tablet vs HP
+
+                  return Text(
+                    'Kas & Bank',
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: isKasLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: kasList.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 2.5,
-                      ),
-                      itemBuilder: (context, index) {
-                        final kas = kasList[index];
-                        return _buildKasCard(
-                          label: kas.nama,
-                          amount: formatCurrency(kas.nominal),
-                          color: Colors.blue[100]!,
-                          abbreviation: getAbbreviation(kas.nama),
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                        double childAspectRatio =
+                            constraints.maxWidth > 600 ? 3 : 2.5;
+
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: kasList.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: childAspectRatio,
+                          ),
+                          itemBuilder: (context, index) {
+                            final kas = kasList[index];
+                            return _buildKasCard(
+                              label: kas.nama,
+                              amount: formatCurrency(kas.nominal),
+                              color: Colors.blue[100]!,
+                              abbreviation: getAbbreviation(kas.nama),
+                            );
+                          },
                         );
                       },
                     ),
@@ -384,7 +413,6 @@ class _DashboardscreenState extends State<Dashboardscreen> {
               ),
             ),
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -400,7 +428,6 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                     maxLines: 1,
                   ),
                   const SizedBox(height: 4),
-
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
@@ -436,7 +463,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
   int? selectedIndex;
   String? selectedSubItem;
 
-final menuItems = const [
+  final menuItems = const [
     {'icon': Icons.house, 'title': 'Beranda'},
     {
       'icon': Icons.shopping_bag,
@@ -507,7 +534,6 @@ final menuItems = const [
             ],
             stops: [0.2, 0.6, 0.5],
             begin: Alignment.topLeft,
-
             end: Alignment.bottomRight,
           ),
         ),
