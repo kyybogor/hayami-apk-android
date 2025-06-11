@@ -15,7 +15,6 @@ class ProdukDetailPage extends StatelessWidget {
     ).format(value);
   }
 
-  // Map untuk memilih icon berdasarkan label
   IconData getIconForLabel(String label) {
     switch (label.toLowerCase()) {
       case 'tipe':
@@ -86,7 +85,6 @@ class ProdukDetailPage extends StatelessWidget {
         ? produk['img']
         : 'https://hayami.id/apps/erp/${produk['img'].toString().replaceAll('\\', '/')}';
 
-    // Hitung Qty Reserved
     final int qtyClear = int.tryParse(produk['qtyclear'].toString()) ?? 0;
     final int qtyClearDO = int.tryParse(produk['qtycleardo'].toString()) ?? 0;
     final int qtyReserved = qtyClear + qtyClearDO;
@@ -110,38 +108,34 @@ class ProdukDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Gambar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                decoration: BoxDecoration(boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]),
-                child: Image.network(
-                  imageUrl,
-                  height: 240,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 240,
-                    color: Colors.grey[200],
-                    child: const Center(
-                      child: Icon(Icons.broken_image,
-                          size: 60, color: Colors.grey),
-                    ),
-                  ),
-                  loadingBuilder: (_, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 240,
+            // Gambar proporsional, bisa dizoom, tidak kepotong
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 1,
+              maxScale: 4,
+              child: AspectRatio(
+                aspectRatio: 1, // Gunakan 4/3 jika gambar cenderung horizontal
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    errorBuilder: (_, __, ___) => Container(
                       color: Colors.grey[200],
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  },
+                      child: const Center(
+                        child: Icon(Icons.broken_image,
+                            size: 60, color: Colors.grey),
+                      ),
+                    ),
+                    loadingBuilder: (_, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: Colors.grey[200],
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -152,14 +146,14 @@ class ProdukDetailPage extends StatelessWidget {
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // SKU
                     Text(
                       produk['sku'] ?? '',
                       style: const TextStyle(
@@ -170,7 +164,6 @@ class ProdukDetailPage extends StatelessWidget {
                     ),
                     const Divider(height: 16),
                     const SizedBox(height: 16),
-
                     if (produk['tipe'] != null)
                       buildInfoTile('Tipe', produk['tipe'].toString()),
                     if (produk['id_tipe'] != null)
@@ -179,9 +172,7 @@ class ProdukDetailPage extends StatelessWidget {
                       buildInfoTile('Ukuran', produk['size'].toString()),
                     if (produk['qty'] != null)
                       buildInfoTile('Qty', produk['qty'].toString()),
-
                     buildInfoTile('Qty Reserved', qtyReserved.toString()),
-
                     buildInfoTile('Harga', formatRupiah(produk['harga']),
                         isHarga: true),
                   ],

@@ -132,7 +132,8 @@ class _ProdukPageState extends State<ProdukPage> {
 
   Future<void> _fetchSearchProduk(String skuQuery) async {
     final encodedSku = Uri.encodeComponent(skuQuery);
-    final url = Uri.parse('https://hayami.id/apps/erp/api-android/api/searchproduk.php?sku=$encodedSku');
+    final url = Uri.parse(
+        'https://hayami.id/apps/erp/api-android/api/searchproduk.php?sku=$encodedSku');
 
     try {
       final response = await http.get(url);
@@ -238,17 +239,18 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
-String cleanImageUrl(String url) {
-  if (url.isEmpty) return '';
-  if (!url.startsWith('http')) {
-    return 'https://hayami.id/apps/erp/' + url;
+  String cleanImageUrl(String url) {
+    if (url.isEmpty) return '';
+    if (!url.startsWith('http')) {
+      return 'https://hayami.id/apps/erp/' + url;
+    }
+    return url;
   }
-  return url;
-}
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth > 600 ? 3 : 2;
 
     List<Map<String, dynamic>> displayProduk;
 
@@ -347,19 +349,17 @@ String cleanImageUrl(String url) {
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
                 itemCount: displayProduk.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio:
-                      1.2, // kamu naikkan dari 0.95 ke 1.2 supaya tinggi item tidak terlalu padat
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.8, // rasio kotak/tinggi kotak
                 ),
                 itemBuilder: (context, index) {
                   final produk = displayProduk[index];
                   return _buildChartPlaceholder(
                     produk['sku'] ?? '',
-                    MediaQuery.of(context).size.width /
-                        3, // Ukuran lebar item setengah layar
+                    MediaQuery.of(context).size.width / crossAxisCount,
                     produk['img'] ?? '',
                     produk['harga'] ?? '0',
                     onTap: () {
@@ -447,10 +447,7 @@ String cleanImageUrl(String url) {
               scale: isPressed ? 0.97 : 1.0,
               duration: const Duration(milliseconds: 120),
               child: Container(
-                width: width - 24,
-                height: 220,
                 margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -463,56 +460,56 @@ String cleanImageUrl(String url) {
                   ],
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
+                    AspectRatio(
+                      aspectRatio: 1,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12)),
                         child: imgUrl.isEmpty
                             ? Container(
                                 color: Colors.grey.shade300,
-                                width: double.infinity,
                                 child: const Center(
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
+                                  child: Icon(Icons.image_not_supported,
+                                      size: 50, color: Colors.grey),
                                 ),
                               )
                             : Image.network(
                                 imgUrl,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                                 errorBuilder: (context, error, stackTrace) =>
                                     Container(
                                   color: Colors.grey.shade300,
-                                  width: double.infinity,
                                   child: const Center(
-                                    child: Icon(
-                                      Icons.broken_image,
-                                      size: 50,
-                                      color: Colors.grey,
-                                    ),
+                                    child: Icon(Icons.broken_image,
+                                        size: 50, color: Colors.grey),
                                   ),
                                 ),
                               ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      FormatRupiah(harga),
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            FormatRupiah(harga),
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

@@ -293,15 +293,26 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: item['color']?.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(item['icon'],
-                              color: item['color'], size: 26),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            double screenWidth =
+                                MediaQuery.of(context).size.width;
+                            double iconSize = screenWidth > 600
+                                ? 36 // Jika tablet, ukuran ikon lebih besar
+                                : 26; // ukuran default untuk HP
+                            double containerSize = screenWidth > 600 ? 72 : 48;
+
+                            return Container(
+                              width: containerSize,
+                              height: containerSize,
+                              decoration: BoxDecoration(
+                                color: item['color']?.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(item['icon'],
+                                  color: item['color'], size: iconSize),
+                            );
+                          },
                         ),
                         const SizedBox(height: 6),
                         Text(
