@@ -80,26 +80,26 @@ Future<void> fetchInvoices() async {
   }
 }
 
-  void filterByMonthYear() {
-    setState(() {
-      filteredInvoices = invoices.where((invoice) {
-        try {
-          final dateStr = invoice["date"];
-          if (dateStr == null || dateStr.isEmpty || dateStr == '-')
-            return false;
-
-          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
-          final matchMonth = selectedMonth == 'Semua' ||
-              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-          final matchYear = selectedYear == 'Semua' ||
-              invoiceDate.year.toString() == selectedYear;
-          return matchMonth && matchYear;
-        } catch (e) {
+void filterByMonthYear() {
+  setState(() {
+    filteredInvoices = invoices.where((invoice) {
+      try {
+        final dateStr = invoice["date"];
+        if (dateStr == null || dateStr.isEmpty || dateStr == '-')
           return false;
-        }
-      }).toList();
-    });
-  }
+
+        final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+        // hanya bulan dan tahun sekarang
+        final matchMonth = invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
+        final matchYear = invoiceDate.year.toString() == selectedYear;
+        return matchMonth && matchYear;
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+  });
+}
+
 
   void _onSearchChanged() {
     String keyword = _searchController.text.toLowerCase();

@@ -32,23 +32,39 @@ class _PengirimanPageState extends State<PengirimanPage> {
   }
 
   Future<void> fetchPengirimanData() async {
-    setState(() {
-      isLoading = true;
-    });
+  setState(() {
+    isLoading = true;
+  });
 
-    try {
-      final response = await http.get(
-        Uri.parse(
-            'https://hayami.id/apps/erp/api-android/api/daftar_delivery.php'),
-      );
+  try {
+    final response = await http.get(
+      Uri.parse('https://hayami.id/apps/erp/api-android/api/daftar_delivery.php'),
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
 
-        int dispatchedCount = 0;
-        int deliveredCount = 0;
+      int dispatchedCount = 0;
+      int deliveredCount = 0;
 
-        for (var item in data) {
+      // Ambil bulan dan tahun sekarang
+      final DateTime now = DateTime.now();
+      final int currentMonth = now.month;
+      final int currentYear = now.year;
+
+      for (var item in data) {
+        final String? tanggalStr = item["date"]; // ← GUNAKAN "date"
+        if (tanggalStr == null || tanggalStr.isEmpty) continue;
+
+        DateTime tanggal;
+        try {
+          tanggal = DateTime.parse(tanggalStr); // Format sudah cocok
+        } catch (e) {
+          continue; // Skip jika parsing gagal
+        }
+
+        // Filter hanya data bulan dan tahun yang sedang berjalan
+        if (tanggal.month == currentMonth && tanggal.year == currentYear) {
           final resi = item["resi"]?.toString().trim();
           if (resi == null || resi.isEmpty) {
             dispatchedCount++;
@@ -56,24 +72,26 @@ class _PengirimanPageState extends State<PengirimanPage> {
             deliveredCount++;
           }
         }
-
-        setState(() {
-          pengirimanCounts = {
-            "Dispatched": dispatchedCount,
-            "Delivered": deliveredCount,
-          };
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Gagal mengambil data');
       }
-    } catch (e) {
-      print("Error: $e");
+
       setState(() {
+        pengirimanCounts = {
+          "Dispatched": dispatchedCount,
+          "Delivered": deliveredCount,
+        };
         isLoading = false;
       });
+    } else {
+      throw Exception('Gagal mengambil data');
     }
+  } catch (e) {
+    print("Error: $e");
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

@@ -20,7 +20,7 @@ class _TagihanPageState extends State<TagihanPage> {
   Map<String, int> tagihanCounts = {
     "Belum Dibayar": 0,
     "Dibayar Sebagian": 0,
-    "Lunas": 0,
+    //"Lunas": 0,
     "Void": 0,
   };
 
@@ -29,7 +29,7 @@ class _TagihanPageState extends State<TagihanPage> {
   final Map<String, Color> statusColors = {
     "Belum Dibayar": Colors.pink,
     "Dibayar Sebagian": Colors.amber,
-    "Lunas": Colors.green,
+    //"Lunas": Colors.green,
     "Void": Colors.grey,
   };
 
@@ -37,7 +37,7 @@ class _TagihanPageState extends State<TagihanPage> {
   final Map<String, String> statusMapping = {
     "Open": "Belum Dibayar",
     "Partial Paid": "Dibayar Sebagian",  
-    "Paid": "Lunas",
+    //"Paid": "Lunas",
     "Void": "Void",
   };
 
@@ -102,8 +102,8 @@ class _TagihanPageState extends State<TagihanPage> {
         return const BelumDibayar();
       case "Dibayar Sebagian":
         return const DibayarSebagian();
-      case "Lunas":
-        return const Lunas();
+      //case "Lunas":
+        //return const Lunas();
       case "Void":
         return const Void();
       default:

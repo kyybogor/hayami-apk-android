@@ -17,6 +17,7 @@ class _ProdukPageState extends State<ProdukPage> {
   bool _showChart = true;
 
   List<Map<String, dynamic>> _allProduk = [];
+  Map<String, List<Map<String, dynamic>>> _groupedProdukByTipeModel = {};
   List<List<Map<String, dynamic>>> _produkGroupedList = [];
 
   int _loadedGroupCount = 0;
@@ -40,6 +41,19 @@ class _ProdukPageState extends State<ProdukPage> {
   int _searchDisplayCount = 0;
   final int _searchLoadSize = 20;
   bool _searchHasMore = false;
+
+  Map<String, List<Map<String, dynamic>>> groupByTipeModel(
+      List<Map<String, dynamic>> data) {
+    Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (var item in data) {
+      final key = '${item['tipe']}-${item['gambar']}';
+      if (!grouped.containsKey(key)) {
+        grouped[key] = [];
+      }
+      grouped[key]!.add(item);
+    }
+    return grouped;
+  }
 
   @override
   void initState() {
@@ -109,11 +123,14 @@ class _ProdukPageState extends State<ProdukPage> {
 
         setState(() {
           _allProduk = List<Map<String, dynamic>>.from(data);
-          _produkGroupedList = _groupProduk(_allProduk);
-          _loadedGroupCount = (_groupLoadSize < _produkGroupedList.length)
-              ? _groupLoadSize
-              : _produkGroupedList.length;
-          _hasMore = _loadedGroupCount < _produkGroupedList.length;
+          _groupedProdukByTipeModel = groupByTipeModel(_allProduk);
+          _produkGroupedList =
+              _groupProduk(_allProduk); // bisa hapus jika tidak dipakai lagi
+          _loadedGroupCount =
+              (_groupLoadSize < _groupedProdukByTipeModel.length)
+                  ? _groupLoadSize
+                  : _groupedProdukByTipeModel.length;
+          _hasMore = _loadedGroupCount < _groupedProdukByTipeModel.length;
           _isLoading = false;
 
           totalProduk = tersedia + sedikit + habis;
@@ -252,19 +269,11 @@ class _ProdukPageState extends State<ProdukPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final crossAxisCount = screenWidth > 600 ? 3 : 2;
 
-    List<Map<String, dynamic>> displayProduk;
-
-    if (_searchQuery.isNotEmpty) {
-      displayProduk = _searchResults.take(_searchDisplayCount).toList();
-    } else {
-      final loadedProduk = _produkGroupedList
-          .take(_loadedGroupCount)
-          .expand((group) => group)
-          .toList();
-      displayProduk = _filterProduk(loadedProduk);
-    }
+    final groupedEntries = _groupedProdukByTipeModel.entries.toList();
+    final displayGroups = groupedEntries.take(_loadedGroupCount).toList();
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       drawer: const KledoDrawer(),
       appBar: AppBar(
         title: const Text('Produk', style: TextStyle(color: Colors.blue)),
@@ -286,100 +295,112 @@ class _ProdukPageState extends State<ProdukPage> {
         onPressed: () {},
         child: const Icon(Icons.add),
       ),
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Cari produk...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+      body: SafeArea(
+  child: Padding(
+    padding: const EdgeInsets.all(16),
+    child: SingleChildScrollView(
+      controller: _scrollController,
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 80,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'Cari produk...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10), // diperbaiki
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_searchQuery.isEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildStatusCard(
+                    'Produk Tersedia',
+                    (totalProduk - produkHampirHabis - produkHabis).toString(),
+                    Colors.green,
+                  ),
+                  _buildStatusCard(
+                      'Produk Hampir Habis',
+                      produkHampirHabis.toString(),
+                      Colors.orange),
+                  _buildStatusCard(
+                      'Produk Habis', produkHabis.toString(), Colors.red),
+                  _buildStatusCard(
+                      'Total Produk', totalProduk.toString(), Colors.blue),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            if (_searchQuery.isEmpty)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildStatusCard(
-                        'Produk Tersedia',
-                        (totalProduk - produkHampirHabis - produkHabis)
-                            .toString(),
-                        Colors.green),
-                    _buildStatusCard('Produk Hampir Habis',
-                        produkHampirHabis.toString(), Colors.orange),
-                    _buildStatusCard(
-                        'Produk Habis', produkHabis.toString(), Colors.red),
-                    _buildStatusCard(
-                        'Total Produk', totalProduk.toString(), Colors.blue),
-                  ],
-                ),
+          const SizedBox(height: 20),
+          if (_searchQuery.isEmpty)
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _showChart = !_showChart;
+                });
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
+                    style: const TextStyle(
+                        color: Colors.blue, fontWeight: FontWeight.bold),
+                  ),
+                  Icon(_showChart ? Icons.expand_less : Icons.expand_more),
+                ],
               ),
-            const SizedBox(height: 20),
-            if (_searchQuery.isEmpty)
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    _showChart = !_showChart;
-                  });
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                      style: const TextStyle(
-                          color: Colors.blue, fontWeight: FontWeight.bold),
-                    ),
-                    Icon(_showChart ? Icons.expand_less : Icons.expand_more),
-                  ],
-                ),
+            ),
+          const SizedBox(height: 12),
+          if ((_searchQuery.isEmpty && _showChart) || _searchQuery.isNotEmpty)
+            GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              itemCount: displayGroups.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.8,
               ),
-            const SizedBox(height: 12),
-            if ((_searchQuery.isEmpty && _showChart) || _searchQuery.isNotEmpty)
-              GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                itemCount: displayProduk.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.8, // rasio kotak/tinggi kotak
-                ),
-                itemBuilder: (context, index) {
-                  final produk = displayProduk[index];
-                  return _buildChartPlaceholder(
-                    produk['sku'] ?? '',
-                    MediaQuery.of(context).size.width / crossAxisCount,
-                    produk['img'] ?? '',
-                    produk['harga'] ?? '0',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProdukDetailPage(produk: produk),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            if (_isLoading) ...[
-              const SizedBox(height: 16),
-              const Center(child: CircularProgressIndicator()),
-            ],
+              itemBuilder: (context, index) {
+                final entry = displayGroups[index];
+                final produkList = entry.value;
+                final firstProduk = produkList.first;
+
+                return _buildGroupedProdukCard(
+                  '${firstProduk['tipe']} - ${firstProduk['gambar']}',
+                  firstProduk['img'] ?? '',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ProdukDetailPage(produk: produkList.first),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          if (_isLoading) ...[
+            const SizedBox(height: 16),
+            const Center(child: CircularProgressIndicator()),
           ],
-        ),
+        ],
       ),
+    ),
+  ),
+),
+
     );
   }
 
@@ -518,6 +539,61 @@ class _ProdukPageState extends State<ProdukPage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildGroupedProdukCard(
+      String title, String imagePath, VoidCallback onTap) {
+    final imgUrl = cleanImageUrl(imagePath);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
+                child: imgUrl.isEmpty
+                    ? Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(
+                            child: Icon(Icons.image_not_supported)),
+                      )
+                    : Image.network(
+                        imgUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey.shade300,
+                          child: const Center(child: Icon(Icons.broken_image)),
+                        ),
+                      ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
