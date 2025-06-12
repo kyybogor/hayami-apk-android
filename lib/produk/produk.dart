@@ -417,8 +417,7 @@ class _ProdukPageState extends State<ProdukPage> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 8,
                       mainAxisSpacing: 12,
-                      childAspectRatio:
-                          0.8, // Ubah dari 0.8 jadi 0.7 (atau coba 0.65)
+                      childAspectRatio:0.7, // Ubah dari 0.8 jadi 0.7 (atau coba 0.65)
                     ),
                   ),
                 ),
@@ -575,62 +574,63 @@ class _ProdukPageState extends State<ProdukPage> {
     );
   }
 
-  Widget _buildGroupedProdukCard(
-      String title, String imagePath, VoidCallback onTap) {
-    final imgUrl = cleanImageUrl(imagePath);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: imgUrl.isEmpty
-                    ? Container(
-                        color: Colors.grey.shade300,
-                        child: const Center(
-                            child: Icon(Icons.image_not_supported)),
-                      )
-                    : Image.network(
-                        imgUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey.shade300,
-                          child: const Center(child: Icon(Icons.broken_image)),
-                        ),
-                      ),
-              ),
-            ),
-            Expanded(
-              // untuk cegah overflow text
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
+Widget _buildGroupedProdukCard(
+    String title, String imagePath, VoidCallback onTap) {
+  final imgUrl = cleanImageUrl(imagePath);
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
-    );
-  }
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
+              child: imgUrl.isEmpty
+                  ? Container(
+                      color: Colors.grey.shade300,
+                      child: const Center(
+                          child: Icon(Icons.image_not_supported)),
+                    )
+                  : Image.network(
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(child: Icon(Icons.broken_image)),
+                      ),
+                    ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 }
