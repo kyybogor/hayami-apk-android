@@ -83,7 +83,7 @@ class _ProdukDetailPageState extends State<ProdukDetailPage> {
 
   Future<void> fetchProdukFromApi() async {
     final uri = Uri.parse(
-        'http://192.168.1.8/hayami/detailproduk.php?tipe=${Uri.encodeComponent(widget.tipe)}&gambar=${Uri.encodeComponent(widget.gambar)}');
+        'https://hayami.id/apps/erp/api-android/api/detailproduk.php?tipe=${Uri.encodeComponent(widget.tipe)}&gambar=${Uri.encodeComponent(widget.gambar)}');
     try {
       final response = await http.get(uri);
       if (response.statusCode == 200) {
