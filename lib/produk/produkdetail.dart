@@ -251,7 +251,7 @@ class _ProdukDetailPageState extends State<ProdukDetailPage> {
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
-                                        '${item['qty']} (lusin)', // Tambah (lusin)
+                                        '${item['qty']} ls', // Tambah (lusin)
                                         textAlign: TextAlign.center,
                                       ),
                                     ),
