@@ -297,29 +297,34 @@ class _ProdukPageState extends State<ProdukPage> {
       ),
       body: SafeArea(
   child: Padding(
-    padding: const EdgeInsets.all(16),
-    child: SingleChildScrollView(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+    child: CustomScrollView(
       controller: _scrollController,
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 80,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Cari produk...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 10), // diperbaiki
+      slivers: [
+        SliverToBoxAdapter(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min, // Biar gak ambil ruang vertikal berlebih
+      children: [
+        TextField(
+          controller: _searchController,
+          maxLines: 1, // penting supaya TextField gak melebar vertikal
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search),
+            hintText: 'Cari produk...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
             ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
           ),
-          const SizedBox(height: 12),
-          if (_searchQuery.isEmpty)
-            SingleChildScrollView(
+        ),
+        const SizedBox(height: 12),
+        if (_searchQuery.isEmpty)
+          SizedBox(
+            height: 80, // kasih tinggi tetap supaya SingleChildScrollView horizontal gak bikin overflow
+            child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
@@ -328,75 +333,82 @@ class _ProdukPageState extends State<ProdukPage> {
                     (totalProduk - produkHampirHabis - produkHabis).toString(),
                     Colors.green,
                   ),
-                  _buildStatusCard(
-                      'Produk Hampir Habis',
-                      produkHampirHabis.toString(),
-                      Colors.orange),
-                  _buildStatusCard(
-                      'Produk Habis', produkHabis.toString(), Colors.red),
-                  _buildStatusCard(
-                      'Total Produk', totalProduk.toString(), Colors.blue),
+                  _buildStatusCard('Produk Hampir Habis', produkHampirHabis.toString(), Colors.orange),
+                  _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
+                  _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
                 ],
               ),
             ),
-          const SizedBox(height: 20),
-          if (_searchQuery.isEmpty)
-            InkWell(
-              onTap: () {
-                setState(() {
-                  _showChart = !_showChart;
-                });
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                    style: const TextStyle(
-                        color: Colors.blue, fontWeight: FontWeight.bold),
-                  ),
-                  Icon(_showChart ? Icons.expand_less : Icons.expand_more),
-                ],
-              ),
+          ),
+        const SizedBox(height: 20),
+        if (_searchQuery.isEmpty)
+          InkWell(
+            onTap: () {
+              setState(() {
+                _showChart = !_showChart;
+              });
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
+                  style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                ),
+                Icon(_showChart ? Icons.expand_less : Icons.expand_more),
+              ],
             ),
-          const SizedBox(height: 12),
-          if ((_searchQuery.isEmpty && _showChart) || _searchQuery.isNotEmpty)
-            GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: displayGroups.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.8,
-              ),
-              itemBuilder: (context, index) {
-                final entry = displayGroups[index];
-                final produkList = entry.value;
-                final firstProduk = produkList.first;
+          ),
+        const SizedBox(height: 12),
+      ],
+    ),
+  ),
+),
 
-                return _buildGroupedProdukCard(
-                  '${firstProduk['tipe']} - ${firstProduk['gambar']}',
-                  firstProduk['img'] ?? '',
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ProdukDetailPage(produk: produkList.first),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          if (_isLoading) ...[
-            const SizedBox(height: 16),
-            const Center(child: CircularProgressIndicator()),
-          ],
-        ],
+
+        if ((_searchQuery.isEmpty && _showChart) || _searchQuery.isNotEmpty)
+  SliverPadding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    sliver: SliverGrid(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final entry = displayGroups[index];
+          final produkList = entry.value;
+          final firstProduk = produkList.first;
+
+          return _buildGroupedProdukCard(
+            '${firstProduk['tipe']} - ${firstProduk['gambar']}',
+            firstProduk['img'] ?? '',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProdukDetailPage(produk: produkList.first),
+                ),
+              );
+            },
+          );
+        },
+        childCount: displayGroups.length,
       ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.8, // Ubah dari 0.8 jadi 0.7 (atau coba 0.65)
+      ),
+    ),
+  ),
+
+
+        if (_isLoading)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+      ],
     ),
   ),
 ),
@@ -561,39 +573,41 @@ class _ProdukPageState extends State<ProdukPage> {
           ],
         ),
         child: Column(
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: imgUrl.isEmpty
-                    ? Container(
-                        color: Colors.grey.shade300,
-                        child: const Center(
-                            child: Icon(Icons.image_not_supported)),
-                      )
-                    : Image.network(
-                        imgUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey.shade300,
-                          child: const Center(child: Icon(Icons.broken_image)),
-                        ),
-                      ),
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+    AspectRatio(
+      aspectRatio: 1,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        child: imgUrl.isEmpty
+            ? Container(
+                color: Colors.grey.shade300,
+                child: const Center(child: Icon(Icons.image_not_supported)),
+              )
+            : Image.network(
+                imgUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey.shade300,
+                  child: const Center(child: Icon(Icons.broken_image)),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+      ),
+    ),
+    Expanded( // untuk cegah overflow text
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Text(
+          title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+      ),
+    ),
+  ],
+),
+
       ),
     );
   }
