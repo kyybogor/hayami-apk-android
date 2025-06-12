@@ -298,80 +298,69 @@ class _ProdukPageState extends State<ProdukPage> {
       body: SafeArea(
   child: Padding(
     padding: const EdgeInsets.all(16),
-    child: SingleChildScrollView(
+    child: CustomScrollView(
       controller: _scrollController,
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 80,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Cari produk...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Cari produk...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 10), // diperbaiki
-            ),
+              const SizedBox(height: 12),
+              if (_searchQuery.isEmpty)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildStatusCard(
+                        'Produk Tersedia',
+                        (totalProduk - produkHampirHabis - produkHabis).toString(),
+                        Colors.green,
+                      ),
+                      _buildStatusCard('Produk Hampir Habis', produkHampirHabis.toString(), Colors.orange),
+                      _buildStatusCard('Produk Habis', produkHabis.toString(), Colors.red),
+                      _buildStatusCard('Total Produk', totalProduk.toString(), Colors.blue),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 20),
+              if (_searchQuery.isEmpty)
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _showChart = !_showChart;
+                    });
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
+                        style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                      ),
+                      Icon(_showChart ? Icons.expand_less : Icons.expand_more),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 12),
+            ],
           ),
-          const SizedBox(height: 12),
-          if (_searchQuery.isEmpty)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildStatusCard(
-                    'Produk Tersedia',
-                    (totalProduk - produkHampirHabis - produkHabis).toString(),
-                    Colors.green,
-                  ),
-                  _buildStatusCard(
-                      'Produk Hampir Habis',
-                      produkHampirHabis.toString(),
-                      Colors.orange),
-                  _buildStatusCard(
-                      'Produk Habis', produkHabis.toString(), Colors.red),
-                  _buildStatusCard(
-                      'Total Produk', totalProduk.toString(), Colors.blue),
-                ],
-              ),
-            ),
-          const SizedBox(height: 20),
-          if (_searchQuery.isEmpty)
-            InkWell(
-              onTap: () {
-                setState(() {
-                  _showChart = !_showChart;
-                });
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _showChart ? 'Sembunyikan' : 'Lihat Selengkapnya',
-                    style: const TextStyle(
-                        color: Colors.blue, fontWeight: FontWeight.bold),
-                  ),
-                  Icon(_showChart ? Icons.expand_less : Icons.expand_more),
-                ],
-              ),
-            ),
-          const SizedBox(height: 12),
-          if ((_searchQuery.isEmpty && _showChart) || _searchQuery.isNotEmpty)
-            GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: displayGroups.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.8,
-              ),
-              itemBuilder: (context, index) {
+        ),
+
+        if ((_searchQuery.isEmpty && _showChart) || _searchQuery.isNotEmpty)
+          SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
                 final entry = displayGroups[index];
                 final produkList = entry.value;
                 final firstProduk = produkList.first;
@@ -383,20 +372,30 @@ class _ProdukPageState extends State<ProdukPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            ProdukDetailPage(produk: produkList.first),
+                        builder: (_) => ProdukDetailPage(produk: produkList.first),
                       ),
                     );
                   },
                 );
               },
+              childCount: displayGroups.length,
             ),
-          if (_isLoading) ...[
-            const SizedBox(height: 16),
-            const Center(child: CircularProgressIndicator()),
-          ],
-        ],
-      ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.8,
+            ),
+          ),
+
+        if (_isLoading)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+      ],
     ),
   ),
 ),
