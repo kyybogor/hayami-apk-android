@@ -359,6 +359,12 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                         double childAspectRatio =
                             constraints.maxWidth > 600 ? 3 : 2.5;
 
+                        final double screenWidth =
+                            MediaQuery.of(context).size.width;
+                        final double baseWidth = 360;
+                        final double scale =
+                            (screenWidth / baseWidth).clamp(0.5, 1.0);
+
                         return GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -377,6 +383,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                               amount: formatCurrency(kas.nominal),
                               color: Colors.blue[100]!,
                               abbreviation: getAbbreviation(kas.nama),
+                              scale: scale, // <--- Jangan lupa kirim scale
                             );
                           },
                         );
@@ -394,36 +401,45 @@ class _DashboardscreenState extends State<Dashboardscreen> {
     required String amount,
     required Color color,
     required String abbreviation,
+    required double scale, 
   }) {
+    double cardHeight = 80 * scale;
+    double boxSize = 36 * scale;
+    double fontSizeLabel = 12 * scale;
+    double fontSizeAmount = 12 * scale;
+    double spacing = 12 * scale;
+    double spacingSmall = 4 * scale;
+
     return SizedBox(
-      height: 80,
+      height: cardHeight,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12 * scale),
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16 * scale),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: boxSize,
+              height: boxSize,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8 * scale),
               ),
               child: Center(
                 child: Text(
                   abbreviation,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
+                    fontSize: fontSizeLabel,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: spacing),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -431,21 +447,21 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: fontSizeLabel,
                     ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: spacingSmall),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(
                       amount,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: fontSizeAmount,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
