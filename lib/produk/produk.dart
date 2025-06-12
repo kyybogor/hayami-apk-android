@@ -147,10 +147,10 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
-  Future<void> _fetchSearchProduk(String skuQuery) async {
-    final encodedSku = Uri.encodeComponent(skuQuery);
+  Future<void> _fetchSearchProduk(String query) async {
+    final encodedQuery = Uri.encodeComponent(query);
     final url = Uri.parse(
-        'https://hayami.id/apps/erp/api-android/api/searchproduk.php?sku=$encodedSku');
+        'https://hayami.id/apps/erp/api-android/api/searchproduk.php?search=$encodedQuery');
 
     try {
       final response = await http.get(url);
@@ -175,7 +175,7 @@ class _ProdukPageState extends State<ProdukPage> {
         });
       } else {
         setState(() => _isLoading = false);
-        print('Gagal load search produk');
+        print('Gagal load search produk, status: ${response.statusCode}');
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -390,34 +390,57 @@ class _ProdukPageState extends State<ProdukPage> {
                   sliver: SliverGrid(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final entry = displayGroups[index];
-                        final produkList = entry.value;
-                        final firstProduk = produkList.first;
-
-                        return _buildGroupedProdukCard(
-                          '${firstProduk['tipe']} - ${firstProduk['gambar']}',
-                          firstProduk['img'] ?? '',
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ProdukDetailPage(
-                                  img: produkList.first['img'],
-                                  tipe: produkList.first['tipe'] ?? '',
-                                  gambar: produkList.first['gambar'] ?? '',
+                        if (_searchQuery.isNotEmpty) {
+                          // Tampilkan hasil search
+                          final produk = _searchResults[index];
+                          return _buildGroupedProdukCard(
+                            '${produk['tipe']} - ${produk['gambar']}',
+                            produk['img'] ?? '',
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProdukDetailPage(
+                                    img: produk['img'],
+                                    tipe: produk['tipe'] ?? '',
+                                    gambar: produk['gambar'] ?? '',
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        );
+                              );
+                            },
+                          );
+                        } else {
+                          // Tampilkan produk grouped biasa
+                          final entry = displayGroups[index];
+                          final produkList = entry.value;
+                          final firstProduk = produkList.first;
+                          return _buildGroupedProdukCard(
+                            '${firstProduk['tipe']} - ${firstProduk['gambar']}',
+                            firstProduk['img'] ?? '',
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProdukDetailPage(
+                                    img: produkList.first['img'],
+                                    tipe: produkList.first['tipe'] ?? '',
+                                    gambar: produkList.first['gambar'] ?? '',
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }
                       },
-                      childCount: displayGroups.length,
+                      childCount: _searchQuery.isNotEmpty
+                          ? _searchDisplayCount
+                          : displayGroups.length,
                     ),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 8,
                       mainAxisSpacing: 12,
-                      childAspectRatio:0.7, // Ubah dari 0.8 jadi 0.7 (atau coba 0.65)
+                      childAspectRatio: 0.7,
                     ),
                   ),
                 ),
@@ -574,63 +597,62 @@ class _ProdukPageState extends State<ProdukPage> {
     );
   }
 
-Widget _buildGroupedProdukCard(
-    String title, String imagePath, VoidCallback onTap) {
-  final imgUrl = cleanImageUrl(imagePath);
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(12)),
-              child: imgUrl.isEmpty
-                  ? Container(
-                      color: Colors.grey.shade300,
-                      child: const Center(
-                          child: Icon(Icons.image_not_supported)),
-                    )
-                  : Image.network(
-                      imgUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.grey.shade300,
-                        child: const Center(child: Icon(Icons.broken_image)),
-                      ),
-                    ),
+  Widget _buildGroupedProdukCard(
+      String title, String imagePath, VoidCallback onTap) {
+    final imgUrl = cleanImageUrl(imagePath);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                softWrap: true,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
+                child: imgUrl.isEmpty
+                    ? Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(
+                            child: Icon(Icons.image_not_supported)),
+                      )
+                    : Image.network(
+                        imgUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey.shade300,
+                          child: const Center(child: Icon(Icons.broken_image)),
+                        ),
+                      ),
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }
