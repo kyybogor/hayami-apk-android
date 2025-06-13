@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:hayami_app/pos/posscreen.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/pemesanan/pemesananscreen.dart';
@@ -225,6 +226,20 @@ class _PenjualanscreenState extends State<Penjualanscreen> {
               );
             },
           ),
+          _MenuIcon(
+    icon: Icons.point_of_sale,
+    color: Colors.deepPurple,
+    label: 'POS',
+    onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const Posscreen(),
+    ),
+  );
+},
+
+  ),
         ],
       ),
     );
