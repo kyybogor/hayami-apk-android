@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/Dashboard/dashboardposscreens.dart';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/Login/forget.dart';
 import 'package:hayami_app/Login/otp.dart';
@@ -31,38 +32,53 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() => _isLoading = true);
-    final response = await ApiService.loginUser(email, password);
-    setState(() => _isLoading = false);
 
-    if (response['status'] == 'success') {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final user = response['user'];
+    final gudangResponse = await GudangApiService.loginUser(email, password);
 
-      await prefs.setString('id_user', user['id_user'] ?? '');
-      await prefs.setString('nm_user', user['nm_user'] ?? '');
-      await prefs.setString('jabatan', user['jabatan'] ?? '');
-      await prefs.setString('email_user', user['email_user'] ?? '');
-      await prefs.setString('karyawan', user['karyawan'] ?? '');
-      await prefs.setString('grup', user['grup'] ?? '');
-      await prefs.setString('id_cabang', user['id_cabang'] ?? '');
-      await prefs.setString('id_gudang', user['id_gudang'] ?? '');
-      await prefs.setString('sts', user['sts'] ?? '');
+    if (gudangResponse['status'] == 'success') {
+      await _saveUserPrefs(gudangResponse['user']);
+      setState(() => _isLoading = false);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const Dashboardscreen()),
       );
+      return;
+    }
+
+    final posResponse = await PosApiService.loginUser(email, password);
+
+    setState(() => _isLoading = false);
+
+    if (posResponse['status'] == 'success') {
+      await _saveUserPrefs(posResponse['user']);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreenPos()),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? 'Login gagal.')),
+        SnackBar(content: Text(posResponse['message'] ?? 'Login gagal.')),
       );
     }
   }
 
+  Future<void> _saveUserPrefs(Map<String, dynamic> user) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('id_user', user['id_user'] ?? '');
+    await prefs.setString('nm_user', user['nm_user'] ?? '');
+    await prefs.setString('jabatan', user['jabatan'] ?? '');
+    await prefs.setString('email_user', user['email_user'] ?? '');
+    await prefs.setString('karyawan', user['karyawan'] ?? '');
+    await prefs.setString('grup', user['grup'] ?? '');
+    await prefs.setString('id_cabang', user['id_cabang'] ?? '');
+    await prefs.setString('id_gudang', user['id_gudang'] ?? '');
+    await prefs.setString('sts', user['sts'] ?? '');
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Ambil ukuran layar
     final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600; // Contoh threshold tablet
+    final isTablet = size.width > 600;
     final paddingHorizontal = isTablet ? size.width * 0.2 : 20.0;
     final logoHeight = isTablet ? 100.0 : 60.0;
     final containerHeight = isTablet ? 300.0 : 200.0;
