@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
+import 'package:hayami_app/pos/posscreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreenPos extends StatefulWidget {
@@ -27,9 +28,9 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
 
   final List<Map<String, dynamic>> menuItems = [
     {
-      'icon': Icons.shopping_bag,
+      'icon': Icons.point_of_sale,
       'label': 'Penjualan',
-      'color': Colors.redAccent,
+      'color': Colors.deepPurple,
     },
     {
       'icon': Icons.bar_chart,
@@ -123,14 +124,14 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                   return InkWell(
                     onTap: () {
                       switch (item['label']) {
-                        // case 'Penjualan':
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (_) => const Penjualanscreen(),
-                        //     ),
-                        //   );
-                        //   break;
+                        case 'Penjualan':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Posscreen(),
+                            ),
+                          );
+                          break;
                         // case 'Laporan':
                         //   Navigator.push(
                         //     context,
