@@ -6,6 +6,7 @@ class Customer {
   final String telp;
   final String telp2;
   final String salesman;
+  final String city; // Tambahkan field ini
 
   Customer({
     required this.id,
@@ -15,6 +16,7 @@ class Customer {
     required this.telp,
     required this.telp2,
     required this.salesman,
+    required this.city, // Tambahkan ke constructor
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class Customer {
       telp: json['telp'],
       telp2: json['telp2'],
       salesman: json['salesman'],
+      city: json['city'], // Ambil dari JSON
     );
   }
 }
