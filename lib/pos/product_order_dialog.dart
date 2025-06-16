@@ -1,18 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+class OrderItem {
+  final String productName;
+  final String size;
+  final double quantity;
+  final double unitPrice;
+
+  OrderItem({
+    required this.productName,
+    required this.size,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  double get total => quantity * unitPrice;
+}
+
 class ProductOrderDialogContent extends StatefulWidget {
   final Map<String, dynamic> representative;
   final List<dynamic> allSizes;
+  final void Function(List<OrderItem>) onAddToOrder;
 
-  const ProductOrderDialogContent({
+  ProductOrderDialogContent({
     required this.representative,
     required this.allSizes,
+    required this.onAddToOrder,
     super.key,
   });
 
   @override
-  State<ProductOrderDialogContent> createState() => _ProductOrderDialogContentState();
+  State<ProductOrderDialogContent> createState() =>
+      _ProductOrderDialogContentState();
 }
 
 class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
@@ -62,20 +81,37 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 8),
-            Text('Type: ${widget.representative['tipe']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Type: ${widget.representative['tipe']}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
             Text('Model: ${widget.representative['gambar']}'),
             const Divider(height: 24),
             Row(
-                children: const [
-                  Expanded(flex: 3, child: Text('Size', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Stok', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Center(child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold)))),
-                  Expanded(flex: 3, child: Center(child: Text('Harga', style: TextStyle(fontWeight: FontWeight.bold)))),
-                  Expanded(flex: 3, child: Center(child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold)))),
-                ],
-              ),
-
-
+              children: const [
+                Expanded(
+                    flex: 3,
+                    child: Text('Size',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 2,
+                    child: Text('Stok',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 2,
+                    child: Center(
+                        child: Text('Qty',
+                            style: TextStyle(fontWeight: FontWeight.bold)))),
+                Expanded(
+                    flex: 3,
+                    child: Center(
+                        child: Text('Harga',
+                            style: TextStyle(fontWeight: FontWeight.bold)))),
+                Expanded(
+                    flex: 3,
+                    child: Center(
+                        child: Text('Total',
+                            style: TextStyle(fontWeight: FontWeight.bold)))),
+              ],
+            ),
             const SizedBox(height: 8),
             ...widget.allSizes.map((item) {
               final stock = calculateStock(item);
@@ -89,47 +125,51 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
-  children: [
-    Expanded(flex: 3, child: Text(size)),
-    Expanded(flex: 2, child: Text(stock.toStringAsFixed(1))),
-    Expanded(
-      flex: 2,
-      child: Center(
-        child: SizedBox(
-          width: 60,
-          child: TextField(
-            controller: qtyControllers[size],
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textAlign: TextAlign.center,
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-            ),
-            onChanged: (val) {
-              final inputQty = double.tryParse(val) ?? 0.0;
-              if (inputQty > stock) {
-                qtyControllers[size]?.text = stock.toStringAsFixed(1);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Qty melebihi stok')),
-                );
-              }
-              setState(() {});
-            },
-          ),
-        ),
-      ),
-    ),
-    Expanded(
-      flex: 3,
-      child: Center(child: Text(formatCurrency.format(price))),
-    ),
-    Expanded(
-      flex: 3,
-      child: Center(child: Text(formatCurrency.format(totalPrice))),
-    ),
-  ],
-),
-
+                  children: [
+                    Expanded(flex: 3, child: Text(size)),
+                    Expanded(flex: 2, child: Text(stock.toStringAsFixed(1))),
+                    Expanded(
+                      flex: 2,
+                      child: Center(
+                        child: SizedBox(
+                          width: 60,
+                          child: TextField(
+                            controller: qtyControllers[size],
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            textAlign: TextAlign.center,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 6, horizontal: 8),
+                            ),
+                            onChanged: (val) {
+                              final inputQty = double.tryParse(val) ?? 0.0;
+                              if (inputQty > stock) {
+                                qtyControllers[size]?.text =
+                                    stock.toStringAsFixed(1);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Qty melebihi stok')),
+                                );
+                              }
+                              setState(() {});
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Center(child: Text(formatCurrency.format(price))),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Center(
+                          child: Text(formatCurrency.format(totalPrice))),
+                    ),
+                  ],
+                ),
               );
             }).toList(),
             const SizedBox(height: 16),
@@ -142,7 +182,24 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // TODO: Tambahkan ke keranjang
+                    final List<OrderItem> orderedItems = [];
+
+                    for (var size in widget.allSizes) {
+                      final qtyText = qtyControllers[size['size']]?.text ?? '0';
+                      final qty = double.tryParse(qtyText) ?? 0.0;
+                      if (qty > 0) {
+                        orderedItems.add(OrderItem(
+                          productName:
+                              '${widget.representative['tipe']} ${widget.representative['gambar']}',
+                          size: size['size'],
+                          quantity: qty,
+                          unitPrice:
+                              double.tryParse(size['harga'] ?? '0') ?? 0.0,
+                        ));
+                      }
+                    }
+
+                    widget.onAddToOrder(orderedItems);
                     Navigator.pop(context);
                   },
                   child: const Text('Add to Order'),

@@ -29,7 +29,7 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
   final List<Map<String, dynamic>> menuItems = [
     {
       'icon': Icons.point_of_sale,
-      'label': 'Penjualan',
+      'label': 'POS',
       'color': Colors.deepPurple,
     },
     {
@@ -124,7 +124,7 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                   return InkWell(
                     onTap: () {
                       switch (item['label']) {
-                        case 'Penjualan':
+                        case 'POS':
                           Navigator.push(
                             context,
                             MaterialPageRoute(
