@@ -394,289 +394,294 @@ class _PosscreenState extends State<Posscreen> {
     );
   }
 
-  Widget cartSection() {
-    double subTotal = cartItems.fold(0, (sum, item) => sum + item.total);
-    double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
+Widget cartSection() {
+  double subTotal = cartItems.fold(0, (sum, item) => sum + item.total);
+  double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
 
-    double calculateAutoAndManualDiskon() {
-      double autoDiskon = 0;
-      if (selectedCustomer != null) {
-        final customerId = selectedCustomer!.id;
-        final percentage = int.tryParse(selectedCustomer!.percentage) ?? 100;
+  double calculateAutoDiskon() {
+    double autoDiskon = 0;
+    if (selectedCustomer != null) {
+      final customerId = selectedCustomer!.id;
+      final percentage = int.tryParse(selectedCustomer!.percentage) ?? 100;
 
-        for (var item in cartItems) {
-          final hargaDasar = item.unitPrice;
-          final qty = item.quantity;
+      for (var item in cartItems) {
+        final hargaDasar = item.unitPrice;
+        final qty = item.quantity;
 
-          final diskonEntry = diskonCustList.firstWhere(
-            (d) => d['id_cust'] == customerId && d['id_tipe'] == item.idTipe,
-            orElse: () => {},
-          );
+        final diskonEntry = diskonCustList.firstWhere(
+          (d) => d['id_cust'] == customerId && d['id_tipe'] == item.idTipe,
+          orElse: () => {},
+        );
 
-          final diskonPerLusin =
-              double.tryParse(diskonEntry['discp'] ?? '0') ?? 0;
+        final diskonPerLusin =
+            double.tryParse(diskonEntry['discp'] ?? '0') ?? 0;
 
-          final hargaSetelahPersen = hargaDasar * (percentage / 100);
-          final potonganDiskon = diskonPerLusin * qty;
+        // Kalkulasi diskon otomatis per item (diskon per lusin * qty)
+        final potonganDiskon = diskonPerLusin * qty;
 
-          autoDiskon += potonganDiskon;
-        }
+        autoDiskon += potonganDiskon;
       }
-
-      final manualDiskon = double.tryParse(nominalController.text) ?? 0;
-
-      return autoDiskon + manualDiskon;
     }
+    return autoDiskon;
+  }
 
-    double newDiscount = double.tryParse(percentController.text) != null
-        ? (subTotal * (double.tryParse(percentController.text)! / 100))
-        : 0;
+  // Hitung diskon otomatis saja
+  double totalDiskon = calculateAutoDiskon();
 
-    double totalDiskon = calculateAutoAndManualDiskon();
-    double grandTotal = subTotal - totalDiskon - newDiscount;
+  // Hitung diskon manual dari input nominal dan persen
+  double manualDiskonNominal = double.tryParse(nominalController.text) ?? 0;
+  double manualDiskonPercent = double.tryParse(percentController.text) != null
+      ? (subTotal * (double.tryParse(percentController.text)! / 100))
+      : 0;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      color: Colors.grey[100],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-                  onPressed: () => showCustomerFormDialog(context),
-                  child:
-                      Text(selectedCustomer?.nmCustomer ?? 'Select Customer'),
-                ),
+  // Pilih diskon manual yang aktif, nominal dulu jika ada
+  double newDiscount = manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercent;
+
+  // Total akhir
+  double grandTotal = subTotal - totalDiskon - newDiscount;
+
+  return Container(
+    padding: const EdgeInsets.all(12),
+    color: Colors.grey[100],
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+                onPressed: () => showCustomerFormDialog(context),
+                child: Text(selectedCustomer?.nmCustomer ?? 'Select Customer'),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-                  onPressed: () {},
-                  child: const Text('Cart'),
-                ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+                onPressed: () {},
+                child: const Text('Cart'),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Expanded(
-                          child: Text('Items',
-                              style: TextStyle(fontWeight: FontWeight.bold))),
-                      Text('Total',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  ...cartItems.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final item = entry.value;
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Expanded(
+                        child: Text('Items',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    Text('Total',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const Divider(),
+                const SizedBox(height: 8),
+                ...cartItems.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${item.productName} - ${item.size}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Text('Rp ${item.total.toStringAsFixed(0)}'),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                setState(() {
-                                  cartItems.removeAt(index);
-                                  isConfirmMode = false;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                                '${item.quantity} @ Rp ${item.unitPrice.toStringAsFixed(0)}'),
-                            Text('Total: Rp ${item.total.toStringAsFixed(0)}'),
-                          ],
-                        ),
-                        const Divider(),
-                      ],
-                    );
-                  }).toList(),
-                  const SizedBox(height: 8),
-
-                  /// TOMBOL CLEAR
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isConfirmMode
-                            ? Colors.red
-                            : cartItems.isEmpty
-                                ? Colors.grey
-                                : Colors.red,
-                      ),
-                      onPressed: (cartItems.isEmpty && !isConfirmMode)
-                          ? null
-                          : () {
-                              setState(() {
-                                if (isConfirmMode) {
-                                  cartItems.clear();
-                                  isConfirmMode = false;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('Cart cleared')),
-                                  );
-                                } else {
-                                  isConfirmMode = true;
-                                }
-                              });
-                            },
-                      child: Text(isConfirmMode ? 'Confirm' : 'Clear Items'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // KIRI
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          ElevatedButton(
+                          Expanded(
+                            child: Text(
+                              '${item.productName} - ${item.size}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Text('Rp ${item.total.toStringAsFixed(0)}'),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () {
                               setState(() {
-                                showDiscountInput = !showDiscountInput;
-                                percentController.clear();
-                                nominalController.clear();
+                                cartItems.removeAt(index);
+                                isConfirmMode = false;
                               });
                             },
-                            child: const Text('New Discount'),
                           ),
-                          const SizedBox(height: 8),
-                          const Text('Total QTY:'),
-                          Text('${totalQty.toStringAsFixed(1)} Lusin'),
                         ],
                       ),
-
-                      // KANAN
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Sub-Total:'),
-                          Text('Rp ${subTotal.toStringAsFixed(0)}'),
-                          const SizedBox(height: 8),
-                          const Text('Discount:'),
-                          Text('Rp ${totalDiskon.toStringAsFixed(0)}'),
-                          const SizedBox(height: 8),
-                          const Text('New Discount:'),
-                          Text('Rp ${newDiscount.toStringAsFixed(0)}'),
+                          Text(
+                              '${item.quantity} @ Rp ${item.unitPrice.toStringAsFixed(0)}'),
+                          Text('Total: Rp ${item.total.toStringAsFixed(0)}'),
                         ],
                       ),
+                      const Divider(),
                     ],
+                  );
+                }).toList(),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isConfirmMode
+                          ? Colors.red
+                          : cartItems.isEmpty
+                              ? Colors.grey
+                              : Colors.red,
+                    ),
+                    onPressed: (cartItems.isEmpty && !isConfirmMode)
+                        ? null
+                        : () {
+                            setState(() {
+                              if (isConfirmMode) {
+                                cartItems.clear();
+                                isConfirmMode = false;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Cart cleared')),
+                                );
+                              } else {
+                                isConfirmMode = true;
+                              }
+                            });
+                          },
+                    child: Text(isConfirmMode ? 'Confirm' : 'Clear Items'),
                   ),
-                  if (showDiscountInput) ...[
-                    const SizedBox(height: 8),
-                    Row(
+                ),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // KIRI
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: percentController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Disc (%)',
-                              border: OutlineInputBorder(),
-                            ),
-                            onChanged: (value) => setState(() {}),
-                          ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              showDiscountInput = !showDiscountInput;
+                              percentController.clear();
+                              nominalController.clear();
+                            });
+                          },
+                          child: const Text('New Discount'),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: nominalController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Disc (Rp.)',
-                              border: OutlineInputBorder(),
-                            ),
-                            onChanged: (value) => setState(() {}),
-                          ),
-                        ),
+                        const SizedBox(height: 8),
+                        const Text('Total QTY:'),
+                        Text('${totalQty.toStringAsFixed(1)} Lusin'),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('Sub-Total:'),
+                        Text('Rp ${subTotal.toStringAsFixed(0)}'),
+                        const SizedBox(height: 8),
+                        const Text('Discount:'),  // Diskon otomatis
+                        Text('Rp ${totalDiskon.toStringAsFixed(0)}'),
+                        const SizedBox(height: 8),
+                        const Text('New Discount:'),  // Diskon manual
+                        Text('Rp ${newDiscount.toStringAsFixed(0)}'),
                       ],
                     ),
                   ],
-                  const SizedBox(height: 12),
+                ),
+                if (showDiscountInput) ...[
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: DropdownButtonFormField<String>(
+                        child: TextField(
+                          controller: percentController,
+                          keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
+                            labelText: 'Disc (%)',
                             border: OutlineInputBorder(),
-                            labelText: 'Payment',
-                            isDense: true,
                           ),
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'cash', child: Text('Cash')),
-                            DropdownMenuItem(
-                                value: 'credit', child: Text('Credit')),
-                          ],
-                          onChanged: (value) {},
+                          onChanged: (value) {
+                            final percent = double.tryParse(value) ?? 0;
+                            updateDiscountFromPercent(percent, subTotal);
+                            setState(() {});
+                          },
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: TextField(
-                          enabled: false,
-                          decoration: InputDecoration(
+                          controller: nominalController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Disc (Rp.)',
                             border: OutlineInputBorder(),
-                            labelText: 'Durasi Top',
-                            isDense: true,
                           ),
+                          onChanged: (value) {
+                            final nominal = double.tryParse(value) ?? 0;
+                            updateDiscountFromNominal(nominal, subTotal);
+                            setState(() {});
+                          },
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo),
-                      onPressed: () {},
-                      child: Text(
-                        'GRAND TOTAL: Rp ${grandTotal.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.white),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Payment',
+                          isDense: true,
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                          DropdownMenuItem(value: 'credit', child: Text('Credit')),
+                        ],
+                        onChanged: (value) {},
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: TextField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Durasi Top',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+                    onPressed: () {},
+                    child: Text(
+                      'GRAND TOTAL: Rp ${grandTotal.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
