@@ -20,9 +20,8 @@ class _PosscreenState extends State<Posscreen> {
   String searchQuery = '';
   Customer? selectedCustomer;
   bool showDiscountInput = false;
-final TextEditingController percentController = TextEditingController();
-final TextEditingController nominalController = TextEditingController();
-
+  final TextEditingController percentController = TextEditingController();
+  final TextEditingController nominalController = TextEditingController();
 
   @override
   void initState() {
@@ -30,43 +29,42 @@ final TextEditingController nominalController = TextEditingController();
     fetchProducts();
   }
 
-
   double hitungHargaFinal({
-  required double hargaDasar,
-  required double qty, // dalam lusin
-  required String idCustomer,
-  required String idTipe,
-  required int percentage,
-  required List<Map<String, dynamic>> diskonList,
-}) {
-  final hargaPersentase = hargaDasar * (percentage / 100);
+    required double hargaDasar,
+    required double qty, // dalam lusin
+    required String idCustomer,
+    required String idTipe,
+    required int percentage,
+    required List<Map<String, dynamic>> diskonList,
+  }) {
+    final hargaPersentase = hargaDasar * (percentage / 100);
 
-  // Cari diskon dari kombinasi idCustomer dan idTipe
-  final diskonData = diskonList.firstWhere(
-    (d) => d['id_cust'] == idCustomer && d['id_tipe'] == idTipe,
-    orElse: () => {},
-  );
+    // Cari diskon dari kombinasi idCustomer dan idTipe
+    final diskonData = diskonList.firstWhere(
+      (d) => d['id_cust'] == idCustomer && d['id_tipe'] == idTipe,
+      orElse: () => {},
+    );
 
-  double diskonPerLusin = 0;
-  if (diskonData.isNotEmpty && diskonData['discp'] != null) {
-    diskonPerLusin = double.tryParse(diskonData['discp']) ?? 0;
+    double diskonPerLusin = 0;
+    if (diskonData.isNotEmpty && diskonData['discp'] != null) {
+      diskonPerLusin = double.tryParse(diskonData['discp']) ?? 0;
+    }
+
+    final totalDiskon = diskonPerLusin * qty; // qty dalam lusin
+    final totalHarga = (hargaPersentase * qty) - totalDiskon;
+
+    return totalHarga;
   }
 
-  final totalDiskon = diskonPerLusin * qty; // qty dalam lusin
-  final totalHarga = (hargaPersentase * qty) - totalDiskon;
+  void updateDiscountFromPercent(double percent, double subTotal) {
+    final nominal = subTotal * (percent / 100);
+    nominalController.text = nominal.toStringAsFixed(0);
+  }
 
-  return totalHarga;
-}
-
-void updateDiscountFromPercent(double percent, double subTotal) {
-  final nominal = subTotal * (percent / 100);
-  nominalController.text = nominal.toStringAsFixed(0);
-}
-
-void updateDiscountFromNominal(double nominal, double subTotal) {
-  final percent = (nominal / subTotal) * 100;
-  percentController.text = percent.toStringAsFixed(2);
-}
+  void updateDiscountFromNominal(double nominal, double subTotal) {
+    final percent = (nominal / subTotal) * 100;
+    percentController.text = percent.toStringAsFixed(2);
+  }
 
   Future<void> fetchProducts() async {
     final response = await http.get(Uri.parse(
@@ -82,12 +80,13 @@ void updateDiscountFromNominal(double nominal, double subTotal) {
     }
   }
 
-Future<List<Customer>> fetchCustomers(String keyword) async {
-  final response = await http.get(Uri.parse(
-      'http://hayami.id/apps/erp/api-android/api/kontak.php'));
-  if (response.statusCode == 200) {
-    final jsonData = jsonDecode(response.body);
-    diskonCustList = jsonData['diskon_cust_data'];      final allCustomers = (jsonData['customer_data'] as List)
+  Future<List<Customer>> fetchCustomers(String keyword) async {
+    final response = await http
+        .get(Uri.parse('http://hayami.id/apps/erp/api-android/api/kontak.php'));
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      diskonCustList = jsonData['diskon_cust_data'];
+      final allCustomers = (jsonData['customer_data'] as List)
           .map((c) => Customer.fromJson(c))
           .toList();
       return allCustomers
@@ -276,17 +275,17 @@ Future<List<Customer>> fetchCustomers(String keyword) async {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 750),
           child: ProductOrderDialogContent(
-  representative: representative,
-  allSizes: allSizes,
-  onAddToOrder: (items) {
-    setState(() {
-      cartItems.addAll(items);
-    });
-  },
-  selectedCustomer: selectedCustomer,
-  diskonData: diskonCustList, // <- ini perlu Anda simpan saat fetch customer
-),
-
+            representative: representative,
+            allSizes: allSizes,
+            onAddToOrder: (items) {
+              setState(() {
+                cartItems.addAll(items);
+              });
+            },
+            selectedCustomer: selectedCustomer,
+            diskonData:
+                diskonCustList, // <- ini perlu Anda simpan saat fetch customer
+          ),
         ),
       ),
     );
@@ -395,278 +394,289 @@ Future<List<Customer>> fetchCustomers(String keyword) async {
     );
   }
 
-Widget cartSection() {
-  double subTotal = cartItems.fold(0, (sum, item) => sum + item.total);
-  double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
+  Widget cartSection() {
+    double subTotal = cartItems.fold(0, (sum, item) => sum + item.total);
+    double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
 
-  double calculateTotalDiskon() {
-  double autoDiskon = 0;
-  if (selectedCustomer != null) {
-    final customerId = selectedCustomer!.id;
-    final percentage = int.tryParse(selectedCustomer!.percentage) ?? 100;
+    double calculateAutoAndManualDiskon() {
+      double autoDiskon = 0;
+      if (selectedCustomer != null) {
+        final customerId = selectedCustomer!.id;
+        final percentage = int.tryParse(selectedCustomer!.percentage) ?? 100;
 
-    for (var item in cartItems) {
-      final hargaDasar = item.unitPrice;
-      final qty = item.quantity;
+        for (var item in cartItems) {
+          final hargaDasar = item.unitPrice;
+          final qty = item.quantity;
 
-      final diskonEntry = diskonCustList.firstWhere(
-        (d) => d['id_cust'] == customerId && d['id_tipe'] == item.idTipe,
-        orElse: () => {},
-      );
+          final diskonEntry = diskonCustList.firstWhere(
+            (d) => d['id_cust'] == customerId && d['id_tipe'] == item.idTipe,
+            orElse: () => {},
+          );
 
-      final diskonPerLusin = double.tryParse(diskonEntry['discp'] ?? '0') ?? 0;
+          final diskonPerLusin =
+              double.tryParse(diskonEntry['discp'] ?? '0') ?? 0;
 
-      final hargaSetelahPersen = hargaDasar * (percentage / 100);
-      final potonganDiskon = diskonPerLusin * qty;
+          final hargaSetelahPersen = hargaDasar * (percentage / 100);
+          final potonganDiskon = diskonPerLusin * qty;
 
-      autoDiskon += potonganDiskon;
+          autoDiskon += potonganDiskon;
+        }
+      }
+
+      final manualDiskon = double.tryParse(nominalController.text) ?? 0;
+
+      return autoDiskon + manualDiskon;
     }
-  }
 
-  final manualDiskon = double.tryParse(nominalController.text) ?? 0;
+    double newDiscount = double.tryParse(percentController.text) != null
+        ? (subTotal * (double.tryParse(percentController.text)! / 100))
+        : 0;
 
-  return autoDiskon + manualDiskon;
-}
+    double totalDiskon = calculateAutoAndManualDiskon();
+    double grandTotal = subTotal - totalDiskon - newDiscount;
 
-  double totalDiskon = calculateTotalDiskon();
-  double grandTotal = subTotal - totalDiskon;
-
-  return Container(
-    padding: const EdgeInsets.all(12),
-    color: Colors.grey[100],
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-                onPressed: () => showCustomerFormDialog(context),
-                child: Text(selectedCustomer?.nmCustomer ?? 'Select Customer'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-                onPressed: () {},
-                child: const Text('Cart'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // Scrollable content area
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Expanded(
-                        child: Text('Items',
-                            style: TextStyle(fontWeight: FontWeight.bold))),
-                    Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ],
+    return Container(
+      padding: const EdgeInsets.all(12),
+      color: Colors.grey[100],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+                  onPressed: () => showCustomerFormDialog(context),
+                  child:
+                      Text(selectedCustomer?.nmCustomer ?? 'Select Customer'),
                 ),
-                const Divider(),
-                const SizedBox(height: 8),
-                ...cartItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+                  onPressed: () {},
+                  child: const Text('Cart'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${item.productName} - ${item.size}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                      Expanded(
+                          child: Text('Items',
+                              style: TextStyle(fontWeight: FontWeight.bold))),
+                      Text('Total',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  ...cartItems.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${item.productName} - ${item.size}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
                             ),
-                          ),
-                          Text('Rp ${item.total.toStringAsFixed(0)}'),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
+                            Text('Rp ${item.total.toStringAsFixed(0)}'),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  cartItems.removeAt(index);
+                                  isConfirmMode = false;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                                '${item.quantity} @ Rp ${item.unitPrice.toStringAsFixed(0)}'),
+                            Text('Total: Rp ${item.total.toStringAsFixed(0)}'),
+                          ],
+                        ),
+                        const Divider(),
+                      ],
+                    );
+                  }).toList(),
+                  const SizedBox(height: 8),
+
+                  /// TOMBOL CLEAR
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isConfirmMode
+                            ? Colors.red
+                            : cartItems.isEmpty
+                                ? Colors.grey
+                                : Colors.red,
+                      ),
+                      onPressed: (cartItems.isEmpty && !isConfirmMode)
+                          ? null
+                          : () {
                               setState(() {
-                                cartItems.removeAt(index);
-                                isConfirmMode = false;
+                                if (isConfirmMode) {
+                                  cartItems.clear();
+                                  isConfirmMode = false;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Cart cleared')),
+                                  );
+                                } else {
+                                  isConfirmMode = true;
+                                }
                               });
                             },
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Text(isConfirmMode ? 'Confirm' : 'Clear Items'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // KIRI
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                              '${item.quantity} @ Rp ${item.unitPrice.toStringAsFixed(0)}'),
-                          Text('Total: Rp ${item.total.toStringAsFixed(0)}'),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                showDiscountInput = !showDiscountInput;
+                                percentController.clear();
+                                nominalController.clear();
+                              });
+                            },
+                            child: const Text('New Discount'),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text('Total QTY:'),
+                          Text('${totalQty.toStringAsFixed(1)} Lusin'),
                         ],
                       ),
-                      const Divider(),
+
+                      // KANAN
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Sub-Total:'),
+                          Text('Rp ${subTotal.toStringAsFixed(0)}'),
+                          const SizedBox(height: 8),
+                          const Text('Discount:'),
+                          Text('Rp ${totalDiskon.toStringAsFixed(0)}'),
+                          const SizedBox(height: 8),
+                          const Text('New Discount:'),
+                          Text('Rp ${newDiscount.toStringAsFixed(0)}'),
+                        ],
+                      ),
                     ],
-                  );
-                }).toList(),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        if (isConfirmMode) {
-                          cartItems.clear();
-                          isConfirmMode = false;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Cart cleared')),
-                          );
-                        } else {
-                          isConfirmMode = true;
-                        }
-                      });
-                    },
-                    child: Text(isConfirmMode ? 'Confirm' : 'Clear Items'),
                   ),
-                ),
-                const SizedBox(height: 12),
-                const Divider(),
-                const SizedBox(height: 8),
-                Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    ElevatedButton(
-      onPressed: () {
-        setState(() {
-          showDiscountInput = !showDiscountInput;
-          percentController.clear();
-          nominalController.clear();
-        });
-      },
-      child: const Text('New Discount'),
-    ),
-    Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Sub-Total :'),
-        Text('Rp ${subTotal.toStringAsFixed(0)}'),
-      ],
-    ),
-  ],
-),
-if (showDiscountInput) ...[
-  const SizedBox(height: 8),
-  Row(
-    children: [
-      Expanded(
-        child: TextField(
-          controller: percentController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Disc (%)',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (value) {
-            final percent = double.tryParse(value) ?? 0;
-            updateDiscountFromPercent(percent, subTotal);
-            setState(() {});
-          },
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: TextField(
-          controller: nominalController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Disc (Rp.)',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (value) {
-            final nominal = double.tryParse(value) ?? 0;
-            updateDiscountFromNominal(nominal, subTotal);
-            setState(() {});
-          },
-        ),
-      ),
-    ],
-  ),
-],
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  if (showDiscountInput) ...[
+                    const SizedBox(height: 8),
+                    Row(
                       children: [
-                        const Text('Total QTY :'),
-                        Text('${(totalQty).toStringAsFixed(1)} Lusin'),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Discount :'),
-                        Text('Rp ${totalDiskon.toStringAsFixed(0)}'),
+                        Expanded(
+                          child: TextField(
+                            controller: percentController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Disc (%)',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (value) => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: nominalController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Disc (Rp.)',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (value) => setState(() {}),
+                          ),
+                        ),
                       ],
                     ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Payment',
-                          isDense: true,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                          DropdownMenuItem(value: 'credit', child: Text('Credit')),
-                        ],
-                        onChanged: (value) {},
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: TextField(
-                        enabled: false,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Durasi Top',
-                          isDense: true,
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Payment',
+                            isDense: true,
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'cash', child: Text('Cash')),
+                            DropdownMenuItem(
+                                value: 'credit', child: Text('Credit')),
+                          ],
+                          onChanged: (value) {},
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-                    onPressed: () {},
-                    child: Text(
-                      'GRAND TOTAL: Rp ${grandTotal.toStringAsFixed(0)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: TextField(
+                          enabled: false,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Durasi Top',
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo),
+                      onPressed: () {},
+                      child: Text(
+                        'GRAND TOTAL: Rp ${grandTotal.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
