@@ -22,6 +22,9 @@ class _PosscreenState extends State<Posscreen> {
   bool showDiscountInput = false;
   final TextEditingController percentController = TextEditingController();
   final TextEditingController nominalController = TextEditingController();
+  String selectedPayment = 'cash';
+  int selectedTopDuration = 0;
+
 
   @override
   void initState() {
@@ -447,24 +450,30 @@ Widget cartSection() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-                onPressed: () => showCustomerFormDialog(context),
-                child: Text(selectedCustomer?.nmCustomer ?? 'Select Customer'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-                onPressed: () {},
-                child: const Text('Cart'),
-              ),
-            ),
-          ],
+  children: [
+    Expanded(
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+        onPressed: () => showCustomerFormDialog(context),
+        child: Center(
+          child: Text(
+            selectedCustomer?.nmCustomer ?? 'Select Customer',
+            style: const TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,  // supaya teks rata tengah dan wrap ke baris baru
+          ),
         ),
+      ),
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+        onPressed: () {},
+        child: const Text('Cart', style: TextStyle(color: Colors.white)),
+      ),
+    ),
+  ],
+),
         const SizedBox(height: 12),
         Expanded(
           child: SingleChildScrollView(
@@ -526,31 +535,30 @@ Widget cartSection() {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isConfirmMode
-                          ? Colors.red
-                          : cartItems.isEmpty
-                              ? Colors.grey
-                              : Colors.red,
-                    ),
-                    onPressed: (cartItems.isEmpty && !isConfirmMode)
-                        ? null
-                        : () {
-                            setState(() {
-                              if (isConfirmMode) {
-                                cartItems.clear();
-                                isConfirmMode = false;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Cart cleared')),
-                                );
-                              } else {
-                                isConfirmMode = true;
-                              }
-                            });
-                          },
-                    child: Text(isConfirmMode ? 'Confirm' : 'Clear Items'),
-                  ),
-                ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: isConfirmMode ? Colors.red : Colors.grey,
+  ),
+  onPressed: (cartItems.isEmpty && !isConfirmMode)
+      ? null
+      : () {
+          setState(() {
+            if (isConfirmMode) {
+              cartItems.clear();
+              isConfirmMode = false;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cart cleared')),
+              );
+            } else {
+              isConfirmMode = true;
+            }
+          });
+        },
+  child: Text(
+    isConfirmMode ? 'Confirm' : 'Clear Items',
+    style: const TextStyle(color: Colors.white),
+  ),
+),
+                ),  
                 const SizedBox(height: 12),
                 const Divider(),
                 const SizedBox(height: 8),
@@ -632,34 +640,63 @@ Widget cartSection() {
                 ],
                 const SizedBox(height: 12),
                 Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Payment',
-                          isDense: true,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                          DropdownMenuItem(value: 'credit', child: Text('Credit')),
-                        ],
-                        onChanged: (value) {},
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: TextField(
-                        enabled: false,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Durasi Top',
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+  children: [
+    Expanded(
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          labelText: 'Payment',
+          isDense: true,
+        ),
+        value: selectedPayment,
+        items: const [
+          DropdownMenuItem(value: 'cash', child: Text('Cash')),
+          DropdownMenuItem(value: 'credit', child: Text('Credit')),
+        ],
+        onChanged: (value) {
+          setState(() {
+            selectedPayment = value!;
+            selectedTopDuration = (selectedPayment == 'cash') ? 0 : 30;
+          });
+        },
+      ),
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: (selectedPayment == 'credit')
+          ? DropdownButtonFormField<int>(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Durasi Top',
+                isDense: true,
+              ),
+              value: selectedTopDuration,
+              items: const [
+                DropdownMenuItem(value: 30, child: Text('30 Hari')),
+                DropdownMenuItem(value: 60, child: Text('60 Hari')),
+                DropdownMenuItem(value: 90, child: Text('90 Hari')),
+                DropdownMenuItem(value: 120, child: Text('120 Hari')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  selectedTopDuration = value!;
+                });
+              },
+            )
+          : TextField(
+              enabled: false,
+              controller: TextEditingController(
+                text: '0',
+              ),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Durasi Top',
+                isDense: true,
+              ),
+            ),
+    ),
+  ],
+),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -681,7 +718,6 @@ Widget cartSection() {
     ),
   );
 }
-
 
   @override
   Widget build(BuildContext context) {
