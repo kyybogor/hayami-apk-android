@@ -19,6 +19,10 @@ class _PosscreenState extends State<Posscreen> {
   bool isLoading = true;
   String searchQuery = '';
   Customer? selectedCustomer;
+  bool showDiscountInput = false;
+final TextEditingController percentController = TextEditingController();
+final TextEditingController nominalController = TextEditingController();
+
 
   @override
   void initState() {
@@ -52,6 +56,16 @@ class _PosscreenState extends State<Posscreen> {
   final totalHarga = (hargaPersentase * qty) - totalDiskon;
 
   return totalHarga;
+}
+
+void updateDiscountFromPercent(double percent, double subTotal) {
+  final nominal = subTotal * (percent / 100);
+  nominalController.text = nominal.toStringAsFixed(0);
+}
+
+void updateDiscountFromNominal(double nominal, double subTotal) {
+  final percent = (nominal / subTotal) * 100;
+  percentController.text = percent.toStringAsFixed(2);
 }
 
   Future<void> fetchProducts() async {
@@ -386,12 +400,10 @@ Widget cartSection() {
   double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
 
   double calculateTotalDiskon() {
-    if (selectedCustomer == null) return 0;
-
+  double autoDiskon = 0;
+  if (selectedCustomer != null) {
     final customerId = selectedCustomer!.id;
     final percentage = int.tryParse(selectedCustomer!.percentage) ?? 100;
-
-    double totalDiskon = 0;
 
     for (var item in cartItems) {
       final hargaDasar = item.unitPrice;
@@ -405,15 +417,16 @@ Widget cartSection() {
       final diskonPerLusin = double.tryParse(diskonEntry['discp'] ?? '0') ?? 0;
 
       final hargaSetelahPersen = hargaDasar * (percentage / 100);
-      final hargaSebelumDiskon = hargaSetelahPersen * qty;
-
       final potonganDiskon = diskonPerLusin * qty;
 
-      totalDiskon += potonganDiskon;
+      autoDiskon += potonganDiskon;
     }
-
-    return totalDiskon;
   }
+
+  final manualDiskon = double.tryParse(nominalController.text) ?? 0;
+
+  return autoDiskon + manualDiskon;
+}
 
   double totalDiskon = calculateTotalDiskon();
   double grandTotal = subTotal - totalDiskon;
@@ -525,19 +538,65 @@ Widget cartSection() {
                 const Divider(),
                 const SizedBox(height: 8),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                        onPressed: null, child: const Text('New Discount')),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Sub-Total :'),
-                        Text('Rp ${subTotal.toStringAsFixed(0)}'),
-                      ],
-                    ),
-                  ],
-                ),
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    ElevatedButton(
+      onPressed: () {
+        setState(() {
+          showDiscountInput = !showDiscountInput;
+          percentController.clear();
+          nominalController.clear();
+        });
+      },
+      child: const Text('New Discount'),
+    ),
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Sub-Total :'),
+        Text('Rp ${subTotal.toStringAsFixed(0)}'),
+      ],
+    ),
+  ],
+),
+if (showDiscountInput) ...[
+  const SizedBox(height: 8),
+  Row(
+    children: [
+      Expanded(
+        child: TextField(
+          controller: percentController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Disc (%)',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (value) {
+            final percent = double.tryParse(value) ?? 0;
+            updateDiscountFromPercent(percent, subTotal);
+            setState(() {});
+          },
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: TextField(
+          controller: nominalController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Disc (Rp.)',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (value) {
+            final nominal = double.tryParse(value) ?? 0;
+            updateDiscountFromNominal(nominal, subTotal);
+            setState(() {});
+          },
+        ),
+      ),
+    ],
+  ),
+],
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
