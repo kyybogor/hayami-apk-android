@@ -15,7 +15,6 @@ class CartEntry {
   });
 }
 
-
 class CartScreen extends StatefulWidget {
   final String customerId;
   final double grandTotal;
@@ -52,22 +51,24 @@ class _CartScreenState extends State<CartScreen> {
     });
 
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.8/hayami/gpo1.php'));
+      final response =
+          await http.get(Uri.parse('http://192.168.1.8/hayami/gpo1.php'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
 
         final List<CartEntry> entries = data.map((item) {
-  final String customerName = item['id_cust'] ?? 'Unknown';
-  final double grandTotal = double.tryParse(item['ttlhrg'] ?? '0') ?? 0.0;
-  final String idPo1 = item['id_po1'] ?? '';
+          final String customerName = item['id_cust'] ?? 'Unknown';
+          final double grandTotal =
+              double.tryParse(item['ttlhrg'] ?? '0') ?? 0.0;
+          final String idPo1 = item['id_po1'] ?? '';
 
-  return CartEntry(
-    customerName: customerName,
-    grandTotal: grandTotal,
-    idPo1: idPo1,
-  );
-}).toList();
+          return CartEntry(
+            customerName: customerName,
+            grandTotal: grandTotal,
+            idPo1: idPo1,
+          );
+        }).toList();
 
         setState(() {
           cartSummaryList.clear();
@@ -162,51 +163,69 @@ class _CartScreenState extends State<CartScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     ElevatedButton(
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.green,
-  ),
-  onPressed: () async {
-    final idPo1 = entry.idPo1;
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                      ),
+                                      onPressed: () async {
+                                        final idPo1 = entry.idPo1;
+                                        final encodedIdPo1 =
+                                            Uri.encodeComponent(
+                                                idPo1); // encode dulu
 
-    try {
-      final response = await http.get(Uri.parse('http://192.168.1.8/hayami/gpo2.php?id_po1=PO%2FHKW01%2F2021%2FA0001'));
-print('Response body: ${response.body}');
+                                        try {
+                                          final response = await http.get(
+                                            Uri.parse(
+                                                'http://192.168.1.8/hayami/gpo2.php?id_po1=$encodedIdPo1'),
+                                          );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> allItems = json.decode(response.body);
+                                          print(
+                                              'Response body: ${response.body}');
 
-        // Filter hanya item dengan id_po1 yang cocok
-        final filteredItems = allItems.where((item) => item['id_po1'] == idPo1).toList();
+                                          if (response.statusCode == 200) {
+                                            final List<dynamic> allItems =
+                                                json.decode(response.body);
 
-        // Map ke list OrderItem
-        final List<OrderItem> items = filteredItems.map((item) {
-  return OrderItem(
-    productName: item['tipe'] ?? '',
-    size: item['size'] ?? '',
-    quantity: double.tryParse(item['qty'] ?? '0') ?? 0, // -> int
-    unitPrice: double.tryParse(item['harga'] ?? '0') ?? 0,        // -> double
-    idTipe: item['sku'] ?? '',
-  );
-}).toList();
+                                            final filteredItems = allItems
+                                                .where((item) =>
+                                                    item['id_po1'] == idPo1)
+                                                .toList();
 
-        // Kirim cart + item ke POSScreen
-        widget.onSelect(entry); // Kalau kamu perlu pakai CartEntry-nya juga
-        Navigator.pop(context, items);
-      } else {
-        throw Exception('Failed to load item data');
-      }
-    } catch (e) {
-      debugPrint('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengambil item dari server')),
-      );
-    }
-  },
-  child: const Text(
-    "Select",
-    style: TextStyle(fontSize: 12),
-  ),
-),
+                                            final List<OrderItem> items =
+                                                filteredItems.map((item) {
+                                              return OrderItem(
+                                                productName: item['tipe'] ?? '',
+                                                size: item['size'] ?? '',
+                                                quantity: double.tryParse(
+                                                        item['qty'] ?? '0') ??
+                                                    0,
+                                                unitPrice: double.tryParse(
+                                                        item['harga'] ?? '0') ??
+                                                    0,
+                                                idTipe: item['sku'] ?? '',
+                                              );
+                                            }).toList();
+
+                                            widget.onSelect(entry);
+                                            Navigator.pop(context, items);
+                                          } else {
+                                            throw Exception(
+                                                'Failed to load item data');
+                                          }
+                                        } catch (e) {
+                                          debugPrint('Error: $e');
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    'Gagal mengambil item dari server')),
+                                          );
+                                        }
+                                      },
+                                      child: const Text(
+                                        "Select",
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
                                     const SizedBox(width: 8),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
