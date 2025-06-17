@@ -471,27 +471,36 @@ Widget cartSection() {
   style: ElevatedButton.styleFrom(
     backgroundColor: Colors.cyan,
   ),
-  onPressed: () {
-    Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => CartScreen(
-      customerId: selectedCustomer?.nmCustomer ?? '',
-      cartItems: cartItems,
-      grandTotal: grandTotal,
-      onSelect: (entry) {
-        // Masukkan ke transaksi
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("${entry.customerName} dimasukkan ke transaksi."))
-        );
-      },
-      onDelete: (entry) {
-        // Optional
-      },
+  onPressed: () async {
+  final selectedItems = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => CartScreen(
+        customerId: selectedCustomer?.nmCustomer ?? '',
+        cartItems: cartItems,
+        grandTotal: grandTotal,
+        onSelect: (entry) {
+          // Tidak perlu handle di sini karena kita pakai Navigator.pop with data
+        },
+        onDelete: (entry) {
+          // Optional
+        },
+      ),
     ),
-  ),
-);
-  },
+  );
+
+  // Update state dengan item yang dipilih
+  if (selectedItems != null && selectedItems is List<OrderItem>) {
+    setState(() {
+      cartItems = selectedItems;
+      isConfirmMode = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cart berhasil dimuat dari database')),
+    );
+  }
+},
+
   child: const Text(
     'Cart',
     style: TextStyle(color: Colors.white),
