@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hayami_app/pos/product_order_dialog.dart'; // Ganti path sesuai struktur kamu// Pastikan path ini benar juga
+import 'package:hayami_app/pos/product_order_dialog.dart';
 
 class CartEntry {
   final String customerName;
@@ -50,8 +50,10 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Cart"),
-        backgroundColor: Colors.cyan,
+        title: const Text("Cart", style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 1,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -62,16 +64,26 @@ class _CartScreenState extends State<CartScreen> {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan,
-                ),
-                onPressed: addToCart,
-                child: const Text("Add To Cart", style: TextStyle(color: Colors.white)),
-              ),
-            ),
+
+            // Tombol Add To Cart ukuran kecil
+            Center(
+  child: SizedBox(
+    width: 170,
+    height: 40,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.cyan,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      onPressed: addToCart,
+      child: const Text(
+        "Add To Cart",
+        style: TextStyle(color: Colors.white, fontSize: 14),
+      ),
+    ),
+  ),
+),
+
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 8),
@@ -96,17 +108,19 @@ class _CartScreenState extends State<CartScreen> {
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
                                 ),
                                 onPressed: () {
                                   widget.onSelect(entry);
-                                  Navigator.pop(context); // kembali ke POSScreen
+                                  Navigator.pop(context);
                                 },
-                                child: const Text("Select"),
+                                child: const Text("Select", style: TextStyle(fontSize: 12)),
                               ),
                               const SizedBox(width: 8),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -114,7 +128,7 @@ class _CartScreenState extends State<CartScreen> {
                                   });
                                   widget.onDelete(entry);
                                 },
-                                child: const Text("Delete"),
+                                child: const Text("Delete", style: TextStyle(fontSize: 12)),
                               ),
                             ],
                           ),
