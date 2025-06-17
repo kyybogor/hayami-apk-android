@@ -472,37 +472,49 @@ class _PosscreenState extends State<Posscreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan,
                 ),
-                onPressed: () async {
-                  final selectedItems = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CartScreen(
-                        customerId: selectedCustomer?.nmCustomer ?? '',
-                        cartItems: cartItems,
-                        grandTotal: grandTotal,
-                        onSelect: (entry) {
-                          // Tidak perlu handle di sini karena kita pakai Navigator.pop with data
-                        },
-                        onDelete: (entry) {
-                          // Optional
-                        },
-                      ),
-                    ),
-                  );
+onPressed: () async {
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => CartScreen(
+        customerId: selectedCustomer?.nmCustomer ?? '',
+        cartItems: cartItems,
+        grandTotal: grandTotal,
+        onSelect: (entry) {},
+        onDelete: (entry) {},
+      ),
+    ),
+  );
 
-                  // Update state dengan item yang dipilih
-                  if (selectedItems != null &&
-                      selectedItems is List<OrderItem>) {
-                    setState(() {
-                      cartItems = selectedItems;
-                      isConfirmMode = false;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Cart berhasil dimuat dari database')),
-                    );
-                  }
-                },
+  if (result != null && result is Map<String, dynamic>) {
+    final selectedItems = result['items'] as List<OrderItem>?;
+    final selectedEntry = result['entry'] as CartEntry?;
+
+    if (selectedItems != null && selectedEntry != null) {
+      setState(() {
+        cartItems = selectedItems;
+        isConfirmMode = false;
+
+        // Buat Customer dummy dari customerName (kalau kamu punya data lengkap, bisa fetch dan mapping di sini)
+        selectedCustomer = Customer(
+          id: selectedEntry.customerName, // kalau ada ID sebenarnya, pakai ini
+          nmCustomer: selectedEntry.customerName,
+          name: '',
+          address: '',
+          telp: '',
+          telp2: '',
+          salesman: '',
+          city: '',
+          percentage: '100',
+        );
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cart berhasil dimuat dan customer diperbarui')),
+      );
+    }
+  }
+},
                 child: const Text(
                   'Cart',
                   style: TextStyle(color: Colors.white),

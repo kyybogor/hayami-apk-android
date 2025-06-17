@@ -205,8 +205,12 @@ class _CartScreenState extends State<CartScreen> {
                                               );
                                             }).toList();
 
-                                            widget.onSelect(entry);
-                                            Navigator.pop(context, items);
+widget.onSelect(entry);
+Navigator.pop(context, {
+  'entry': entry,
+  'items': items,
+});
+
                                           } else {
                                             throw Exception(
                                                 'Failed to load item data');
