@@ -1,5 +1,5 @@
   import 'package:flutter/material.dart';
-import 'package:hayami_app/pos/customer_model.dart' show Customer;
+  import 'package:hayami_app/pos/customer_model.dart' show Customer;
   import 'package:intl/intl.dart';
 
   class OrderItem {

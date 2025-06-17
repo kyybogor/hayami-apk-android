@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:hayami_app/pos/cart_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/pos/customer_model.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
@@ -466,12 +467,38 @@ Widget cartSection() {
     ),
     const SizedBox(width: 8),
     Expanded(
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-        onPressed: () {},
-        child: const Text('Cart', style: TextStyle(color: Colors.white)),
-      ),
+  child: ElevatedButton(
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.cyan,
+  ),
+  onPressed: () {
+    Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => CartScreen(
+      customerId: selectedCustomer?.nmCustomer ?? '',
+      cartItems: cartItems,
+      grandTotal: grandTotal,
+      onSelect: (entry) {
+        // Masukkan ke transaksi
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("${entry.customerName} dimasukkan ke transaksi."))
+        );
+      },
+      onDelete: (entry) {
+        // Optional
+      },
     ),
+  ),
+);
+  },
+  child: const Text(
+    'Cart',
+    style: TextStyle(color: Colors.white),
+  ),
+)
+),
+
   ],
 ),
         const SizedBox(height: 12),
