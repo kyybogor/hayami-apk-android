@@ -68,11 +68,25 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setString('nm_user', user['nm_user'] ?? '');
     await prefs.setString('jabatan', user['jabatan'] ?? '');
     await prefs.setString('email_user', user['email_user'] ?? '');
+    await prefs.setString('no_telp', user['no_telp'] ?? '');
+    await prefs.setString('alamat', user['alamat'] ?? '');
     await prefs.setString('karyawan', user['karyawan'] ?? '');
     await prefs.setString('grup', user['grup'] ?? '');
     await prefs.setString('id_cabang', user['id_cabang'] ?? '');
     await prefs.setString('id_gudang', user['id_gudang'] ?? '');
     await prefs.setString('sts', user['sts'] ?? '');
+
+    print("id_user: ${user['id_user']}");
+    print("nm_user: ${user['nm_user']}");
+    print("jabatan: ${user['jabatan']}");
+    print("email_user: ${user['email_user']}");
+    print("no_telp: ${user['no_telp']}");
+    print("alamat: ${user['alamat']}");
+    print("karyawan: ${user['karyawan']}");
+    print("grup: ${user['grup']}");
+    print("id_cabang: ${user['id_cabang']}");
+    print("id_gudang: ${user['id_gudang']}");
+    print("sts: ${user['sts']}");
   }
 
   @override
@@ -93,7 +107,8 @@ class _LoginPageState extends State<LoginPage> {
               Container(
                 height: containerHeight,
                 width: double.infinity,
-                padding: EdgeInsets.only(top: isTablet ? 70 : 50, left: 10, right: 10),
+                padding: EdgeInsets.only(
+                    top: isTablet ? 70 : 50, left: 10, right: 10),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
@@ -199,7 +214,8 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
                             : Text(
                                 "MASUK",
                                 style: TextStyle(
@@ -221,7 +237,8 @@ class _LoginPageState extends State<LoginPage> {
                         ElevatedButton.icon(
                           onPressed: () {},
                           icon: const Icon(Icons.g_mobiledata),
-                          label: Text("Google", style: TextStyle(fontSize: fontSize)),
+                          label: Text("Google",
+                              style: TextStyle(fontSize: fontSize)),
                         ),
                         SizedBox(width: isTablet ? 20 : 10),
                         ElevatedButton.icon(
@@ -234,7 +251,8 @@ class _LoginPageState extends State<LoginPage> {
                             );
                           },
                           icon: const Icon(Icons.lock),
-                          label: Text("OTP", style: TextStyle(fontSize: fontSize)),
+                          label:
+                              Text("OTP", style: TextStyle(fontSize: fontSize)),
                         ),
                       ],
                     ),
@@ -251,13 +269,15 @@ class _LoginPageState extends State<LoginPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const PackageSelectionPage(),
+                                builder: (context) =>
+                                    const PackageSelectionPage(),
                               ),
                             );
                           },
                           child: Text(
                             "Daftar sekarang",
-                            style: TextStyle(color: Colors.blue, fontSize: fontSize),
+                            style: TextStyle(
+                                color: Colors.blue, fontSize: fontSize),
                           ),
                         ),
                       ],
