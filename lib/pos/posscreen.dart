@@ -818,54 +818,53 @@ onPressed: () async {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('POS Screen'),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('POS Screen'),
+      elevation: 0,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.pop(context),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 300,
-                        child: TextField(
-                          decoration: const InputDecoration(
-                            hintText: 'Search by Tipe or Model',
-                            prefixIcon: Icon(Icons.search),
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          onChanged: (value) =>
-                              setState(() => searchQuery = value),
-                        ),
+    ),
+    body: isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 500,
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        hintText: 'Search by Tipe or Model',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
-                    ],
+                      onChanged: (value) =>
+                          setState(() => searchQuery = value),
+                    ),
                   ),
                 ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(flex: 3, child: productGrid()),
-                      Expanded(flex: 2, child: cartSection()),
-                    ],
-                  ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: productGrid()),
+                    Expanded(flex: 2, child: cartSection()),
+                  ],
                 ),
-              ],
-            ),
-    );
-  }
+              ),
+            ],
+          ),
+  );
+}
+
 }
