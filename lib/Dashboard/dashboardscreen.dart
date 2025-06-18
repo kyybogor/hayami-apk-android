@@ -500,7 +500,6 @@ class _KledoDrawerState extends State<KledoDrawer> {
         'Tagihan',
         'Pengiriman',
         'Pemesanan',
-        'Penawaran'
       ]
     },
     {
@@ -509,9 +508,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
       'children': [
         'Overview Pembelian',
         'Tagihan Pembelian',
-        'Pengiriman Pembelian',
         'Pemesanan Pembelian',
-        'Penawaran Pembelian'
       ]
     },
     {
@@ -748,18 +745,19 @@ class _KledoDrawerState extends State<KledoDrawer> {
                             selectedSubItem = null;
                           });
 
-if (item['title'] == 'Keluar') {
-  final confirm = await showLogoutConfirmation();
-  if (confirm == true) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-    );
-  } else {
-    Navigator.pop(context);
-  }
-  return;
-}
+                          if (item['title'] == 'Keluar') {
+                            final confirm = await showLogoutConfirmation();
+                            if (confirm == true) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const LoginPage()),
+                              );
+                            } else {
+                              Navigator.pop(context);
+                            }
+                            return;
+                          }
 
                           Navigator.pop(context);
 
