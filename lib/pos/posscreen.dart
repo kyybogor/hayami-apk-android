@@ -148,23 +148,29 @@ class _PosscreenState extends State<Posscreen> {
     });
   }
 
-  Future<List<Customer>> fetchCustomers(String keyword) async {
-    final response = await http
-        .get(Uri.parse('http://hayami.id/apps/erp/api-android/api/kontak.php'));
-    if (response.statusCode == 200) {
-      final jsonData = jsonDecode(response.body);
-      diskonCustList = jsonData['diskon_cust_data'];
-      final allCustomers = (jsonData['customer_data'] as List)
-          .map((c) => Customer.fromJson(c))
+Future<List<Customer>> fetchCustomers(String keyword) async {
+  final response = await http.get(
+    Uri.parse('http://192.168.1.35/glorboo/tb_customer.php'),
+  );
+
+  if (response.statusCode == 200) {
+    final jsonData = jsonDecode(response.body);
+
+    if (jsonData['status'] == 'success' && jsonData['data'] is List) {
+      final allCustomers = (jsonData['data'] as List)
+          .map((data) => Customer.fromJson(data))
           .toList();
-      return allCustomers
-          .where(
-              (c) => c.nmCustomer.toLowerCase().contains(keyword.toLowerCase()))
-          .toList();
+
+      return allCustomers.where((c) =>
+        c.nmCustomer.toLowerCase().contains(keyword.toLowerCase())
+      ).toList();
     } else {
-      throw Exception('Failed to load customers');
+      throw Exception('Data tidak ditemukan atau status bukan success');
     }
+  } else {
+    throw Exception('Gagal memuat data customer: ${response.statusCode}');
   }
+}
 
   Widget buildFormRow(String label, String? value) {
     return Padding(
@@ -226,10 +232,9 @@ class _PosscreenState extends State<Posscreen> {
             }
 
             String getContactNumber(Customer? data) {
-              if (data == null) return '';
-              if ((data.telp ?? '').isNotEmpty) return data.telp!;
-              return data.telp2 ?? '';
-            }
+  if (data == null) return '';
+  return (data.telp ?? '').isNotEmpty ? data.telp! : '';
+}
 
             return Dialog(
               insetPadding:
@@ -290,10 +295,9 @@ class _PosscreenState extends State<Posscreen> {
                           ),
                         const SizedBox(height: 12),
                         buildFormRow('Customer Name', customerData?.nmCustomer),
-                        buildFormRow('Address', customerData?.address),
-                        buildFormRow(
-                            'Contact Number', getContactNumber(customerData)),
-                        buildFormRow('Store Type', customerData?.salesman),
+buildFormRow('Address', customerData?.address),
+buildFormRow('Contact Number', getContactNumber(customerData)),
+buildFormRow('Store Type', customerData?.storeType),
                         const SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -334,30 +338,31 @@ class _PosscreenState extends State<Posscreen> {
     );
   }
 
-  void showProductOrderDialog(BuildContext context,
-      Map<String, dynamic> representative, List<dynamic> allSizes) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 750),
-          child: ProductOrderDialogContent(
-            representative: representative,
-            allSizes: allSizes,
-            onAddToOrder: (items) {
-              setState(() {
-                cartItems.addAll(items);
-              });
-            },
-            selectedCustomer: selectedCustomer,
-            diskonData:
-                diskonCustList, // <- ini perlu Anda simpan saat fetch customer
-          ),
+void showProductOrderDialog(
+    BuildContext context,
+    Map<String, dynamic> representative,
+    List<dynamic> allSizes,
+  ) {
+  showDialog(
+    context: context,
+    builder: (_) => Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 750),
+        child: ProductOrderDialogContent(
+          representative: representative,
+          allSizes: allSizes,
+          onAddToOrder: (items) {
+            setState(() {
+              cartItems.addAll(items);
+            });
+          },
+          selectedCustomer: selectedCustomer,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   double calculateStock(dynamic item) {
     final stock = item['stock'];
@@ -489,31 +494,21 @@ class _PosscreenState extends State<Posscreen> {
     double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
 
     double calculateAutoDiskon() {
-      double autoDiskon = 0;
-      if (selectedCustomer != null) {
-        final customerId = selectedCustomer!.id;
-        final percentage = int.tryParse(selectedCustomer!.percentage) ?? 100;
+  double autoDiskon = 0;
+  if (selectedCustomer != null) {
+    final diskonPerLusin = selectedCustomer!.diskonLusin;
 
-        for (var item in cartItems) {
-          final hargaDasar = item.unitPrice;
-          final qty = item.quantity;
+    for (var item in cartItems) {
+      final qty = item.quantity;
 
-          final diskonEntry = diskonCustList.firstWhere(
-            (d) => d['id_cust'] == customerId && d['id_tipe'] == item.idTipe,
-            orElse: () => {},
-          );
-
-          final diskonPerLusin =
-              double.tryParse(diskonEntry['discp'] ?? '0') ?? 0;
-
-          // Kalkulasi diskon otomatis per item (diskon per lusin * qty)
-          final potonganDiskon = diskonPerLusin * qty;
-
-          autoDiskon += potonganDiskon;
-        }
-      }
-      return autoDiskon;
+      final potonganDiskon = diskonPerLusin * qty;
+      autoDiskon += potonganDiskon;
     }
+  }
+  return autoDiskon;
+}
+
+
 
     // Hitung diskon otomatis saja
     double totalDiskon = calculateAutoDiskon();
@@ -605,16 +600,14 @@ class _PosscreenState extends State<Posscreen> {
                             isConfirmMode = false;
 
                             selectedCustomer = Customer(
-                              id: selectedEntry.customerName,
-                              nmCustomer: selectedEntry.customerName,
-                              name: '',
-                              address: '',
-                              telp: '',
-                              telp2: '',
-                              salesman: '',
-                              city: '',
-                              percentage: '100',
-                            );
+  id: selectedEntry.customerName,
+  nmCustomer: selectedEntry.customerName,
+  name: '',
+  address: '',
+  telp: '',
+  storeType: '',
+  diskonLusin: 0.0,
+);
 
                             // ✅ Diskon otomatis masuk ke bagian 'Discount:'
                             totalDiskon = disc;
