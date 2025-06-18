@@ -4,6 +4,7 @@ import 'package:hayami_app/pos/cart_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/pos/customer_model.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Posscreen extends StatefulWidget {
   const Posscreen({super.key});
@@ -26,8 +27,8 @@ class _PosscreenState extends State<Posscreen> {
   String selectedPayment = 'cash';
   int selectedTopDuration = 0;
   List<dynamic> allProducts = []; // untuk data asli
-List<String> bahanList = [];
-String? selectedBahan;
+  List<String> bahanList = [];
+  String? selectedBahan;
 
   @override
   void initState() {
@@ -72,37 +73,80 @@ String? selectedBahan;
     percentController.text = percent.toStringAsFixed(2);
   }
 
-Future<void> fetchProducts() async {
-  final response = await http.get(Uri.parse('http://192.168.1.8/hayami/stock.php'));
-  if (response.statusCode == 200) {
-    final jsonResult = json.decode(response.body);
-    if (jsonResult['status'] == 'success') {
-      final data = jsonResult['data'];
-      setState(() {
-        allProducts = data;
-        products = data;
-        isLoading = false;
+  Future<void> fetchProducts() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? idCabang = prefs.getString('id_cabang');
+      String? idUser = prefs.getString('id_user');
 
-        // Ambil id_bahan unik
-        bahanList = data.map<String>((item) => item['id_bahan'].toString()).toSet().toList();
+      if (idUser == 'admin') {
+        final stockUrl = Uri.parse('http://192.168.1.8/hayami/stock.php');
+        final stockResponse = await http.get(stockUrl);
+
+        if (stockResponse.statusCode == 200) {
+          final stockJson = json.decode(stockResponse.body);
+
+          if (stockJson['status'] == 'success' &&
+              stockJson['data'] != null &&
+              stockJson['data'].isNotEmpty) {
+            idCabang = stockJson['data'][0]['id_cabang'].toString();
+
+            await prefs.setString('idCabang', idCabang);
+          } else {
+            throw Exception(
+                'Data cabang tidak ditemukan di response stock.php.');
+          }
+        } else {
+          throw Exception(
+              'Gagal mengambil cabang dari stock.php: ${stockResponse.statusCode}');
+        }
+      } else {
+        if (idCabang == null || idCabang.isEmpty) {
+          throw Exception('Cabang belum diset untuk user bukan admin.');
+        }
+      }
+
+      final url =
+          Uri.parse('http://192.168.1.8/hayami/stockpos.php?cabang=$idCabang');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final jsonResult = json.decode(response.body);
+        if (jsonResult['status'] == 'success') {
+          setState(() {
+            allProducts = jsonResult['data'];
+            products = allProducts;
+            bahanList = allProducts
+                .map<String>((item) => item['id_bahan'].toString())
+                .toSet()
+                .toList();
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Status bukan success: ${jsonResult['status']}');
+        }
+      } else {
+        throw Exception('Gagal memuat produk: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
       });
-    } else {
-      throw Exception('Status bukan success: ${jsonResult['status']}');
+      print('Terjadi kesalahan: $e');
     }
-  } else {
-    throw Exception('Failed to load products');
   }
-}
-void filterByBahan(String? bahan) {
-  setState(() {
-    selectedBahan = bahan;
-    if (bahan == null || bahan.isEmpty) {
-      products = allProducts;
-    } else {
-      products = allProducts.where((item) => item['id_bahan'] == bahan).toList();
-    }
-  });
-}
+
+  void filterByBahan(String? bahan) {
+    setState(() {
+      selectedBahan = bahan;
+      if (bahan == null || bahan.isEmpty) {
+        products = allProducts;
+      } else {
+        products =
+            allProducts.where((item) => item['id_bahan'] == bahan).toList();
+      }
+    });
+  }
 
   Future<List<Customer>> fetchCustomers(String keyword) async {
     final response = await http
@@ -316,8 +360,15 @@ void filterByBahan(String? bahan) {
   }
 
   double calculateStock(dynamic item) {
-  return double.tryParse(item['stock']) ?? 0.0;
-}
+    final stock = item['stock'];
+    if (stock is num) {
+      return stock.toDouble();
+    } else if (stock is String) {
+      return double.tryParse(stock) ?? 0.0;
+    } else {
+      return 0.0;
+    }
+  }
 
   Widget buildReadOnlyField(String label, String? value) {
     return Padding(
@@ -336,93 +387,102 @@ void filterByBahan(String? bahan) {
   }
 
   Widget productGrid() {
-  final Map<String, List<dynamic>> grouped = {};
-  final filtered = products.where((item) {
-    final tipe = item['id_bahan']?.toLowerCase() ?? '';
-    final model = item['model']?.toLowerCase() ?? '';
-    final query = searchQuery.toLowerCase();
-    return tipe.contains(query) || model.contains(query);
-  }).toList();
+    final Map<String, List<dynamic>> grouped = {};
 
-  for (var item in filtered) {
-    final key = '${item['id_bahan']}|${item['model']}';
-    grouped.putIfAbsent(key, () => []).add(item);
-  }
+    // 🔍 Filter berdasarkan searchQuery DAN selectedBahan
+    final filtered = allProducts.where((item) {
+      final tipe = item['id_bahan']?.toLowerCase() ?? '';
+      final model = item['model']?.toLowerCase() ?? '';
+      final query = searchQuery.toLowerCase();
 
-  final items = grouped.entries.toList();
+      final cocokSearch = tipe.contains(query) || model.contains(query);
+      final cocokDropdown = selectedBahan == null ||
+          selectedBahan!.isEmpty ||
+          item['id_bahan'] == selectedBahan;
 
-  return GridView.count(
-    crossAxisCount: 4,
-    padding: const EdgeInsets.all(8),
-    crossAxisSpacing: 8,
-    mainAxisSpacing: 8,
-    childAspectRatio: 0.65,
-    children: items.map((entry) {
-      final representative = entry.value.first;
+      return cocokSearch && cocokDropdown;
+    }).toList();
 
-      final imgPath = representative['img'];
-      final imgUrl = (imgPath is String && imgPath.isNotEmpty)
-          ? 'http://192.168.1.8/hayami/$imgPath'
-          : 'https://via.placeholder.com/150';
+    for (var item in filtered) {
+      final key = '${item['id_bahan']}|${item['model']}';
+      grouped.putIfAbsent(key, () => []).add(item);
+    }
 
-      return GestureDetector(
-        onTap: () => showProductOrderDialog(context, representative, entry.value),
-        child: Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              children: [
-                Text(
-                  '${representative['id_bahan'] ?? ''}',
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                Text(
-                  '${representative['model'] ?? ''}',
-                  style: const TextStyle(fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Expanded(
-                  child: Center(
-                    child: Image.network(imgUrl, fit: BoxFit.contain),
+    final items = grouped.entries.toList();
+
+    return GridView.count(
+      crossAxisCount: 4,
+      padding: const EdgeInsets.all(8),
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      childAspectRatio: 0.65,
+      children: items.map((entry) {
+        final representative = entry.value.first;
+
+        final imgPath = representative['img'];
+        final imgUrl = (imgPath is String && imgPath.isNotEmpty)
+            ? 'http://192.168.1.8/hayami/$imgPath'
+            : 'https://via.placeholder.com/150';
+
+        return GestureDetector(
+          onTap: () =>
+              showProductOrderDialog(context, representative, entry.value),
+          child: Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  Text(
+                    '${representative['id_bahan'] ?? ''}',
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: 6),
-                Column(
-                  children: entry.value.map((item) {
-                    final stock = calculateStock(item);
-                    if (stock <= 0) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item['size'] ?? '',
+                  Text(
+                    '${representative['model'] ?? ''}',
+                    style: const TextStyle(fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: Center(
+                      child: Image.network(imgUrl, fit: BoxFit.contain),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Column(
+                    children: entry.value.map((item) {
+                      final stock = calculateStock(item);
+                      if (stock <= 0) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item['ukuran'] ?? '',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              stock.toStringAsFixed(1),
                               style: const TextStyle(fontSize: 12),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            stock.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    }).toList(),
-  );
-}
+        );
+      }).toList(),
+    );
+  }
 
   Widget cartSection() {
     double subTotal = cartItems.fold(0, (sum, item) => sum + item.total);
@@ -482,10 +542,12 @@ void filterByBahan(String? bahan) {
               Expanded(
                 flex: 3,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan,
-                  shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero, // Sudut kotak
-          ),),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.cyan,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero, // Sudut kotak
+                    ),
+                  ),
                   onPressed: () => showCustomerFormDialog(context),
                   child: Center(
                     child: Text(
@@ -499,80 +561,89 @@ void filterByBahan(String? bahan) {
               ),
               const SizedBox(width: 8),
               Expanded(
-                flex: 1,
+                  flex: 1,
                   child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan,
-                shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero, // Sudut kotak
-          ),),
-onPressed: () async {
-  final result = await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => CartScreen(
-        customerId: selectedCustomer?.nmCustomer ?? '',
-        cartItems: cartItems,
-        grandTotal: grandTotal,
-        onSelect: (entry) {},
-        onDelete: (entry) {},
-      ),
-    ),
-  );
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.cyan,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero, // Sudut kotak
+                      ),
+                    ),
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CartScreen(
+                            customerId: selectedCustomer?.nmCustomer ?? '',
+                            cartItems: cartItems,
+                            grandTotal: grandTotal,
+                            onSelect: (entry) {},
+                            onDelete: (entry) {},
+                          ),
+                        ),
+                      );
 
-  if (result != null && result is Map<String, dynamic>) {
-  final selectedItems = result['items'] as List<OrderItem>?;
-  final selectedEntry = result['entry'] as CartEntry?;
+                      if (result != null && result is Map<String, dynamic>) {
+                        final selectedItems =
+                            result['items'] as List<OrderItem>?;
+                        final selectedEntry = result['entry'] as CartEntry?;
 
-  if (selectedItems != null && selectedEntry != null) {
-    // Ambil semua nilai diskon dari result
-    final double disc = result['disc'] as double? ?? 0.0; // diskon otomatis
-    final double discPersen = result['discPersen'] as double? ?? 0.0; // diskon manual (%)
-    final double discBaru = result['discBaru'] as double? ?? 0.0; // diskon manual (Rp)
+                        if (selectedItems != null && selectedEntry != null) {
+                          // Ambil semua nilai diskon dari result
+                          final double disc = result['disc'] as double? ??
+                              0.0; // diskon otomatis
+                          final double discPersen =
+                              result['discPersen'] as double? ??
+                                  0.0; // diskon manual (%)
+                          final double discBaru =
+                              result['discBaru'] as double? ??
+                                  0.0; // diskon manual (Rp)
 
-    setState(() {
-      // Ganti cart dan customer
-      cartItems = selectedItems;
-      isConfirmMode = false;
+                          setState(() {
+                            // Ganti cart dan customer
+                            cartItems = selectedItems;
+                            isConfirmMode = false;
 
-      selectedCustomer = Customer(
-        id: selectedEntry.customerName,
-        nmCustomer: selectedEntry.customerName,
-        name: '',
-        address: '',
-        telp: '',
-        telp2: '',
-        salesman: '',
-        city: '',
-        percentage: '100',
-      );
+                            selectedCustomer = Customer(
+                              id: selectedEntry.customerName,
+                              nmCustomer: selectedEntry.customerName,
+                              name: '',
+                              address: '',
+                              telp: '',
+                              telp2: '',
+                              salesman: '',
+                              city: '',
+                              percentage: '100',
+                            );
 
-      // ✅ Diskon otomatis masuk ke bagian 'Discount:'
-      totalDiskon = disc;
+                            // ✅ Diskon otomatis masuk ke bagian 'Discount:'
+                            totalDiskon = disc;
 
-      // ✅ Diskon manual masuk ke bagian 'New Discount:'
-      if (discBaru > 0) {
-        // Jika nominal ada, isi hanya nominal
-        nominalController.text = discBaru.toStringAsFixed(0);
-        percentController.text = '';
-      } else if (discPersen > 0) {
-        // Jika hanya persentase yang tersedia
-        percentController.text = discPersen.toStringAsFixed(2);
-        nominalController.text = '';
-      } else {
-        // Jika tidak ada diskon manual, kosongkan keduanya
-        nominalController.text = '';
-        percentController.text = '';
-      }
-    });
-  }
-}
-},
-                child: const Text(
-                  'Cart',
-                  style: TextStyle(color: Colors.white),
-                ),
-              )),
+                            // ✅ Diskon manual masuk ke bagian 'New Discount:'
+                            if (discBaru > 0) {
+                              // Jika nominal ada, isi hanya nominal
+                              nominalController.text =
+                                  discBaru.toStringAsFixed(0);
+                              percentController.text = '';
+                            } else if (discPersen > 0) {
+                              // Jika hanya persentase yang tersedia
+                              percentController.text =
+                                  discPersen.toStringAsFixed(2);
+                              nominalController.text = '';
+                            } else {
+                              // Jika tidak ada diskon manual, kosongkan keduanya
+                              nominalController.text = '';
+                              percentController.text = '';
+                            }
+                          });
+                        }
+                      }
+                    },
+                    child: const Text(
+                      'Cart',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )),
             ],
           ),
           const SizedBox(height: 12),
@@ -639,9 +710,9 @@ onPressed: () async {
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
                             isConfirmMode ? Colors.red : Colors.grey,
-                            shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero, // Sudut kotak
-          ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero, // Sudut kotak
+                        ),
                       ),
                       onPressed: (cartItems.isEmpty && !isConfirmMode)
                           ? null
@@ -815,10 +886,11 @@ onPressed: () async {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero, // Sudut kotak
-          ),),
+                        backgroundColor: Colors.indigo,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero, // Sudut kotak
+                        ),
+                      ),
                       onPressed: () {},
                       child: Text(
                         'GRAND TOTAL: Rp ${grandTotal.toStringAsFixed(0)}',
@@ -836,81 +908,83 @@ onPressed: () async {
     );
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: const Text('POS Screen'),
-      elevation: 0,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.pop(context),
-      ),
-    ),
-    body: isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
-              Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-  child: Row(
-    children: [
-      Expanded(
-        flex: 3,
-        child: SizedBox(
-          height: 40,
-          child: DropdownButtonFormField<String>(
-            isExpanded: true,
-            value: selectedBahan,
-            decoration: const InputDecoration(
-              labelText: 'Pilih Bahan',
-              border: OutlineInputBorder(),
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
-            items: bahanList.map((bahan) {
-              return DropdownMenuItem<String>(
-                value: bahan,
-                child: Text(bahan, overflow: TextOverflow.ellipsis),
-              );
-            }).toList(),
-            onChanged: filterByBahan,
-          ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('POS Screen'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      const SizedBox(width: 8),
-      Expanded(
-        flex: 2,
-        child: SizedBox(
-          height: 40,
-          child: TextField(
-            decoration: const InputDecoration(
-              hintText: 'Search by Tipe or Model',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            onChanged: (value) => setState(() => searchQuery = value),
-          ),
-        ),
-      ),
-    ],
-  ),
-),
-
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(flex: 3, child: productGrid()),
-                    Expanded(flex: 2, child: cartSection()),
-                  ],
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: SizedBox(
+                          height: 40,
+                          child: DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: selectedBahan,
+                            decoration: const InputDecoration(
+                              labelText: 'Pilih Bahan',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                            ),
+                            items: bahanList.map((bahan) {
+                              return DropdownMenuItem<String>(
+                                value: bahan,
+                                child: Text(bahan,
+                                    overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                            onChanged: filterByBahan,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 40,
+                          child: TextField(
+                            decoration: const InputDecoration(
+                              hintText: 'Search by Tipe or Model',
+                              prefixIcon: Icon(Icons.search),
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            onChanged: (value) =>
+                                setState(() => searchQuery = value),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-  );
-}
-
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(flex: 3, child: productGrid()),
+                      Expanded(flex: 2, child: cartSection()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
 }
