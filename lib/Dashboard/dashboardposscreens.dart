@@ -19,6 +19,26 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
     loadUserName();
   }
 
+  Future<bool?> showLogoutConfirmation() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Keluar'),
+        content: const Text('Apakah anda yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Tidak'),
+          ),
+          ElevatedButton( 
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Ya'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -48,11 +68,17 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.logout, color: Colors.white),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-            );
+          onPressed: () async {
+            final confirm = await showLogoutConfirmation();
+            if (confirm == true) {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            }
           },
         ),
         title: Image.asset(
@@ -132,14 +158,6 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                             ),
                           );
                           break;
-                        // case 'Laporan':
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (_) => Laporanperusahaan(),
-                        //     ),
-                        //   );
-                        //   break;
                         default:
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -156,9 +174,7 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                           builder: (context, constraints) {
                             double screenWidth =
                                 MediaQuery.of(context).size.width;
-                            double iconSize = screenWidth > 600
-                                ? 36 
-                                : 26;
+                            double iconSize = screenWidth > 600 ? 36 : 26;
                             double containerSize = screenWidth > 600 ? 72 : 48;
 
                             return Container(
