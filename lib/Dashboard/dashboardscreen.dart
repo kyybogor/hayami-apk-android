@@ -401,7 +401,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
     required String amount,
     required Color color,
     required String abbreviation,
-    required double scale, 
+    required double scale,
   }) {
     double cardHeight = 80 * scale;
     double boxSize = 36 * scale;
@@ -534,6 +534,7 @@ class _KledoDrawerState extends State<KledoDrawer> {
     {'icon': Icons.contacts, 'title': 'Kontak'},
     {'icon': Icons.exit_to_app, 'title': 'Keluar'},
   ];
+
   Future<void> loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -546,6 +547,26 @@ class _KledoDrawerState extends State<KledoDrawer> {
   void initState() {
     super.initState();
     loadUserData();
+  }
+
+  Future<bool?> showLogoutConfirmation() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Keluar'),
+        content: const Text('Apakah anda yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Tidak'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Ya'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -639,10 +660,11 @@ class _KledoDrawerState extends State<KledoDrawer> {
 
                               Widget? destination;
 
+                              // Contoh penentuan halaman, sesuaikan dengan implementasi Anda
                               switch (subItem) {
                                 case 'Overview Penjualan':
                                   destination =
-                                      const Penjualanscreen(); // ganti sesuai nama halamanmu
+                                      const Penjualanscreen(); // ganti sesuai halamanmu
                                   break;
                                 case 'Tagihan':
                                   destination = const TagihanPage();
@@ -662,8 +684,6 @@ class _KledoDrawerState extends State<KledoDrawer> {
                                 case 'Penawaran Pembelian':
                                   //destination = const PenawaranPembelianPage();
                                   break;
-                              }
-                              switch (subItem) {
                                 case 'Overview Pembelian':
                                   destination = const Pembelianscreen();
                                   break;
@@ -678,12 +698,6 @@ class _KledoDrawerState extends State<KledoDrawer> {
                                   break;
                                 case 'Penawaran Pembelian':
                                   destination = const PenawaranPembelianPage();
-                                  break;
-                              }
-                              switch (subItem) {
-                                case 'Laporan':
-                                  destination =
-                                      const Penjualanscreen(); // ganti sesuai nama halamanmu
                                   break;
                                 case 'Arus Kas':
                                   destination = const Laporanaruskas();
@@ -728,48 +742,44 @@ class _KledoDrawerState extends State<KledoDrawer> {
                                 fontWeight: isSelected
                                     ? FontWeight.bold
                                     : FontWeight.normal)),
-                        onTap: () {
+                        onTap: () async {
                           setState(() {
                             selectedIndex = index;
                             selectedSubItem = null;
                           });
+
+if (item['title'] == 'Keluar') {
+  final confirm = await showLogoutConfirmation();
+  if (confirm == true) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+  } else {
+    Navigator.pop(context);
+  }
+  return;
+}
+
                           Navigator.pop(context);
 
                           Widget? destination;
                           if (item['title'] == 'Beranda') {
                             destination = const Dashboardscreen();
-                          }
-
-                          if (item['title'] == 'Biaya') {
+                          } else if (item['title'] == 'Biaya') {
                             destination = const BiayaPage();
-                          }
-
-                          if (item['title'] == 'Produk') {
+                          } else if (item['title'] == 'Produk') {
                             destination = ProdukPage();
-                          }
-
-                          if (item['title'] == 'Kas & Bank') {
+                          } else if (item['title'] == 'Kas & Bank') {
                             destination = KasDanBank();
-                          }
-
-                          if (item['title'] == 'Laporan') {
+                          } else if (item['title'] == 'Laporan') {
                             destination = LaporanPage();
-                          }
-
-                          if (item['title'] == 'Aset Tetap') {
+                          } else if (item['title'] == 'Aset Tetap') {
                             destination = const AssetPage();
-                          }
-
-                          if (item['title'] == 'Kontak') {
+                          } else if (item['title'] == 'Kontak') {
                             destination = const KontakScreen();
-                          }
-
-                          if (item['title'] == 'Akun') {
+                          } else if (item['title'] == 'Akun') {
                             destination = const AkunDetailscreen();
-                          }
-
-                          if (item['title'] == 'Keluar') {
-                            destination = const LoginPage();
                           }
 
                           if (destination != null) {
