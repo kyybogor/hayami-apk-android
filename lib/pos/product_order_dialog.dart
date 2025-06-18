@@ -22,7 +22,6 @@ class OrderItem {
 
 class ProductOrderDialogContent extends StatefulWidget {
   final Customer? selectedCustomer;
-  final List<dynamic> diskonData;
   final Map<String, dynamic> representative;
   final List<dynamic> allSizes;
   final void Function(List<OrderItem>) onAddToOrder;
@@ -32,7 +31,6 @@ class ProductOrderDialogContent extends StatefulWidget {
     required this.allSizes,
     required this.onAddToOrder,
     required this.selectedCustomer,
-    required this.diskonData,
     super.key,
   });
 
@@ -45,25 +43,10 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
   double calculateFinalUnitPrice({
     required double basePrice,
     required double quantity,
-    required String idCustomer,
-    required String idTipe,
-    required int percentage,
-    required List<dynamic> diskonList,
+    required double diskonLusin,
   }) {
-    final adjustedPrice = basePrice * (percentage / 100);
-
-    final match = diskonList.firstWhere(
-      (d) => d['id_cust'] == idCustomer && d['id_tipe'] == idTipe,
-      orElse: () => {},
-    );
-
-    double discPerLusin = 0.0;
-    if (match.isNotEmpty) {
-      discPerLusin = double.tryParse(match['discp'] ?? '0') ?? 0.0;
-    }
-
-    final discount = discPerLusin * quantity;
-    return adjustedPrice - (discount / quantity);
+    final discount = diskonLusin * quantity;
+    return basePrice - (discount / quantity);
   }
 
   final Map<String, TextEditingController> qtyControllers = {};
@@ -92,7 +75,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
   @override
   Widget build(BuildContext context) {
     final imagePath = widget.representative['image'];
-    final imgUrl = (imagePath != null && imagePath.isNotEmpty)
+    final imgUrl = (imagePath != null && imagePath.toString().isNotEmpty)
         ? 'http://192.168.1.8/hayami/$imagePath'
         : 'https://via.placeholder.com/150';
 
@@ -125,9 +108,9 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
             ),
             const SizedBox(height: 8),
             ...widget.allSizes.map((item) {
-              final stock = double.tryParse(item['stock'] ?? '0') ?? 0.0;
-              final size = item['ukuran'];
-              final price = double.tryParse(item['harga'] ?? '0') ?? 0.0;
+              final stock = double.tryParse(item['stock'].toString()) ?? 0.0;
+              final size = item['ukuran'].toString();
+              final price = double.tryParse(item['harga'].toString()) ?? 0.0;
 
               final qtyText = qtyControllers[size]?.text ?? '0';
               final orderQty = double.tryParse(qtyText) ?? 0;
@@ -184,31 +167,28 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                   onPressed: () {
                     final List<OrderItem> orderedItems = [];
 
-                    for (var size in widget.allSizes) {
-                      final ukuran = size['ukuran'];
-                      final qtyText = qtyControllers[ukuran]?.text ?? '0';
+                    for (var item in widget.allSizes) {
+                      final size = item['ukuran'].toString();
+                      final qtyText = qtyControllers[size]?.text ?? '0';
                       final qty = double.tryParse(qtyText) ?? 0.0;
 
                       if (qty > 0) {
-                        final basePrice = double.tryParse(size['harga'] ?? '0') ?? 0.0;
-                        final idTipe = widget.representative['id_bahan'];
+                        final basePrice = double.tryParse(item['harga'].toString()) ?? 0.0;
+                        final idTipe = widget.representative['id_bahan'].toString();
                         double finalPrice = basePrice;
 
                         if (widget.selectedCustomer != null) {
                           finalPrice = calculateFinalUnitPrice(
                             basePrice: basePrice,
                             quantity: qty,
-                            idCustomer: widget.selectedCustomer!.id,
-                            idTipe: idTipe,
-                            percentage: int.tryParse(widget.selectedCustomer!.percentage ?? '100') ?? 100,
-                            diskonList: widget.diskonData,
+                            diskonLusin: widget.selectedCustomer!.diskonLusin,
                           );
                         }
 
                         orderedItems.add(OrderItem(
                           idTipe: idTipe,
-                          productName: '${widget.representative['id_bahan']} ${widget.representative['model']}',
-                          size: ukuran,
+                          productName: '$idTipe ${widget.representative['model']}',
+                          size: size,
                           quantity: qty,
                           unitPrice: finalPrice,
                         ));
