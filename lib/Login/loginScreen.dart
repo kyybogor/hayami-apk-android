@@ -75,18 +75,6 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setString('id_cabang', user['id_cabang'] ?? '');
     await prefs.setString('id_gudang', user['id_gudang'] ?? '');
     await prefs.setString('sts', user['sts'] ?? '');
-
-    print("id_user: ${user['id_user']}");
-    print("nm_user: ${user['nm_user']}");
-    print("jabatan: ${user['jabatan']}");
-    print("email_user: ${user['email_user']}");
-    print("no_telp: ${user['no_telp']}");
-    print("alamat: ${user['alamat']}");
-    print("karyawan: ${user['karyawan']}");
-    print("grup: ${user['grup']}");
-    print("id_cabang: ${user['id_cabang']}");
-    print("id_gudang: ${user['id_gudang']}");
-    print("sts: ${user['sts']}");
   }
 
   @override

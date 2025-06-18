@@ -8,6 +8,7 @@ import 'package:hayami_app/pemesanan/pemesananscreen.dart';
 import 'package:hayami_app/tagihan/tagihanscreen.dart';
 import 'package:hayami_app/pengiriman/pengirimanscreen.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Penjualanscreen extends StatefulWidget {
   const Penjualanscreen({super.key});
@@ -82,9 +83,21 @@ class _PenjualanscreenState extends State<Penjualanscreen> {
   int currentPage = 0;
   Future<List<Map<String, dynamic>>>? futureStatCards;
 
+  String idUser = '';
+  String jabatanUser = '';
+
+  Future<void> loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      idUser = prefs.getString('id_user') ?? 'User';
+      jabatanUser = prefs.getString('jabatan') ?? 'Instansi Anda';
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    loadUserData();
     futureStatCards = fetchStatCards(isMonthly: isBulanSelected);
   }
 
@@ -194,9 +207,7 @@ class _PenjualanscreenState extends State<Penjualanscreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const TagihanPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const TagihanPage()),
               );
             },
           ),
@@ -207,9 +218,7 @@ class _PenjualanscreenState extends State<Penjualanscreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const PengirimanPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const PengirimanPage()),
               );
             },
           ),
@@ -220,26 +229,22 @@ class _PenjualanscreenState extends State<Penjualanscreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const PemesananPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const PemesananPage()),
               );
             },
           ),
-          _MenuIcon(
-    icon: Icons.point_of_sale,
-    color: Colors.deepPurple,
-    label: 'POS',
-    onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const Posscreen(),
-    ),
-  );
-},
-
-  ),
+          if (idUser == 'admin')
+            _MenuIcon(
+              icon: Icons.point_of_sale,
+              color: Colors.deepPurple,
+              label: 'POS',
+              onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Posscreen()),
+              );
+              },
+            ),
         ],
       ),
     );
