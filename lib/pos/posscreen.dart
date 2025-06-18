@@ -25,6 +25,9 @@ class _PosscreenState extends State<Posscreen> {
   final TextEditingController nominalController = TextEditingController();
   String selectedPayment = 'cash';
   int selectedTopDuration = 0;
+  List<dynamic> allProducts = []; // untuk data asli
+List<String> bahanList = [];
+String? selectedBahan;
 
   @override
   void initState() {
@@ -74,9 +77,14 @@ Future<void> fetchProducts() async {
   if (response.statusCode == 200) {
     final jsonResult = json.decode(response.body);
     if (jsonResult['status'] == 'success') {
+      final data = jsonResult['data'];
       setState(() {
-        products = jsonResult['data'];
+        allProducts = data;
+        products = data;
         isLoading = false;
+
+        // Ambil id_bahan unik
+        bahanList = data.map<String>((item) => item['id_bahan'].toString()).toSet().toList();
       });
     } else {
       throw Exception('Status bukan success: ${jsonResult['status']}');
@@ -84,6 +92,16 @@ Future<void> fetchProducts() async {
   } else {
     throw Exception('Failed to load products');
   }
+}
+void filterByBahan(String? bahan) {
+  setState(() {
+    selectedBahan = bahan;
+    if (bahan == null || bahan.isEmpty) {
+      products = allProducts;
+    } else {
+      products = allProducts.where((item) => item['id_bahan'] == bahan).toList();
+    }
+  });
 }
 
   Future<List<Customer>> fetchCustomers(String keyword) async {
@@ -836,24 +854,52 @@ Widget build(BuildContext context) {
         : Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: SizedBox(
-                    width: 500,
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Search by Tipe or Model',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (value) =>
-                          setState(() => searchQuery = value),
-                    ),
-                  ),
-                ),
-              ),
+  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  child: Row(
+    children: [
+      Expanded(
+        flex: 3,
+        child: SizedBox(
+          height: 40,
+          child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            value: selectedBahan,
+            decoration: const InputDecoration(
+              labelText: 'Pilih Bahan',
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            items: bahanList.map((bahan) {
+              return DropdownMenuItem<String>(
+                value: bahan,
+                child: Text(bahan, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: filterByBahan,
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        flex: 2,
+        child: SizedBox(
+          height: 40,
+          child: TextField(
+            decoration: const InputDecoration(
+              hintText: 'Search by Tipe or Model',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (value) => setState(() => searchQuery = value),
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+
               Expanded(
                 child: Row(
                   children: [
