@@ -69,19 +69,22 @@ class _PosscreenState extends State<Posscreen> {
     percentController.text = percent.toStringAsFixed(2);
   }
 
-  Future<void> fetchProducts() async {
-    final response = await http.get(Uri.parse(
-        'https://hayami.id/apps/erp/api-android/api/master_produk.php'));
-    if (response.statusCode == 200) {
-      final jsonResult = json.decode(response.body);
+Future<void> fetchProducts() async {
+  final response = await http.get(Uri.parse('http://192.168.1.8/hayami/stock.php'));
+  if (response.statusCode == 200) {
+    final jsonResult = json.decode(response.body);
+    if (jsonResult['status'] == 'success') {
       setState(() {
-        products = jsonResult['all_product'];
+        products = jsonResult['data'];
         isLoading = false;
       });
     } else {
-      throw Exception('Failed to load products');
+      throw Exception('Status bukan success: ${jsonResult['status']}');
     }
+  } else {
+    throw Exception('Failed to load products');
   }
+}
 
   Future<List<Customer>> fetchCustomers(String keyword) async {
     final response = await http
@@ -295,11 +298,8 @@ class _PosscreenState extends State<Posscreen> {
   }
 
   double calculateStock(dynamic item) {
-    final qty = double.tryParse(item['qty']) ?? 0.0;
-    final clear = double.tryParse(item['qtyclear']) ?? 0.0;
-    final doClear = double.tryParse(item['qtycleardo']) ?? 0.0;
-    return qty - (clear + doClear);
-  }
+  return double.tryParse(item['stock']) ?? 0.0;
+}
 
   Widget buildReadOnlyField(String label, String? value) {
     return Padding(
@@ -318,84 +318,93 @@ class _PosscreenState extends State<Posscreen> {
   }
 
   Widget productGrid() {
-    final Map<String, List<dynamic>> grouped = {};
-    final filtered = products.where((item) {
-      final tipe = item['tipe']?.toLowerCase() ?? '';
-      final model = item['gambar']?.toLowerCase() ?? '';
-      final query = searchQuery.toLowerCase();
-      return tipe.contains(query) || model.contains(query);
-    }).toList();
+  final Map<String, List<dynamic>> grouped = {};
+  final filtered = products.where((item) {
+    final tipe = item['id_bahan']?.toLowerCase() ?? '';
+    final model = item['model']?.toLowerCase() ?? '';
+    final query = searchQuery.toLowerCase();
+    return tipe.contains(query) || model.contains(query);
+  }).toList();
 
-    for (var item in filtered) {
-      final key = '${item['id_tipe']}|${item['tipe']}|${item['gambar']}';
-      grouped.putIfAbsent(key, () => []).add(item);
-    }
+  for (var item in filtered) {
+    final key = '${item['id_bahan']}|${item['model']}';
+    grouped.putIfAbsent(key, () => []).add(item);
+  }
 
-    final items = grouped.entries.toList();
+  final items = grouped.entries.toList();
 
-    return GridView.count(
-      crossAxisCount: 4,
-      padding: const EdgeInsets.all(8),
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
-      childAspectRatio: 0.65,
-      children: items.map((entry) {
-        final representative = entry.value.first;
-        final imgUrl = 'https://hayami.id/apps/erp/${representative['img']}';
-        return GestureDetector(
-          onTap: () =>
-              showProductOrderDialog(context, representative, entry.value),
-          child: Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  Text(
-                    representative['tipe'],
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+  return GridView.count(
+    crossAxisCount: 4,
+    padding: const EdgeInsets.all(8),
+    crossAxisSpacing: 8,
+    mainAxisSpacing: 8,
+    childAspectRatio: 0.65,
+    children: items.map((entry) {
+      final representative = entry.value.first;
+
+      final imgPath = representative['img'];
+      final imgUrl = (imgPath is String && imgPath.isNotEmpty)
+          ? 'http://192.168.1.8/hayami/$imgPath'
+          : 'https://via.placeholder.com/150';
+
+      return GestureDetector(
+        onTap: () => showProductOrderDialog(context, representative, entry.value),
+        child: Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: [
+                Text(
+                  '${representative['id_bahan'] ?? ''}',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  '${representative['model'] ?? ''}',
+                  style: const TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: Center(
+                    child: Image.network(imgUrl, fit: BoxFit.contain),
                   ),
-                  Text(
-                    representative['gambar'],
-                    style: const TextStyle(fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
-                  Expanded(
-                    child: Center(
-                      child: Image.network(imgUrl, fit: BoxFit.contain),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Column(
-                    children: entry.value.map((item) {
-                      final stock = calculateStock(item);
-                      if (stock <= 0) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            Expanded(
-                                child: Text(item['size'],
-                                    style: const TextStyle(fontSize: 12))),
-                            const SizedBox(width: 10),
-                            Text(stock.toStringAsFixed(1),
-                                style: const TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 6),
+                Column(
+                  children: entry.value.map((item) {
+                    final stock = calculateStock(item);
+                    if (stock <= 0) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item['size'] ?? '',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            stock.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
           ),
-        );
-      }).toList(),
-    );
-  }
+        ),
+      );
+    }).toList(),
+  );
+}
 
   Widget cartSection() {
     double subTotal = cartItems.fold(0, (sum, item) => sum + item.total);
@@ -453,8 +462,12 @@ class _PosscreenState extends State<Posscreen> {
           Row(
             children: [
               Expanded(
+                flex: 3,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan,
+                  shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero, // Sudut kotak
+          ),),
                   onPressed: () => showCustomerFormDialog(context),
                   child: Center(
                     child: Text(
@@ -468,10 +481,13 @@ class _PosscreenState extends State<Posscreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
+                flex: 1,
                   child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan,
-                ),
+                shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero, // Sudut kotak
+          ),),
 onPressed: () async {
   final result = await Navigator.push(
     context,
@@ -487,33 +503,52 @@ onPressed: () async {
   );
 
   if (result != null && result is Map<String, dynamic>) {
-    final selectedItems = result['items'] as List<OrderItem>?;
-    final selectedEntry = result['entry'] as CartEntry?;
+  final selectedItems = result['items'] as List<OrderItem>?;
+  final selectedEntry = result['entry'] as CartEntry?;
 
-    if (selectedItems != null && selectedEntry != null) {
-      setState(() {
-        cartItems = selectedItems;
-        isConfirmMode = false;
+  if (selectedItems != null && selectedEntry != null) {
+    // Ambil semua nilai diskon dari result
+    final double disc = result['disc'] as double? ?? 0.0; // diskon otomatis
+    final double discPersen = result['discPersen'] as double? ?? 0.0; // diskon manual (%)
+    final double discBaru = result['discBaru'] as double? ?? 0.0; // diskon manual (Rp)
 
-        // Buat Customer dummy dari customerName (kalau kamu punya data lengkap, bisa fetch dan mapping di sini)
-        selectedCustomer = Customer(
-          id: selectedEntry.customerName, // kalau ada ID sebenarnya, pakai ini
-          nmCustomer: selectedEntry.customerName,
-          name: '',
-          address: '',
-          telp: '',
-          telp2: '',
-          salesman: '',
-          city: '',
-          percentage: '100',
-        );
-      });
+    setState(() {
+      // Ganti cart dan customer
+      cartItems = selectedItems;
+      isConfirmMode = false;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart berhasil dimuat dan customer diperbarui')),
+      selectedCustomer = Customer(
+        id: selectedEntry.customerName,
+        nmCustomer: selectedEntry.customerName,
+        name: '',
+        address: '',
+        telp: '',
+        telp2: '',
+        salesman: '',
+        city: '',
+        percentage: '100',
       );
-    }
+
+      // ✅ Diskon otomatis masuk ke bagian 'Discount:'
+      totalDiskon = disc;
+
+      // ✅ Diskon manual masuk ke bagian 'New Discount:'
+      if (discBaru > 0) {
+        // Jika nominal ada, isi hanya nominal
+        nominalController.text = discBaru.toStringAsFixed(0);
+        percentController.text = '';
+      } else if (discPersen > 0) {
+        // Jika hanya persentase yang tersedia
+        percentController.text = discPersen.toStringAsFixed(2);
+        nominalController.text = '';
+      } else {
+        // Jika tidak ada diskon manual, kosongkan keduanya
+        nominalController.text = '';
+        percentController.text = '';
+      }
+    });
   }
+}
 },
                 child: const Text(
                   'Cart',
@@ -586,6 +621,9 @@ onPressed: () async {
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
                             isConfirmMode ? Colors.red : Colors.grey,
+                            shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero, // Sudut kotak
+          ),
                       ),
                       onPressed: (cartItems.isEmpty && !isConfirmMode)
                           ? null
@@ -759,7 +797,10 @@ onPressed: () async {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo),
+                          backgroundColor: Colors.indigo,
+                          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero, // Sudut kotak
+          ),),
                       onPressed: () {},
                       child: Text(
                         'GRAND TOTAL: Rp ${grandTotal.toStringAsFixed(0)}',

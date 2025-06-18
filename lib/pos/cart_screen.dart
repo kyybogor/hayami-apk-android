@@ -7,11 +7,17 @@ class CartEntry {
   final String customerName;
   final double grandTotal;
   final String idPo1;
+  final double disc;
+  final double discPersen;
+  final double discBaru;
 
   CartEntry({
     required this.customerName,
     required this.grandTotal,
     required this.idPo1,
+    required this.disc,
+    required this.discPersen,
+    required this.discBaru,
   });
 }
 
@@ -58,17 +64,24 @@ class _CartScreenState extends State<CartScreen> {
         final List<dynamic> data = json.decode(response.body);
 
         final List<CartEntry> entries = data.map((item) {
-          final String customerName = item['id_cust'] ?? 'Unknown';
-          final double grandTotal =
-              double.tryParse(item['ttlhrg'] ?? '0') ?? 0.0;
-          final String idPo1 = item['id_po1'] ?? '';
+  final String customerName = item['id_cust'] ?? 'Unknown';
+  final double grandTotal = double.tryParse(item['ttlhrg'] ?? '0') ?? 0.0;
+  final String idPo1 = item['id_po1'] ?? '';
 
-          return CartEntry(
-            customerName: customerName,
-            grandTotal: grandTotal,
-            idPo1: idPo1,
-          );
-        }).toList();
+  final double disc = double.tryParse(item['disc'] ?? '0') ?? 0.0;
+  final double discPersen = double.tryParse(item['disc_persen'] ?? '0') ?? 0.0;
+  final double discBaru = double.tryParse(item['disc_baru'] ?? '0') ?? 0.0;
+
+  return CartEntry(
+    customerName: customerName,
+    grandTotal: grandTotal,
+    idPo1: idPo1,
+    disc: disc,
+    discPersen: discPersen,
+    discBaru: discBaru,
+  );
+}).toList();
+
 
         setState(() {
           cartSummaryList.clear();
@@ -94,6 +107,9 @@ class _CartScreenState extends State<CartScreen> {
       customerName: widget.customerId,
       grandTotal: widget.grandTotal,
       idPo1: '',
+      disc: 0.0,
+      discPersen: 0.0,
+      discBaru: 0.0,
     );
 
     setState(() {
@@ -178,9 +194,6 @@ class _CartScreenState extends State<CartScreen> {
                                                 'http://192.168.1.8/hayami/gpo2.php?id_po1=$encodedIdPo1'),
                                           );
 
-                                          print(
-                                              'Response body: ${response.body}');
-
                                           if (response.statusCode == 200) {
                                             final List<dynamic> allItems =
                                                 json.decode(response.body);
@@ -205,10 +218,13 @@ class _CartScreenState extends State<CartScreen> {
                                               );
                                             }).toList();
 
-widget.onSelect(entry);
-Navigator.pop(context, {
+                                          widget.onSelect(entry);
+                                          Navigator.pop(context, {
   'entry': entry,
   'items': items,
+  'disc': entry.disc,
+  'discPersen': entry.discPersen,
+  'discBaru': entry.discBaru,
 });
 
                                           } else {
