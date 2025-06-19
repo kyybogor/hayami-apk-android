@@ -99,8 +99,8 @@ void showTransactionDialog(BuildContext context) {
                         isDense: true,
                       ),
                       items: paymentAccounts.map((item) {
-                        String tipe = item['tipe']?.toUpperCase() ?? '';
-                        String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC ')
+                        String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
+                        String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
                             ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
                             : tipe;
                         return DropdownMenuItem(value: displayText, child: Text(displayText));
@@ -189,7 +189,10 @@ void showTransactionDialog(BuildContext context) {
                             ),
                             const SizedBox(width: 8),
                             ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                              ),
                               onPressed: () {
                                 setDialogState(() => splitPayments.remove(item));
                               },
@@ -212,8 +215,8 @@ void showTransactionDialog(BuildContext context) {
                               isDense: true,
                             ),
                             items: paymentAccounts.map((item) {
-                              String tipe = item['tipe']?.toUpperCase() ?? '';
-                              String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC ')
+                              String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
+                              String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
                                   ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
                                   : tipe;
                               return DropdownMenuItem(value: displayText, child: Text(displayText));
@@ -248,7 +251,10 @@ void showTransactionDialog(BuildContext context) {
                               });
                             }
                           },
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                          ),
                           child: const Text('Add'),
                         ),
                       ],
@@ -258,30 +264,42 @@ void showTransactionDialog(BuildContext context) {
               ),
             ),
             actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.grey,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Close'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Take Payment'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                    child: const Text('Save Draft'),
-                  ),
-                ],
-              )
-            ],
+  Wrap(
+    spacing: 8, // jarak antar tombol
+    children: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        style: TextButton.styleFrom(
+          backgroundColor: Colors.grey,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          minimumSize: const Size(100, 40),
+        ),
+        child: const Text('Close'),
+      ),
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        style: TextButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          minimumSize: const Size(100, 40),
+        ),
+        child: const Text('Take Payment'),
+      ),
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        style: TextButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          minimumSize: const Size(100, 40),
+        ),
+        child: const Text('Save Draft'),
+      ),
+    ],
+  )
+],
           );
         },
       );
