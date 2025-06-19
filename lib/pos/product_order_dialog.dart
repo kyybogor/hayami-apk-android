@@ -178,7 +178,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                         double finalPrice = basePrice;
 
                         if (widget.selectedCustomer != null) {
-                          finalPrice = calculateFinalUnitPrice(
+                          finalPrice = basePrice;(
                             basePrice: basePrice,
                             quantity: qty,
                             diskonLusin: widget.selectedCustomer!.diskonLusin,
