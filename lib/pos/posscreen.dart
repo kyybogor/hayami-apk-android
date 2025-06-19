@@ -1018,7 +1018,7 @@ class _PosscreenState extends State<Posscreen> {
         for (var item in cartItems) {
           final qty = item.quantity;
 
-          final potonganDiskon = diskonPerLusin * qty;
+          final potonganDiskon = diskonPerLusin * qty / 12;
           autoDiskon += potonganDiskon;
         }
       }
