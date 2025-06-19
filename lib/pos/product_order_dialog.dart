@@ -35,20 +35,10 @@ class ProductOrderDialogContent extends StatefulWidget {
   });
 
   @override
-  State<ProductOrderDialogContent> createState() =>
-      _ProductOrderDialogContentState();
+  State<ProductOrderDialogContent> createState() => _ProductOrderDialogContentState();
 }
 
 class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
-  double calculateFinalUnitPrice({
-    required double basePrice,
-    required double quantity,
-    required double diskonLusin,
-  }) {
-    final discount = diskonLusin * quantity;
-    return basePrice - (discount / quantity);
-  }
-
   final Map<String, TextEditingController> qtyControllers = {};
   final formatCurrency = NumberFormat('#,###', 'id_ID');
 
@@ -68,8 +58,18 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
     super.dispose();
   }
 
-  double calculatePrice(double orderQty, double unitPrice) {
-    return orderQty * unitPrice;
+  double calculatePrice(double pcsQty, double pricePerLusin) {
+    return (pcsQty / 12) * pricePerLusin;
+  }
+
+  double calculateFinalUnitPrice({
+    required double basePrice,
+    required double quantity,
+    required double diskonLusin,
+  }) {
+    final lusinQty = quantity / 12;
+    final discount = diskonLusin * lusinQty;
+    return basePrice - discount;
   }
 
   @override
@@ -85,11 +85,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.network(
-              imgUrl,
-              height: 200,
-              fit: BoxFit.contain,
-            ),
+            Image.network(imgUrl, height: 200, fit: BoxFit.contain),
             const SizedBox(height: 8),
             Text(
               'Type: ${widget.representative['id_bahan']}',
@@ -121,32 +117,61 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                 child: Row(
                   children: [
                     Expanded(flex: 3, child: Text(size)),
-                    Expanded(flex: 2, child: Text(stock.toStringAsFixed(1))),
+                    Expanded(flex: 2, child: Text('${stock.toInt()} pcs')),
                     Expanded(
                       flex: 2,
-                      child: Center(
-                        child: SizedBox(
-                          width: 60,
-                          child: TextField(
-                            controller: qtyControllers[size],
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            textAlign: TextAlign.center,
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                            ),
-                            onChanged: (val) {
-                              final inputQty = double.tryParse(val) ?? 0.0;
-                              if (inputQty > stock) {
-                                qtyControllers[size]?.text = stock.toStringAsFixed(1);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Qty melebihi stok')),
-                                );
-                              }
-                              setState(() {});
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove, size: 16),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              setState(() {
+                                final currentQty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
+                                final newQty = (currentQty - 3).clamp(0, stock);
+                                qtyControllers[size]?.text = newQty.toStringAsFixed(0);
+                              });
                             },
                           ),
-                        ),
+                          SizedBox(
+                            width: 40,
+                            child: Center(
+                              child: Builder(
+                                builder: (_) {
+                                  final qty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
+                                  if (qty < 12) {
+                                    return Text(
+                                      '${qty.toInt()} pcs',
+                                      style: const TextStyle(fontSize: 11),
+                                      textAlign: TextAlign.center,
+                                    );
+                                  } else {
+                                    final lusinDecimal = (qty / 12).toStringAsFixed(2);
+                                    return Text(
+                                      '$lusinDecimal ls',
+                                      style: const TextStyle(fontSize: 11),
+                                      textAlign: TextAlign.center,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add, size: 16),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              setState(() {
+                                final currentQty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
+                                final newQty = (currentQty + 3).clamp(0, stock);
+                                qtyControllers[size]?.text = newQty.toStringAsFixed(0);
+                              });
+                            },
+                          ),
+                        ],
                       ),
                     ),
                     Expanded(flex: 3, child: Center(child: Text(formatCurrency.format(price)))),
@@ -178,7 +203,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                         double finalPrice = basePrice;
 
                         if (widget.selectedCustomer != null) {
-                          finalPrice = basePrice;(
+                          finalPrice = calculateFinalUnitPrice(
                             basePrice: basePrice,
                             quantity: qty,
                             diskonLusin: widget.selectedCustomer!.diskonLusin,
