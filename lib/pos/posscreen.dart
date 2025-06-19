@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:hayami_app/pos/customer_model.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 class Posscreen extends StatefulWidget {
   const Posscreen({super.key});
@@ -12,6 +13,7 @@ class Posscreen extends StatefulWidget {
   @override
   State<Posscreen> createState() => _PosscreenState();
 }
+final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
 class _PosscreenState extends State<Posscreen> {
   List<dynamic> diskonCustList = [];
@@ -29,12 +31,196 @@ class _PosscreenState extends State<Posscreen> {
   List<dynamic> allProducts = []; // untuk data asli
   List<String> bahanList = [];
   String? selectedBahan;
+  List<dynamic> paymentAccounts = [];
+String? selectedPaymentAccount;
+String selectedSales = 'Sales 1';
+final TextEditingController cashController = TextEditingController();
+final TextEditingController notesController = TextEditingController();
+List<Map<String, dynamic>> splitPayments = [];
+String? selectedSplitMethod;
+final TextEditingController splitAmountController = TextEditingController();
+
 
   @override
   void initState() {
     super.initState();
     fetchProducts();
+    fetchPaymentAccounts();
   }
+
+void showTransactionDialog() {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Transaksi'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'Tgl Faktur',
+                      hintText: DateFormat('dd/MM/yyyy').format(DateTime.now()),
+                      suffixIcon: Icon(Icons.calendar_today),
+                    ),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: selectedPaymentAccount,
+                    items: paymentAccounts.map<DropdownMenuItem<String>>((item) {
+                      String tipe = item['tipe']?.toUpperCase() ?? '';
+                      String displayText;
+
+                      if (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT') {
+                        displayText = tipe;
+                      } else {
+                        displayText = '$tipe - ${item['bank']} - ${item['no_akun']}';
+                      }
+
+                      return DropdownMenuItem<String>(
+                        value: displayText,
+                        child: Text(displayText),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() => selectedPaymentAccount = value);
+                      setDialogState(() {});
+                    },
+                    decoration: const InputDecoration(labelText: 'Pembayaran'),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: selectedSales,
+                    items: ['Sales 1', 'Sales 2', 'Sales 3']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (value) => setState(() => selectedSales = value!),
+                    decoration: const InputDecoration(labelText: 'Sales'),
+                  ),
+                  TextField(
+                    controller: cashController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Cash'),
+                  ),
+                  TextField(
+                    controller: notesController,
+                    decoration: const InputDecoration(labelText: 'Keterangan'),
+                  ),
+
+                  if (selectedPaymentAccount == 'SPLIT') ...[
+                    const SizedBox(height: 10),
+                    const Text('Split Pembayaran', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Pilih Metode'),
+                              DropdownButtonFormField<String>(
+                                value: selectedSplitMethod,
+                                items: paymentAccounts.map<DropdownMenuItem<String>>((item) {
+                                  String tipe = item['tipe']?.toUpperCase() ?? '';
+                                  String displayText;
+                                  if (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT') {
+                                    displayText = tipe;
+                                  } else {
+                                    displayText = '$tipe - ${item['bank']} - ${item['no_akun']}';
+                                  }
+
+                                  return DropdownMenuItem<String>(
+                                    value: displayText,
+                                    child: Text(displayText, overflow: TextOverflow.ellipsis),
+                                  );
+                                }).toList(),
+                                onChanged: (value) =>
+                                    setDialogState(() => selectedSplitMethod = value),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(''),
+                              TextField(
+                                controller: splitAmountController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(hintText: 'Nominal'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (selectedSplitMethod != null &&
+                                  splitAmountController.text.isNotEmpty) {
+                                setDialogState(() {
+                                  splitPayments.add({
+                                    'metode': selectedSplitMethod!,
+                                    'jumlah': splitAmountController.text,
+                                  });
+                                  splitAmountController.clear();
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                            child: const Text('Add'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (splitPayments.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: splitPayments.map((item) {
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(item['metode']),
+                            trailing: Text(item['jumlah']),
+                          );
+                        }).toList(),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text('Take Payment'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('Save Draft'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
 
   double hitungHargaFinal({
     required double hargaDasar,
@@ -72,6 +258,18 @@ class _PosscreenState extends State<Posscreen> {
     final percent = (nominal / subTotal) * 100;
     percentController.text = percent.toStringAsFixed(2);
   }
+
+  Future<void> fetchPaymentAccounts() async {
+  final response = await http.get(Uri.parse('http://192.168.1.8/hayami/akun.php'));
+  if (response.statusCode == 200) {
+    final result = json.decode(response.body);
+    if (result['status'] == 'success') {
+      setState(() {
+        paymentAccounts = result['data'];
+      });
+    }
+  }
+}
 
   Future<void> fetchProducts() async {
     try {
@@ -456,30 +654,44 @@ void showProductOrderDialog(
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Column(
-                    children: entry.value.map((item) {
-                      final stock = calculateStock(item);
-                      if (stock <= 0) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item['ukuran'] ?? '',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              stock.toStringAsFixed(1),
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  SizedBox(
+  height: 60,
+  child: ScrollConfiguration(
+    behavior: ScrollConfiguration.of(context).copyWith(
+      scrollbars: false,
+      overscroll: false,
+    ),
+    child: ListView.builder(
+      shrinkWrap: true,
+      physics: const ClampingScrollPhysics(),
+      itemCount: entry.value.length,
+      itemBuilder: (context, index) {
+        final item = entry.value[index];
+        final stock = calculateStock(item);
+        if (stock <= 0) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item['ukuran'] ?? '',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                stock.toStringAsFixed(1),
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  ),
+),
                 ],
               ),
             ),
@@ -672,7 +884,7 @@ void showProductOrderDialog(
                                     fontWeight: FontWeight.bold),
                               ),
                             ),
-                            Text('Rp ${item.total.toStringAsFixed(0)}'),
+                            Text(currencyFormatter.format(item.total)),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () {
@@ -689,7 +901,7 @@ void showProductOrderDialog(
                           children: [
                             Text(
                                 '${item.quantity} @ Rp ${item.unitPrice.toStringAsFixed(0)}'),
-                            Text('Total: Rp ${item.total.toStringAsFixed(0)}'),
+                            Text('Total: ${currencyFormatter.format(item.total)}'),
                           ],
                         ),
                         const Divider(),
@@ -759,13 +971,13 @@ void showProductOrderDialog(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           const Text('Sub-Total:'),
-                          Text('Rp ${subTotal.toStringAsFixed(0)}'),
+                          Text(currencyFormatter.format(subTotal)),
                           const SizedBox(height: 8),
                           const Text('Discount:'), // Diskon otomatis
-                          Text('Rp ${totalDiskon.toStringAsFixed(0)}'),
+                          Text(currencyFormatter.format(totalDiskon)),
                           const SizedBox(height: 8),
                           const Text('New Discount:'), // Diskon manual
-                          Text('Rp ${newDiscount.toStringAsFixed(0)}'),
+                          Text(currencyFormatter.format(newDiscount)),
                         ],
                       ),
                     ],
@@ -809,72 +1021,6 @@ void showProductOrderDialog(
                     ),
                   ],
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Payment',
-                            isDense: true,
-                          ),
-                          value: selectedPayment,
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'cash', child: Text('Cash')),
-                            DropdownMenuItem(
-                                value: 'credit', child: Text('Credit')),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              selectedPayment = value!;
-                              selectedTopDuration =
-                                  (selectedPayment == 'cash') ? 0 : 30;
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: (selectedPayment == 'credit')
-                            ? DropdownButtonFormField<int>(
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  labelText: 'Durasi Top',
-                                  isDense: true,
-                                ),
-                                value: selectedTopDuration,
-                                items: const [
-                                  DropdownMenuItem(
-                                      value: 30, child: Text('30 Hari')),
-                                  DropdownMenuItem(
-                                      value: 60, child: Text('60 Hari')),
-                                  DropdownMenuItem(
-                                      value: 90, child: Text('90 Hari')),
-                                  DropdownMenuItem(
-                                      value: 120, child: Text('120 Hari')),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedTopDuration = value!;
-                                  });
-                                },
-                              )
-                            : TextField(
-                                enabled: false,
-                                controller: TextEditingController(
-                                  text: '0',
-                                ),
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  labelText: 'Durasi Top',
-                                  isDense: true,
-                                ),
-                              ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -884,9 +1030,21 @@ void showProductOrderDialog(
                           borderRadius: BorderRadius.zero, // Sudut kotak
                         ),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+  if (selectedCustomer == null || cartItems.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Pilih customer dan minimal 1 produk terlebih dahulu.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  showTransactionDialog();
+},
                       child: Text(
-                        'GRAND TOTAL: Rp ${grandTotal.toStringAsFixed(0)}',
+                       'GRAND TOTAL: ${currencyFormatter.format(grandTotal)}',
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, color: Colors.white),
                       ),
@@ -902,82 +1060,80 @@ void showProductOrderDialog(
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('POS Screen'),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('POS Screen'),
+      elevation: 0,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.pop(context),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: SizedBox(
-                          height: 40,
-                          child: DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: selectedBahan,
-                            decoration: const InputDecoration(
-                              labelText: 'Pilih Bahan',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                            ),
-                            items: bahanList.map((bahan) {
-                              return DropdownMenuItem<String>(
-                                value: bahan,
-                                child: Text(bahan,
-                                    overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
-                            onChanged: filterByBahan,
-                          ),
+    ),
+    body: isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: selectedBahan,
+                        decoration: const InputDecoration(
+                          labelText: 'Pilih Bahan',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: SizedBox(
-                          height: 40,
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              hintText: 'Search by Tipe or Model',
-                              prefixIcon: Icon(Icons.search),
-                              border: OutlineInputBorder(),
-                              isDense: true,
+                        items: bahanList.map((bahan) {
+                          return DropdownMenuItem<String>(
+                            value: bahan,
+                            child: Text(
+                              bahan,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            onChanged: (value) =>
-                                setState(() => searchQuery = value),
-                          ),
-                        ),
+                          );
+                        }).toList(),
+                        onChanged: filterByBahan,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        style: const TextStyle(fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'Search by Tipe or Model',
+                          prefixIcon: Icon(Icons.search, size: 20),
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                        ),
+                        onChanged: (value) =>
+                            setState(() => searchQuery = value),
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(flex: 3, child: productGrid()),
-                      Expanded(flex: 2, child: cartSection()),
-                    ],
-                  ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: productGrid()),
+                    Expanded(flex: 2, child: cartSection()),
+                  ],
                 ),
-              ],
-            ),
-    );
-  }
+              ),
+            ],
+          ),
+  );
+}
 }
