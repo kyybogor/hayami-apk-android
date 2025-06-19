@@ -13,6 +13,10 @@ class Posscreen extends StatefulWidget {
   @override
   State<Posscreen> createState() => _PosscreenState();
 }
+String formatRupiah(dynamic number) {
+  final formatter = NumberFormat.decimalPattern('id');
+  return formatter.format(number);
+}
 
 final currencyFormatter =
     NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
@@ -49,10 +53,31 @@ class _PosscreenState extends State<Posscreen> {
     fetchPaymentAccounts();
   }
 
+  String formatRupiah(dynamic number) {
+  final formatter = NumberFormat.decimalPattern('id');
+  return formatter.format(number);
+}
+
+
   void showTransactionDialog(BuildContext context, double grandTotal) {
     DateTime selectedDate = DateTime.now();
     final TextEditingController dateController = TextEditingController(
         text: DateFormat('dd/MM/yyyy').format(selectedDate));
+        cashController.addListener(() {
+  String text = cashController.text.replaceAll('.', '').replaceAll(',', '');
+  if (text.isEmpty) return;
+
+  final value = int.tryParse(text);
+  if (value != null) {
+    final newText = formatRupiah(value);
+    if (cashController.text != newText) {
+      cashController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
+  }
+});
 
     showDialog(
       context: context,
@@ -134,15 +159,14 @@ class _PosscreenState extends State<Posscreen> {
                             );
 
                             if (selectedItem.isNotEmpty &&
-                                selectedItem['no_akun'] != null &&
-                                selectedItem['no_akun'].toString().isNotEmpty) {
-                              // Isi cash dengan grandTotal
-                              cashController.text =
-                                  grandTotal.toStringAsFixed(0);
-                            } else {
-                              // Kosongkan jika tidak ada no_akun
-                              cashController.clear();
-                            }
+    selectedItem['no_akun'] != null &&
+    selectedItem['no_akun'].toString().isNotEmpty) {
+  // Isi cash dengan grandTotal terformat
+  cashController.text = formatRupiah(grandTotal);
+} else {
+  // Kosongkan jika tidak ada no_akun
+  cashController.clear();
+}
 
                             setDialogState(() {});
                           });
@@ -273,8 +297,25 @@ class _PosscreenState extends State<Posscreen> {
                                     value: displayText,
                                     child: Text(displayText));
                               }).toList(),
-                              onChanged: (val) => setDialogState(
-                                  () => selectedSplitMethod = val),
+                              onChanged: (val) {
+  setDialogState(() {
+    selectedSplitMethod = val;
+
+    // Hitung total split sementara
+    double totalSplit = 0;
+    for (var item in splitPayments) {
+      final jumlah = double.tryParse(
+              item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
+          0;
+      totalSplit += jumlah;
+    }
+
+    final sisa = grandTotal - totalSplit;
+
+    // Isi nominal default
+    splitAmountController.text = sisa > 0 ? sisa.toStringAsFixed(0) : '';
+  });
+},
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -292,25 +333,67 @@ class _PosscreenState extends State<Posscreen> {
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
-                            onPressed: () {
-                              if (selectedSplitMethod != null &&
-                                  splitAmountController.text.isNotEmpty) {
-                                setDialogState(() {
-                                  splitPayments.add({
-                                    'metode': selectedSplitMethod!,
-                                    'jumlah': splitAmountController.text,
-                                  });
-                                  splitAmountController.clear();
-                                });
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.zero),
-                            ),
-                            child: const Text('Add'),
-                          ),
+ onPressed: () {
+  if (selectedSplitMethod == null || splitAmountController.text.isEmpty) {
+    return;
+  }
+
+  // Hitung total split saat ini
+  double totalSplit = 0;
+  for (var item in splitPayments) {
+    final jumlah = double.tryParse(
+        item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ?? 0;
+    totalSplit += jumlah;
+  }
+
+  // Ambil jumlah yang mau ditambahkan
+  double currentInput = double.tryParse(
+          splitAmountController.text.replaceAll('.', '').replaceAll(',', '')) ??
+      0;
+
+  // Cek jika total split setelah ditambahkan melebihi grandTotal
+  if (totalSplit + currentInput > grandTotal) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Peringatan'),
+        content: const Text('Total split tidak boleh melebihi Grand Total!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
+
+  setDialogState(() {
+    splitPayments.add({
+      'metode': selectedSplitMethod!,
+      'jumlah': splitAmountController.text,
+    });
+
+    // Hitung ulang sisa
+    double totalSplitBaru = 0;
+    for (var item in splitPayments) {
+      final jumlah = double.tryParse(
+              item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
+          0;
+      totalSplitBaru += jumlah;
+    }
+
+    final sisa = grandTotal - totalSplitBaru;
+    splitAmountController.text = sisa > 0 ? sisa.toStringAsFixed(0) : '';
+  });
+},
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+  ),
+  child: const Text('Add'),
+),
                         ],
                       ),
                     ]
