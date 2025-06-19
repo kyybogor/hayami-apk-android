@@ -831,16 +831,23 @@ class _PosscreenState extends State<Posscreen> {
     );
   }
 
-  double calculateStock(dynamic item) {
-    final stock = item['stock'];
-    if (stock is num) {
-      return stock.toDouble();
-    } else if (stock is String) {
-      return double.tryParse(stock) ?? 0.0;
-    } else {
-      return 0.0;
-    }
+double calculateStock(dynamic item) {
+  final rawStock = item['stock'];
+  double stock;
+
+  if (rawStock is num) {
+    stock = rawStock.toDouble();
+  } else if (rawStock is String) {
+    stock = double.tryParse(rawStock) ?? 0.0;
+  } else {
+    return 0.0;
   }
+
+  double result = stock / 12;
+
+  // Bulatkan ke kelipatan 0.25 terdekat
+  return (result * 4).round() / 4;
+}
 
   Widget buildReadOnlyField(String label, String? value) {
     return Padding(
@@ -951,7 +958,7 @@ class _PosscreenState extends State<Posscreen> {
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
-                                  stock.toStringAsFixed(1),
+                                  stock.toStringAsFixed(2),
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ],
