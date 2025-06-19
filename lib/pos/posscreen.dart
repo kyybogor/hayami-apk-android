@@ -290,24 +290,31 @@ void showTransactionDialog(BuildContext context) {
 }
 
 Widget fieldRow({required String label, required Widget child}) {
+  const double rowHeight = 40;
+
   return Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
       Container(
         width: 120,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        height: rowHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.grey.shade200,
           border: Border.all(color: Colors.grey.shade400),
         ),
+        alignment: Alignment.centerLeft,
         child: Text(label),
       ),
-      const SizedBox(width: 8),
-      Expanded(child: child),
+      Expanded(
+        child: SizedBox(
+          height: rowHeight,
+          child: child,
+        ),
+      ),
     ],
   );
 }
-
   double hitungHargaFinal({
     required double hargaDasar,
     required double qty, // dalam lusin
