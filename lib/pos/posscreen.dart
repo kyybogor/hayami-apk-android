@@ -40,7 +40,6 @@ List<Map<String, dynamic>> splitPayments = [];
 String? selectedSplitMethod;
 final TextEditingController splitAmountController = TextEditingController();
 
-
   @override
   void initState() {
     super.initState();
@@ -48,7 +47,13 @@ final TextEditingController splitAmountController = TextEditingController();
     fetchPaymentAccounts();
   }
 
+// Kode Flutter Dialog Transaksi dengan UI yang meniru layout seperti gambar
+
 void showTransactionDialog() {
+  DateTime selectedDate = DateTime.now();
+  final TextEditingController dateController =
+      TextEditingController(text: DateFormat('dd/MM/yyyy').format(selectedDate));
+
   showDialog(
     context: context,
     builder: (context) {
@@ -58,166 +63,251 @@ void showTransactionDialog() {
             title: const Text('Transaksi'),
             content: SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'Tgl Faktur',
-                      hintText: DateFormat('dd/MM/yyyy').format(DateTime.now()),
-                      suffixIcon: Icon(Icons.calendar_today),
+                  fieldRow(
+                    label: 'Tgl Faktur',
+                    child: TextField(
+                      controller: dateController,
+                      readOnly: true,
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2101),
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedDate = picked;
+                            dateController.text =
+                                DateFormat('dd/MM/yyyy').format(picked);
+                          });
+                        }
+                      },
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
                     ),
                   ),
-                  DropdownButtonFormField<String>(
-                    value: selectedPaymentAccount,
-                    items: paymentAccounts.map<DropdownMenuItem<String>>((item) {
-                      String tipe = item['tipe']?.toUpperCase() ?? '';
-                      String displayText;
-
-                      if (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT') {
-                        displayText = tipe;
-                      } else {
-                        displayText = '$tipe - ${item['bank']} - ${item['no_akun']}';
-                      }
-
-                      return DropdownMenuItem<String>(
-                        value: displayText,
-                        child: Text(displayText),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() => selectedPaymentAccount = value);
-                      setDialogState(() {});
-                    },
-                    decoration: const InputDecoration(labelText: 'Pembayaran'),
+                  const SizedBox(height: 10),
+                  fieldRow(
+                    label: 'Pembayaran',
+                    child: DropdownButtonFormField<String>(
+                      value: selectedPaymentAccount,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: paymentAccounts.map((item) {
+                        String tipe = item['tipe']?.toUpperCase() ?? '';
+                        String displayText = (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT')
+                            ? tipe
+                            : '$tipe ${item['bank'] ?? ''}';
+                        return DropdownMenuItem(value: displayText, child: Text(displayText));
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() => selectedPaymentAccount = val);
+                        setDialogState(() {});
+                      },
+                    ),
                   ),
-                  DropdownButtonFormField<String>(
-                    value: selectedSales,
-                    items: ['Sales 1', 'Sales 2', 'Sales 3']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) => setState(() => selectedSales = value!),
-                    decoration: const InputDecoration(labelText: 'Sales'),
+                  const SizedBox(height: 10),
+                  fieldRow(
+                    label: 'Sales',
+                    child: DropdownButtonFormField<String>(
+                      value: selectedSales,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: ['Sales 1', 'Sales 2', 'Sales 3']
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (val) => setState(() => selectedSales = val!),
+                    ),
                   ),
-                  TextField(
-                    controller: cashController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Cash'),
+                  const SizedBox(height: 10),
+                  fieldRow(
+                    label: 'Cash',
+                    child: TextField(
+                      controller: cashController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
                   ),
-                  TextField(
-                    controller: notesController,
-                    decoration: const InputDecoration(labelText: 'Keterangan'),
+                  const SizedBox(height: 10),
+                  fieldRow(
+                    label: 'Keterangan',
+                    child: TextField(
+                      controller: notesController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
                   ),
 
                   if (selectedPaymentAccount == 'SPLIT') ...[
+                    const SizedBox(height: 20),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Split Pembayaran',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...splitPayments.map((item) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: TextField(
+                                readOnly: true,
+                                controller: TextEditingController(text: item['metode']),
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                readOnly: true,
+                                controller: TextEditingController(text: item['jumlah']),
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              onPressed: () {
+                                setDialogState(() => splitPayments.remove(item));
+                              },
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+
                     const SizedBox(height: 10),
-                    const Text('Split Pembayaran', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
                           flex: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Pilih Metode'),
-                              DropdownButtonFormField<String>(
-                                value: selectedSplitMethod,
-                                items: paymentAccounts.map<DropdownMenuItem<String>>((item) {
-                                  String tipe = item['tipe']?.toUpperCase() ?? '';
-                                  String displayText;
-                                  if (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT') {
-                                    displayText = tipe;
-                                  } else {
-                                    displayText = '$tipe - ${item['bank']} - ${item['no_akun']}';
-                                  }
-
-                                  return DropdownMenuItem<String>(
-                                    value: displayText,
-                                    child: Text(displayText, overflow: TextOverflow.ellipsis),
-                                  );
-                                }).toList(),
-                                onChanged: (value) =>
-                                    setDialogState(() => selectedSplitMethod = value),
-                              ),
-                            ],
+                          child: DropdownButtonFormField<String>(
+                            value: selectedSplitMethod,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'Pilih Metode',
+                              isDense: true,
+                            ),
+                            items: paymentAccounts.map((item) {
+                              String tipe = item['tipe']?.toUpperCase() ?? '';
+                              String displayText = (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT')
+                                  ? tipe
+                                  : '$tipe ${item['bank'] ?? ''}';
+                              return DropdownMenuItem(value: displayText, child: Text(displayText));
+                            }).toList(),
+                            onChanged: (val) => setDialogState(() => selectedSplitMethod = val),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(''),
-                              TextField(
-                                controller: splitAmountController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(hintText: 'Nominal'),
-                              ),
-                            ],
+                          child: TextField(
+                            controller: splitAmountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'Nominal',
+                              isDense: true,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        SizedBox(
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (selectedSplitMethod != null &&
-                                  splitAmountController.text.isNotEmpty) {
-                                setDialogState(() {
-                                  splitPayments.add({
-                                    'metode': selectedSplitMethod!,
-                                    'jumlah': splitAmountController.text,
-                                  });
-                                  splitAmountController.clear();
+                        ElevatedButton(
+                          onPressed: () {
+                            if (selectedSplitMethod != null && splitAmountController.text.isNotEmpty) {
+                              setDialogState(() {
+                                splitPayments.add({
+                                  'metode': selectedSplitMethod!,
+                                  'jumlah': splitAmountController.text,
                                 });
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                            child: const Text('Add'),
-                          ),
+                                splitAmountController.clear();
+                              });
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                          child: const Text('Add'),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    if (splitPayments.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: splitPayments.map((item) {
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(item['metode']),
-                            trailing: Text(item['jumlah']),
-                          );
-                        }).toList(),
-                      ),
-                  ],
+                  ]
                 ],
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                child: const Text('Take Payment'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                child: const Text('Save Draft'),
-              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Close'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    child: const Text('Take Payment'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                    child: const Text('Save Draft'),
+                  ),
+                ],
+              )
             ],
           );
         },
       );
     },
+  );
+}
+
+Widget fieldRow({required String label, required Widget child}) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Container(
+        width: 120,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          border: Border.all(color: Colors.grey.shade400),
+        ),
+        child: Text(label),
+      ),
+      const SizedBox(width: 8),
+      Expanded(child: child),
+    ],
   );
 }
 
