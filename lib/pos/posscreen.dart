@@ -58,11 +58,25 @@ class _PosscreenState extends State<Posscreen> {
   return formatter.format(number);
 }
 
-
   void showTransactionDialog(BuildContext context, double grandTotal) {
     DateTime selectedDate = DateTime.now();
     final TextEditingController dateController = TextEditingController(
         text: DateFormat('dd/MM/yyyy').format(selectedDate));
+        splitAmountController.addListener(() {
+  String text = splitAmountController.text.replaceAll('.', '').replaceAll(',', '');
+  if (text.isEmpty) return;
+
+  final value = int.tryParse(text);
+  if (value != null) {
+    final newText = formatRupiah(value);
+    if (splitAmountController.text != newText) {
+      splitAmountController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
+  }
+});
         cashController.addListener(() {
   String text = cashController.text.replaceAll('.', '').replaceAll(',', '');
   if (text.isEmpty) return;
