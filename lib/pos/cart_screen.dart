@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 class CartEntry {
   final String customerName;
   final double grandTotal;
-  final String idPo1;
+  final String idTransaksi; // sudah diganti dari idPo1
   final double disc;
   final double discPersen;
   final double discBaru;
@@ -14,7 +15,7 @@ class CartEntry {
   CartEntry({
     required this.customerName,
     required this.grandTotal,
-    required this.idPo1,
+    required this.idTransaksi,
     required this.disc,
     required this.discPersen,
     required this.discBaru,
@@ -57,36 +58,54 @@ class _CartScreenState extends State<CartScreen> {
     });
 
     try {
-      final response =
-          await http.get(Uri.parse('http://192.168.1.8/hayami/gpo1.php'));
+      final response = await http.get(
+        Uri.parse('http://192.168.1.8/hayami/cart.php'),
+      );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final jsonResponse = json.decode(response.body);
 
-        final List<CartEntry> entries = data.map((item) {
-  final String customerName = item['id_cust'] ?? 'Unknown';
-  final double grandTotal = double.tryParse(item['ttlhrg'] ?? '0') ?? 0.0;
-  final String idPo1 = item['id_po1'] ?? '';
+        if (jsonResponse['status'] == 'success') {
+          final List<dynamic> data = jsonResponse['data'];
 
-  final double disc = double.tryParse(item['disc'] ?? '0') ?? 0.0;
-  final double discPersen = double.tryParse(item['disc_persen'] ?? '0') ?? 0.0;
-  final double discBaru = double.tryParse(item['disc_baru'] ?? '0') ?? 0.0;
+          // Simpan satu data per id_transaksi
+          final Map<String, dynamic> uniqueEntries = {};
 
-  return CartEntry(
-    customerName: customerName,
-    grandTotal: grandTotal,
-    idPo1: idPo1,
-    disc: disc,
-    discPersen: discPersen,
-    discBaru: discBaru,
-  );
-}).toList();
+          for (var item in data) {
+            final idTransaksi = item['id_transaksi'] ?? 'unknown';
+            if (!uniqueEntries.containsKey(idTransaksi)) {
+              uniqueEntries[idTransaksi] = item;
+            }
+          }
 
+          final List<CartEntry> entries = [];
 
-        setState(() {
-          cartSummaryList.clear();
-          cartSummaryList.addAll(entries);
-        });
+          uniqueEntries.forEach((idTransaksi, item) {
+            final customerName = item['id_customer'] ?? 'Unknown';
+            final grandTotal =
+                double.tryParse(item['total_invoice'] ?? '0') ?? 0.0;
+            final disc = double.tryParse(item['disc'] ?? '0') ?? 0.0;
+            final discPersen =
+                double.tryParse(item['disc_invoice'] ?? '0') ?? 0.0;
+            final discBaru = double.tryParse(item['disc_nilai'] ?? '0') ?? 0.0;
+
+            entries.add(CartEntry(
+              customerName: customerName,
+              grandTotal: grandTotal,
+              idTransaksi: idTransaksi,
+              disc: disc,
+              discPersen: discPersen,
+              discBaru: discBaru,
+            ));
+          });
+
+          setState(() {
+            cartSummaryList.clear();
+            cartSummaryList.addAll(entries);
+          });
+        } else {
+          throw Exception('Status not success');
+        }
       } else {
         throw Exception('Failed to load data');
       }
@@ -106,7 +125,7 @@ class _CartScreenState extends State<CartScreen> {
     final entry = CartEntry(
       customerName: widget.customerId,
       grandTotal: widget.grandTotal,
-      idPo1: '',
+      idTransaksi: '',
       disc: 0.0,
       discPersen: 0.0,
       discBaru: 0.0,
@@ -136,27 +155,6 @@ class _CartScreenState extends State<CartScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Text(
-                    "Current Customer ID: ${widget.customerId}",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: SizedBox(
-                      width: 170,
-                      height: 40,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyan,
-                        ),
-                        onPressed: addToCart,
-                        child: const Text(
-                          "Add To Cart",
-                          style: TextStyle(color: Colors.white, fontSize: 14),
-                        ),
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 24),
                   const Divider(),
                   const Text(
@@ -174,7 +172,7 @@ class _CartScreenState extends State<CartScreen> {
                               return ListTile(
                                 title: Text(entry.customerName),
                                 subtitle: Text(
-                                    "Rp ${entry.grandTotal.toStringAsFixed(0)}"),
+                                    "Rp ${NumberFormat('#,##0', 'id_ID').format(entry.grandTotal)}"),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -183,50 +181,65 @@ class _CartScreenState extends State<CartScreen> {
                                         backgroundColor: Colors.green,
                                       ),
                                       onPressed: () async {
-                                        final idPo1 = entry.idPo1;
-                                        final encodedIdPo1 =
-                                            Uri.encodeComponent(
-                                                idPo1); // encode dulu
+                                        final idTransaksi = entry.idTransaksi;
+                                        final encodedIdTransaksi =
+                                            Uri.encodeComponent(idTransaksi);
 
                                         try {
                                           final response = await http.get(
                                             Uri.parse(
-                                                'http://192.168.1.8/hayami/gpo2.php?id_po1=$encodedIdPo1'),
+                                                'http://192.168.1.8/hayami/cartdetail.php?id_transaksi=$encodedIdTransaksi'),
                                           );
 
                                           if (response.statusCode == 200) {
-                                            final List<dynamic> allItems =
+                                            final Map<String, dynamic>
+                                                jsonResponse =
                                                 json.decode(response.body);
 
-                                            final filteredItems = allItems
-                                                .where((item) =>
-                                                    item['id_po1'] == idPo1)
-                                                .toList();
+                                            if (jsonResponse['status'] ==
+                                                'success') {
+                                              final List<dynamic> allItems =
+                                                  jsonResponse['data'];
 
-                                            final List<OrderItem> items =
-                                                filteredItems.map((item) {
-                                              return OrderItem(
-                                                productName: item['tipe'] ?? '',
-                                                size: item['size'] ?? '',
-                                                quantity: double.tryParse(
-                                                        item['qty'] ?? '0') ??
-                                                    0,
-                                                unitPrice: double.tryParse(
-                                                        item['harga'] ?? '0') ??
-                                                    0,
-                                                idTipe: item['sku'] ?? '',
-                                              );
-                                            }).toList();
+                                              final filteredItems = allItems
+                                                  .where((item) =>
+                                                      item['id_transaksi'] ==
+                                                      idTransaksi)
+                                                  .toList();
 
-                                          widget.onSelect(entry);
-                                          Navigator.pop(context, {
-  'entry': entry,
-  'items': items,
-  'disc': entry.disc,
-  'discPersen': entry.discPersen,
-  'discBaru': entry.discBaru,
-});
+                                              final List<OrderItem> items =
+                                                  filteredItems.map((item) {
+                                                return OrderItem(
+                                                  productName:
+                                                      item['model'] ?? '',
+                                                  size: item['ukuran'] ?? '',
+                                                  quantity: (double.tryParse(
+                                                              item['qty'] ??
+                                                                  '0') ??
+                                                          0) /
+                                                      12,
+                                                  unitPrice: (double.tryParse(
+                                                              item['harga'] ??
+                                                                  '0') ??
+                                                          0) *
+                                                      12,
+                                                  idTipe:
+                                                      item['id_bahan'] ?? '',
+                                                );
+                                              }).toList();
 
+                                              widget.onSelect(entry);
+                                              Navigator.pop(context, {
+                                                'entry': entry,
+                                                'items': items,
+                                                'disc': entry.disc,
+                                                'discPersen': entry.discPersen,
+                                                'discBaru': entry.discBaru,
+                                              });
+                                            } else {
+                                              throw Exception(
+                                                  'Response status not success');
+                                            }
                                           } else {
                                             throw Exception(
                                                 'Failed to load item data');
