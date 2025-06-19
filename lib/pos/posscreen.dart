@@ -13,7 +13,9 @@ class Posscreen extends StatefulWidget {
   @override
   State<Posscreen> createState() => _PosscreenState();
 }
-final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+final currencyFormatter =
+    NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
 class _PosscreenState extends State<Posscreen> {
   List<dynamic> diskonCustList = [];
@@ -32,13 +34,13 @@ class _PosscreenState extends State<Posscreen> {
   List<String> bahanList = [];
   String? selectedBahan;
   List<dynamic> paymentAccounts = [];
-String? selectedPaymentAccount;
-String selectedSales = 'Sales 1';
-final TextEditingController cashController = TextEditingController();
-final TextEditingController notesController = TextEditingController();
-List<Map<String, dynamic>> splitPayments = [];
-String? selectedSplitMethod;
-final TextEditingController splitAmountController = TextEditingController();
+  String? selectedPaymentAccount;
+  String selectedSales = 'Sales 1';
+  final TextEditingController cashController = TextEditingController();
+  final TextEditingController notesController = TextEditingController();
+  List<Map<String, dynamic>> splitPayments = [];
+  String? selectedSplitMethod;
+  final TextEditingController splitAmountController = TextEditingController();
 
   @override
   void initState() {
@@ -47,292 +49,348 @@ final TextEditingController splitAmountController = TextEditingController();
     fetchPaymentAccounts();
   }
 
-void showTransactionDialog(BuildContext context) {
-  DateTime selectedDate = DateTime.now();
-  final TextEditingController dateController =
-      TextEditingController(text: DateFormat('dd/MM/yyyy').format(selectedDate));
+  void showTransactionDialog(BuildContext context, double grandTotal) {
+    DateTime selectedDate = DateTime.now();
+    final TextEditingController dateController = TextEditingController(
+        text: DateFormat('dd/MM/yyyy').format(selectedDate));
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text('Transaksi'),
-            content: SingleChildScrollView(
-              child: Column(
-                children: [
-                  fieldRow(
-                    label: 'Tgl Faktur',
-                    child: TextField(
-                      controller: dateController,
-                      readOnly: true,
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2101),
-                        );
-                        if (picked != null) {
-                          setDialogState(() {
-                            selectedDate = picked;
-                            dateController.text =
-                                DateFormat('dd/MM/yyyy').format(picked);
-                          });
-                        }
-                      },
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        suffixIcon: Icon(Icons.calendar_today),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  fieldRow(
-                    label: 'Pembayaran',
-                    child: DropdownButtonFormField<String>(
-                      value: selectedPaymentAccount,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: paymentAccounts.map((item) {
-                        String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
-                        String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
-                            ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-                            : tipe;
-                        return DropdownMenuItem(value: displayText, child: Text(displayText));
-                      }).toList(),
-                      onChanged: (val) {
-                        setState(() => selectedPaymentAccount = val);
-                        setDialogState(() {});
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  fieldRow(
-                    label: 'Sales',
-                    child: DropdownButtonFormField<String>(
-                      value: selectedSales,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: ['Sales 1', 'Sales 2', 'Sales 3']
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (val) => setState(() => selectedSales = val!),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  fieldRow(
-                    label: 'Cash',
-                    child: TextField(
-                      controller: cashController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  fieldRow(
-                    label: 'Keterangan',
-                    child: TextField(
-                      controller: notesController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  if (selectedPaymentAccount == 'SPLIT') ...[
-                    const SizedBox(height: 20),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Split Pembayaran',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...splitPayments.map((item) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: TextField(
-                                readOnly: true,
-                                controller: TextEditingController(text: item['metode']),
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              flex: 2,
-                              child: TextField(
-                                readOnly: true,
-                                controller: TextEditingController(text: item['jumlah']),
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                              ),
-                              onPressed: () {
-                                setDialogState(() => splitPayments.remove(item));
-                              },
-                              child: const Text('Delete'),
-                            ),
-                          ],
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Transaksi'),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    fieldRow(
+                      label: 'Tgl Faktur',
+                      child: TextField(
+                        controller: dateController,
+                        readOnly: true,
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2101),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedDate = picked;
+                              dateController.text =
+                                  DateFormat('dd/MM/yyyy').format(picked);
+                            });
+                          }
+                        },
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          suffixIcon: Icon(Icons.calendar_today),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: DropdownButtonFormField<String>(
-                            value: selectedSplitMethod,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              labelText: 'Pilih Metode',
-                              isDense: true,
-                            ),
-                            items: paymentAccounts.map((item) {
-                              String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
-                              String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
-                                  ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-                                  : tipe;
-                              return DropdownMenuItem(value: displayText, child: Text(displayText));
-                            }).toList(),
-                            onChanged: (val) => setDialogState(() => selectedSplitMethod = val),
-                          ),
+                    fieldRow(
+                      label: 'Pembayaran',
+                      child: DropdownButtonFormField<String>(
+                        value: selectedPaymentAccount,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: splitAmountController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              labelText: 'Nominal',
-                              isDense: true,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (selectedSplitMethod != null &&
-                                splitAmountController.text.isNotEmpty) {
-                              setDialogState(() {
-                                splitPayments.add({
-                                  'metode': selectedSplitMethod!,
-                                  'jumlah': splitAmountController.text,
-                                });
-                                splitAmountController.clear();
-                              });
+                        items: paymentAccounts.map((item) {
+                          String tipe =
+                              item['tipe']?.toString().trim().toUpperCase() ??
+                                  '';
+                          String displayText = (tipe == 'TRANSFER' ||
+                                  tipe == 'DEBET' ||
+                                  tipe == 'EDC')
+                              ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                              : tipe;
+                          return DropdownMenuItem(
+                              value: displayText, child: Text(displayText));
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            selectedPaymentAccount = val;
+
+                            final selectedItem = paymentAccounts.firstWhere(
+                              (item) {
+                                String tipe = item['tipe']
+                                        ?.toString()
+                                        .trim()
+                                        .toUpperCase() ??
+                                    '';
+                                String displayText = (tipe == 'TRANSFER' ||
+                                        tipe == 'DEBET' ||
+                                        tipe == 'EDC')
+                                    ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                                    : tipe;
+                                return displayText == val;
+                              },
+                              orElse: () => {},
+                            );
+
+                            if (selectedItem.isNotEmpty &&
+                                selectedItem['no_akun'] != null &&
+                                selectedItem['no_akun'].toString().isNotEmpty) {
+                              // Isi cash dengan grandTotal
+                              cashController.text =
+                                  grandTotal.toStringAsFixed(0);
+                            } else {
+                              // Kosongkan jika tidak ada no_akun
+                              cashController.clear();
                             }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                          ),
-                          child: const Text('Add'),
-                        ),
-                      ],
+
+                            setDialogState(() {});
+                          });
+                        },
+                      ),
                     ),
-                  ]
-                ],
+                    const SizedBox(height: 10),
+                    fieldRow(
+                      label: 'Sales',
+                      child: DropdownButtonFormField<String>(
+                        value: selectedSales,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        items: ['Sales 1', 'Sales 2', 'Sales 3']
+                            .map((e) =>
+                                DropdownMenuItem(value: e, child: Text(e)))
+                            .toList(),
+                        onChanged: (val) =>
+                            setState(() => selectedSales = val!),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    fieldRow(
+                      label: 'Cash',
+                      child: TextField(
+                        controller: cashController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    fieldRow(
+                      label: 'Keterangan',
+                      child: TextField(
+                        controller: notesController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    if (selectedPaymentAccount == 'SPLIT') ...[
+                      const SizedBox(height: 20),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Split Pembayaran',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...splitPayments.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: TextField(
+                                  readOnly: true,
+                                  controller: TextEditingController(
+                                      text: item['metode']),
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: TextField(
+                                  readOnly: true,
+                                  controller: TextEditingController(
+                                      text: item['jumlah']),
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero),
+                                ),
+                                onPressed: () {
+                                  setDialogState(
+                                      () => splitPayments.remove(item));
+                                },
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: DropdownButtonFormField<String>(
+                              value: selectedSplitMethod,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Pilih Metode',
+                                isDense: true,
+                              ),
+                              items: paymentAccounts.map((item) {
+                                String tipe = item['tipe']
+                                        ?.toString()
+                                        .trim()
+                                        .toUpperCase() ??
+                                    '';
+                                String displayText = (tipe == 'TRANSFER' ||
+                                        tipe == 'DEBET' ||
+                                        tipe == 'EDC')
+                                    ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                                    : tipe;
+                                return DropdownMenuItem(
+                                    value: displayText,
+                                    child: Text(displayText));
+                              }).toList(),
+                              onChanged: (val) => setDialogState(
+                                  () => selectedSplitMethod = val),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: TextField(
+                              controller: splitAmountController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Nominal',
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (selectedSplitMethod != null &&
+                                  splitAmountController.text.isNotEmpty) {
+                                setDialogState(() {
+                                  splitPayments.add({
+                                    'metode': selectedSplitMethod!,
+                                    'jumlah': splitAmountController.text,
+                                  });
+                                  splitAmountController.clear();
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero),
+                            ),
+                            child: const Text('Add'),
+                          ),
+                        ],
+                      ),
+                    ]
+                  ],
+                ),
               ),
-            ),
-            actions: [
-  Wrap(
-    spacing: 8, // jarak antar tombol
-    children: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        style: TextButton.styleFrom(
-          backgroundColor: Colors.grey,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          minimumSize: const Size(100, 40),
-        ),
-        child: const Text('Close'),
-      ),
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        style: TextButton.styleFrom(
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          minimumSize: const Size(100, 40),
-        ),
-        child: const Text('Take Payment'),
-      ),
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        style: TextButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          minimumSize: const Size(100, 40),
-        ),
-        child: const Text('Save Draft'),
-      ),
-    ],
-  )
-],
-          );
-        },
-      );
-    },
-  );
-}
+              actions: [
+                Wrap(
+                  spacing: 8, // jarak antar tombol
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        minimumSize: const Size(100, 40),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        minimumSize: const Size(100, 40),
+                      ),
+                      child: const Text('Take Payment'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        minimumSize: const Size(100, 40),
+                      ),
+                      child: const Text('Save Draft'),
+                    ),
+                  ],
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
-Widget fieldRow({required String label, required Widget child}) {
-  const double rowHeight = 40;
+  Widget fieldRow({required String label, required Widget child}) {
+    const double rowHeight = 40;
 
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: [
-      Container(
-        width: 120,
-        height: rowHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          border: Border.all(color: Colors.grey.shade400),
-        ),
-        alignment: Alignment.centerLeft,
-        child: Text(label),
-      ),
-      Expanded(
-        child: SizedBox(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 120,
           height: rowHeight,
-          child: child,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            border: Border.all(color: Colors.grey.shade400),
+          ),
+          alignment: Alignment.centerLeft,
+          child: Text(label),
         ),
-      ),
-    ],
-  );
-}
+        Expanded(
+          child: SizedBox(
+            height: rowHeight,
+            child: child,
+          ),
+        ),
+      ],
+    );
+  }
+
   double hitungHargaFinal({
     required double hargaDasar,
     required double qty, // dalam lusin
@@ -371,16 +429,17 @@ Widget fieldRow({required String label, required Widget child}) {
   }
 
   Future<void> fetchPaymentAccounts() async {
-  final response = await http.get(Uri.parse('http://192.168.1.8/hayami/akun.php'));
-  if (response.statusCode == 200) {
-    final result = json.decode(response.body);
-    if (result['status'] == 'success') {
-      setState(() {
-        paymentAccounts = result['data'];
-      });
+    final response =
+        await http.get(Uri.parse('http://192.168.1.8/hayami/akun.php'));
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        setState(() {
+          paymentAccounts = result['data'];
+        });
+      }
     }
   }
-}
 
   Future<void> fetchProducts() async {
     try {
@@ -457,29 +516,30 @@ Widget fieldRow({required String label, required Widget child}) {
     });
   }
 
-Future<List<Customer>> fetchCustomers(String keyword) async {
-  final response = await http.get(
-    Uri.parse('http://192.168.1.35/glorboo/tb_customer.php'),
-  );
+  Future<List<Customer>> fetchCustomers(String keyword) async {
+    final response = await http.get(
+      Uri.parse('http://192.168.1.35/glorboo/tb_customer.php'),
+    );
 
-  if (response.statusCode == 200) {
-    final jsonData = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
 
-    if (jsonData['status'] == 'success' && jsonData['data'] is List) {
-      final allCustomers = (jsonData['data'] as List)
-          .map((data) => Customer.fromJson(data))
-          .toList();
+      if (jsonData['status'] == 'success' && jsonData['data'] is List) {
+        final allCustomers = (jsonData['data'] as List)
+            .map((data) => Customer.fromJson(data))
+            .toList();
 
-      return allCustomers.where((c) =>
-        c.nmCustomer.toLowerCase().contains(keyword.toLowerCase())
-      ).toList();
+        return allCustomers
+            .where((c) =>
+                c.nmCustomer.toLowerCase().contains(keyword.toLowerCase()))
+            .toList();
+      } else {
+        throw Exception('Data tidak ditemukan atau status bukan success');
+      }
     } else {
-      throw Exception('Data tidak ditemukan atau status bukan success');
+      throw Exception('Gagal memuat data customer: ${response.statusCode}');
     }
-  } else {
-    throw Exception('Gagal memuat data customer: ${response.statusCode}');
   }
-}
 
   Widget buildFormRow(String label, String? value) {
     return Padding(
@@ -541,9 +601,9 @@ Future<List<Customer>> fetchCustomers(String keyword) async {
             }
 
             String getContactNumber(Customer? data) {
-  if (data == null) return '';
-  return (data.telp ?? '').isNotEmpty ? data.telp! : '';
-}
+              if (data == null) return '';
+              return (data.telp ?? '').isNotEmpty ? data.telp! : '';
+            }
 
             return Dialog(
               insetPadding:
@@ -604,9 +664,10 @@ Future<List<Customer>> fetchCustomers(String keyword) async {
                           ),
                         const SizedBox(height: 12),
                         buildFormRow('Customer Name', customerData?.nmCustomer),
-buildFormRow('Address', customerData?.address),
-buildFormRow('Contact Number', getContactNumber(customerData)),
-buildFormRow('Store Type', customerData?.storeType),
+                        buildFormRow('Address', customerData?.address),
+                        buildFormRow(
+                            'Contact Number', getContactNumber(customerData)),
+                        buildFormRow('Store Type', customerData?.storeType),
                         const SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -647,31 +708,31 @@ buildFormRow('Store Type', customerData?.storeType),
     );
   }
 
-void showProductOrderDialog(
+  void showProductOrderDialog(
     BuildContext context,
     Map<String, dynamic> representative,
     List<dynamic> allSizes,
   ) {
-  showDialog(
-    context: context,
-    builder: (_) => Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 750),
-        child: ProductOrderDialogContent(
-          representative: representative,
-          allSizes: allSizes,
-          onAddToOrder: (items) {
-            setState(() {
-              cartItems.addAll(items);
-            });
-          },
-          selectedCustomer: selectedCustomer,
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 750),
+          child: ProductOrderDialogContent(
+            representative: representative,
+            allSizes: allSizes,
+            onAddToOrder: (items) {
+              setState(() {
+                cartItems.addAll(items);
+              });
+            },
+            selectedCustomer: selectedCustomer,
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   double calculateStock(dynamic item) {
     final stock = item['stock'];
@@ -766,43 +827,43 @@ void showProductOrderDialog(
                   ),
                   const SizedBox(height: 6),
                   SizedBox(
-  height: 60,
-  child: ScrollConfiguration(
-    behavior: ScrollConfiguration.of(context).copyWith(
-      scrollbars: false,
-      overscroll: false,
-    ),
-    child: ListView.builder(
-      shrinkWrap: true,
-      physics: const ClampingScrollPhysics(),
-      itemCount: entry.value.length,
-      itemBuilder: (context, index) {
-        final item = entry.value[index];
-        final stock = calculateStock(item);
-        if (stock <= 0) return const SizedBox.shrink();
+                    height: 60,
+                    child: ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(
+                        scrollbars: false,
+                        overscroll: false,
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: entry.value.length,
+                        itemBuilder: (context, index) {
+                          final item = entry.value[index];
+                          final stock = calculateStock(item);
+                          if (stock <= 0) return const SizedBox.shrink();
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item['ukuran'] ?? '',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                stock.toStringAsFixed(1),
-                style: const TextStyle(fontSize: 12),
-              ),
-            ],
-          ),
-        );
-      },
-    ),
-  ),
-),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item['ukuran'] ?? '',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  stock.toStringAsFixed(1),
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -817,21 +878,19 @@ void showProductOrderDialog(
     double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
 
     double calculateAutoDiskon() {
-  double autoDiskon = 0;
-  if (selectedCustomer != null) {
-    final diskonPerLusin = selectedCustomer!.diskonLusin;
+      double autoDiskon = 0;
+      if (selectedCustomer != null) {
+        final diskonPerLusin = selectedCustomer!.diskonLusin;
 
-    for (var item in cartItems) {
-      final qty = item.quantity;
+        for (var item in cartItems) {
+          final qty = item.quantity;
 
-      final potonganDiskon = diskonPerLusin * qty;
-      autoDiskon += potonganDiskon;
+          final potonganDiskon = diskonPerLusin * qty;
+          autoDiskon += potonganDiskon;
+        }
+      }
+      return autoDiskon;
     }
-  }
-  return autoDiskon;
-}
-
-
 
     // Hitung diskon otomatis saja
     double totalDiskon = calculateAutoDiskon();
@@ -923,14 +982,14 @@ void showProductOrderDialog(
                             isConfirmMode = false;
 
                             selectedCustomer = Customer(
-  id: selectedEntry.customerName,
-  nmCustomer: selectedEntry.customerName,
-  name: '',
-  address: '',
-  telp: '',
-  storeType: '',
-  diskonLusin: 0.0,
-);
+                              id: selectedEntry.customerName,
+                              nmCustomer: selectedEntry.customerName,
+                              name: '',
+                              address: '',
+                              telp: '',
+                              storeType: '',
+                              diskonLusin: 0.0,
+                            );
 
                             // ✅ Diskon otomatis masuk ke bagian 'Discount:'
                             totalDiskon = disc;
@@ -1012,7 +1071,8 @@ void showProductOrderDialog(
                           children: [
                             Text(
                                 '${item.quantity} @ Rp ${item.unitPrice.toStringAsFixed(0)}'),
-                            Text('Total: ${currencyFormatter.format(item.total)}'),
+                            Text(
+                                'Total: ${currencyFormatter.format(item.total)}'),
                           ],
                         ),
                         const Divider(),
@@ -1142,20 +1202,21 @@ void showProductOrderDialog(
                         ),
                       ),
                       onPressed: () {
-  if (selectedCustomer == null || cartItems.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Pilih customer dan minimal 1 produk terlebih dahulu.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+                        if (selectedCustomer == null || cartItems.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Pilih customer dan minimal 1 produk terlebih dahulu.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
 
-  showTransactionDialog(context);
-},
+                        showTransactionDialog(context, grandTotal);
+                      },
                       child: Text(
-                       'GRAND TOTAL: ${currencyFormatter.format(grandTotal)}',
+                        'GRAND TOTAL: ${currencyFormatter.format(grandTotal)}',
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, color: Colors.white),
                       ),
@@ -1171,80 +1232,81 @@ void showProductOrderDialog(
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: const Text('POS Screen'),
-      elevation: 0,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.pop(context),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('POS Screen'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-    ),
-    body: isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        value: selectedBahan,
-                        decoration: const InputDecoration(
-                          labelText: 'Pilih Bahan',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: selectedBahan,
+                          decoration: const InputDecoration(
+                            labelText: 'Pilih Bahan',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
+                          items: bahanList.map((bahan) {
+                            return DropdownMenuItem<String>(
+                              value: bahan,
+                              child: Text(
+                                bahan,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: filterByBahan,
                         ),
-                        items: bahanList.map((bahan) {
-                          return DropdownMenuItem<String>(
-                            value: bahan,
-                            child: Text(
-                              bahan,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: filterByBahan,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: TextField(
-                        style: const TextStyle(fontSize: 14),
-                        decoration: const InputDecoration(
-                          hintText: 'Search by Tipe or Model',
-                          prefixIcon: Icon(Icons.search, size: 20),
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          style: const TextStyle(fontSize: 14),
+                          decoration: const InputDecoration(
+                            hintText: 'Search by Tipe or Model',
+                            prefixIcon: Icon(Icons.search, size: 20),
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
+                          onChanged: (value) =>
+                              setState(() => searchQuery = value),
                         ),
-                        onChanged: (value) =>
-                            setState(() => searchQuery = value),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(flex: 3, child: productGrid()),
-                    Expanded(flex: 2, child: cartSection()),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(flex: 3, child: productGrid()),
+                      Expanded(flex: 2, child: cartSection()),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-  );
-}
+              ],
+            ),
+    );
+  }
 }
