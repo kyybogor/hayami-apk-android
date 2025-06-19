@@ -47,9 +47,7 @@ final TextEditingController splitAmountController = TextEditingController();
     fetchPaymentAccounts();
   }
 
-// Kode Flutter Dialog Transaksi dengan UI yang meniru layout seperti gambar
-
-void showTransactionDialog() {
+void showTransactionDialog(BuildContext context) {
   DateTime selectedDate = DateTime.now();
   final TextEditingController dateController =
       TextEditingController(text: DateFormat('dd/MM/yyyy').format(selectedDate));
@@ -102,9 +100,9 @@ void showTransactionDialog() {
                       ),
                       items: paymentAccounts.map((item) {
                         String tipe = item['tipe']?.toUpperCase() ?? '';
-                        String displayText = (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT')
-                            ? tipe
-                            : '$tipe ${item['bank'] ?? ''}';
+                        String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC ')
+                            ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                            : tipe;
                         return DropdownMenuItem(value: displayText, child: Text(displayText));
                       }).toList(),
                       onChanged: (val) {
@@ -151,7 +149,6 @@ void showTransactionDialog() {
                       ),
                     ),
                   ),
-
                   if (selectedPaymentAccount == 'SPLIT') ...[
                     const SizedBox(height: 20),
                     const Align(
@@ -202,7 +199,6 @@ void showTransactionDialog() {
                         ),
                       );
                     }).toList(),
-
                     const SizedBox(height: 10),
                     Row(
                       children: [
@@ -217,9 +213,9 @@ void showTransactionDialog() {
                             ),
                             items: paymentAccounts.map((item) {
                               String tipe = item['tipe']?.toUpperCase() ?? '';
-                              String displayText = (tipe == 'CASH' || tipe == 'HUTANG' || tipe == 'SPLIT')
-                                  ? tipe
-                                  : '$tipe ${item['bank'] ?? ''}';
+                              String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC ')
+                                  ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                                  : tipe;
                               return DropdownMenuItem(value: displayText, child: Text(displayText));
                             }).toList(),
                             onChanged: (val) => setDialogState(() => selectedSplitMethod = val),
@@ -241,7 +237,8 @@ void showTransactionDialog() {
                         const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: () {
-                            if (selectedSplitMethod != null && splitAmountController.text.isNotEmpty) {
+                            if (selectedSplitMethod != null &&
+                                splitAmountController.text.isNotEmpty) {
                               setDialogState(() {
                                 splitPayments.add({
                                   'metode': selectedSplitMethod!,
@@ -310,7 +307,6 @@ Widget fieldRow({required String label, required Widget child}) {
     ],
   );
 }
-
 
   double hitungHargaFinal({
     required double hargaDasar,
@@ -1131,7 +1127,7 @@ void showProductOrderDialog(
     return;
   }
 
-  showTransactionDialog();
+  showTransactionDialog(context);
 },
                       child: Text(
                        'GRAND TOTAL: ${currencyFormatter.format(grandTotal)}',
