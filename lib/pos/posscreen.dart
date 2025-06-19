@@ -13,6 +13,7 @@ class Posscreen extends StatefulWidget {
   @override
   State<Posscreen> createState() => _PosscreenState();
 }
+
 String formatRupiah(dynamic number) {
   final formatter = NumberFormat.decimalPattern('id');
   return formatter.format(number);
@@ -54,44 +55,45 @@ class _PosscreenState extends State<Posscreen> {
   }
 
   String formatRupiah(dynamic number) {
-  final formatter = NumberFormat.decimalPattern('id');
-  return formatter.format(number);
-}
+    final formatter = NumberFormat.decimalPattern('id');
+    return formatter.format(number);
+  }
 
   void showTransactionDialog(BuildContext context, double grandTotal) {
     DateTime selectedDate = DateTime.now();
     final TextEditingController dateController = TextEditingController(
         text: DateFormat('dd/MM/yyyy').format(selectedDate));
-        splitAmountController.addListener(() {
-  String text = splitAmountController.text.replaceAll('.', '').replaceAll(',', '');
-  if (text.isEmpty) return;
+    splitAmountController.addListener(() {
+      String text =
+          splitAmountController.text.replaceAll('.', '').replaceAll(',', '');
+      if (text.isEmpty) return;
 
-  final value = int.tryParse(text);
-  if (value != null) {
-    final newText = formatRupiah(value);
-    if (splitAmountController.text != newText) {
-      splitAmountController.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: newText.length),
-      );
-    }
-  }
-});
-        cashController.addListener(() {
-  String text = cashController.text.replaceAll('.', '').replaceAll(',', '');
-  if (text.isEmpty) return;
+      final value = int.tryParse(text);
+      if (value != null) {
+        final newText = formatRupiah(value);
+        if (splitAmountController.text != newText) {
+          splitAmountController.value = TextEditingValue(
+            text: newText,
+            selection: TextSelection.collapsed(offset: newText.length),
+          );
+        }
+      }
+    });
+    cashController.addListener(() {
+      String text = cashController.text.replaceAll('.', '').replaceAll(',', '');
+      if (text.isEmpty) return;
 
-  final value = int.tryParse(text);
-  if (value != null) {
-    final newText = formatRupiah(value);
-    if (cashController.text != newText) {
-      cashController.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: newText.length),
-      );
-    }
-  }
-});
+      final value = int.tryParse(text);
+      if (value != null) {
+        final newText = formatRupiah(value);
+        if (cashController.text != newText) {
+          cashController.value = TextEditingValue(
+            text: newText,
+            selection: TextSelection.collapsed(offset: newText.length),
+          );
+        }
+      }
+    });
 
     showDialog(
       context: context,
@@ -173,14 +175,14 @@ class _PosscreenState extends State<Posscreen> {
                             );
 
                             if (selectedItem.isNotEmpty &&
-    selectedItem['no_akun'] != null &&
-    selectedItem['no_akun'].toString().isNotEmpty) {
-  // Isi cash dengan grandTotal terformat
-  cashController.text = formatRupiah(grandTotal);
-} else {
-  // Kosongkan jika tidak ada no_akun
-  cashController.clear();
-}
+                                selectedItem['no_akun'] != null &&
+                                selectedItem['no_akun'].toString().isNotEmpty) {
+                              // Isi cash dengan grandTotal terformat
+                              cashController.text = formatRupiah(grandTotal);
+                            } else {
+                              // Kosongkan jika tidak ada no_akun
+                              cashController.clear();
+                            }
 
                             setDialogState(() {});
                           });
@@ -312,24 +314,28 @@ class _PosscreenState extends State<Posscreen> {
                                     child: Text(displayText));
                               }).toList(),
                               onChanged: (val) {
-  setDialogState(() {
-    selectedSplitMethod = val;
+                                setDialogState(() {
+                                  selectedSplitMethod = val;
 
-    // Hitung total split sementara
-    double totalSplit = 0;
-    for (var item in splitPayments) {
-      final jumlah = double.tryParse(
-              item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
-          0;
-      totalSplit += jumlah;
-    }
+                                  // Hitung total split sementara
+                                  double totalSplit = 0;
+                                  for (var item in splitPayments) {
+                                    final jumlah = double.tryParse(
+                                            item['jumlah']
+                                                .toString()
+                                                .replaceAll('.', '')
+                                                .replaceAll(',', '')) ??
+                                        0;
+                                    totalSplit += jumlah;
+                                  }
 
-    final sisa = grandTotal - totalSplit;
+                                  final sisa = grandTotal - totalSplit;
 
-    // Isi nominal default
-    splitAmountController.text = sisa > 0 ? sisa.toStringAsFixed(0) : '';
-  });
-},
+                                  // Isi nominal default
+                                  splitAmountController.text =
+                                      sisa > 0 ? sisa.toStringAsFixed(0) : '';
+                                });
+                              },
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -347,67 +353,78 @@ class _PosscreenState extends State<Posscreen> {
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
- onPressed: () {
-  if (selectedSplitMethod == null || splitAmountController.text.isEmpty) {
-    return;
-  }
+                            onPressed: () {
+                              if (selectedSplitMethod == null ||
+                                  splitAmountController.text.isEmpty) {
+                                return;
+                              }
 
-  // Hitung total split saat ini
-  double totalSplit = 0;
-  for (var item in splitPayments) {
-    final jumlah = double.tryParse(
-        item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ?? 0;
-    totalSplit += jumlah;
-  }
+                              // Hitung total split saat ini
+                              double totalSplit = 0;
+                              for (var item in splitPayments) {
+                                final jumlah = double.tryParse(item['jumlah']
+                                        .toString()
+                                        .replaceAll('.', '')
+                                        .replaceAll(',', '')) ??
+                                    0;
+                                totalSplit += jumlah;
+                              }
 
-  // Ambil jumlah yang mau ditambahkan
-  double currentInput = double.tryParse(
-          splitAmountController.text.replaceAll('.', '').replaceAll(',', '')) ??
-      0;
+                              // Ambil jumlah yang mau ditambahkan
+                              double currentInput = double.tryParse(
+                                      splitAmountController.text
+                                          .replaceAll('.', '')
+                                          .replaceAll(',', '')) ??
+                                  0;
 
-  // Cek jika total split setelah ditambahkan melebihi grandTotal
-  if (totalSplit + currentInput > grandTotal) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Peringatan'),
-        content: const Text('Total split tidak boleh melebihi Grand Total!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-    return;
-  }
+                              // Cek jika total split setelah ditambahkan melebihi grandTotal
+                              if (totalSplit + currentInput > grandTotal) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Peringatan'),
+                                    content: const Text(
+                                        'Total split tidak boleh melebihi Grand Total!'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return;
+                              }
 
-  setDialogState(() {
-    splitPayments.add({
-      'metode': selectedSplitMethod!,
-      'jumlah': splitAmountController.text,
-    });
+                              setDialogState(() {
+                                splitPayments.add({
+                                  'metode': selectedSplitMethod!,
+                                  'jumlah': splitAmountController.text,
+                                });
 
-    // Hitung ulang sisa
-    double totalSplitBaru = 0;
-    for (var item in splitPayments) {
-      final jumlah = double.tryParse(
-              item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
-          0;
-      totalSplitBaru += jumlah;
-    }
+                                // Hitung ulang sisa
+                                double totalSplitBaru = 0;
+                                for (var item in splitPayments) {
+                                  final jumlah = double.tryParse(item['jumlah']
+                                          .toString()
+                                          .replaceAll('.', '')
+                                          .replaceAll(',', '')) ??
+                                      0;
+                                  totalSplitBaru += jumlah;
+                                }
 
-    final sisa = grandTotal - totalSplitBaru;
-    splitAmountController.text = sisa > 0 ? sisa.toStringAsFixed(0) : '';
-  });
-},
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.green,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-  ),
-  child: const Text('Add'),
-),
+                                final sisa = grandTotal - totalSplitBaru;
+                                splitAmountController.text =
+                                    sisa > 0 ? sisa.toStringAsFixed(0) : '';
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero),
+                            ),
+                            child: const Text('Add'),
+                          ),
                         ],
                       ),
                     ]
@@ -831,23 +848,23 @@ class _PosscreenState extends State<Posscreen> {
     );
   }
 
-double calculateStock(dynamic item) {
-  final rawStock = item['stock'];
-  double stock;
+  double calculateStock(dynamic item) {
+    final rawStock = item['stock'];
+    double stock;
 
-  if (rawStock is num) {
-    stock = rawStock.toDouble();
-  } else if (rawStock is String) {
-    stock = double.tryParse(rawStock) ?? 0.0;
-  } else {
-    return 0.0;
+    if (rawStock is num) {
+      stock = rawStock.toDouble();
+    } else if (rawStock is String) {
+      stock = double.tryParse(rawStock) ?? 0.0;
+    } else {
+      return 0.0;
+    }
+
+    double result = stock / 12;
+
+    // Bulatkan ke kelipatan 0.25 terdekat
+    return (result * 4).round() / 4;
   }
-
-  double result = stock / 12;
-
-  // Bulatkan ke kelipatan 0.25 terdekat
-  return (result * 4).round() / 4;
-}
 
   Widget buildReadOnlyField(String label, String? value) {
     return Padding(
@@ -978,8 +995,20 @@ double calculateStock(dynamic item) {
   }
 
   Widget cartSection() {
-    double subTotal = cartItems.fold(0, (sum, item) => sum + item.total);
-    double totalQty = cartItems.fold(0, (sum, item) => sum + item.quantity);
+    double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
+    double totalQty =
+        cartItems.fold(0, (sum, item) => sum + item.quantity / 12);
+
+    String formatLusinQty(double qty) {
+      if (qty < 1) {
+        // Tampilkan dalam pcs (1 lusin = 12 pcs)
+        int pcs = (qty * 12).round();
+        return '$pcs pcs';
+      } else {
+        // Tampilkan dalam desimal Lusin
+        return qty.toStringAsFixed(qty % 1 == 0 ? 0 : 2) + ' Lusin';
+      }
+    }
 
     double calculateAutoDiskon() {
       double autoDiskon = 0;
@@ -1158,7 +1187,7 @@ double calculateStock(dynamic item) {
                                     fontWeight: FontWeight.bold),
                               ),
                             ),
-                            Text(currencyFormatter.format(item.total)),
+                            Text(currencyFormatter.format(item.total / 12)),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () {
@@ -1174,9 +1203,9 @@ double calculateStock(dynamic item) {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                                '${item.quantity} @ Rp ${item.unitPrice.toStringAsFixed(0)}'),
+                                '${(item.quantity / 12)} Ls @ Rp ${((item.unitPrice / 4)).toStringAsFixed(0)}'),
                             Text(
-                                'Total: ${currencyFormatter.format(item.total)}'),
+                                'Total: ${currencyFormatter.format((item.total / 12))}'),
                           ],
                         ),
                         const Divider(),
@@ -1239,7 +1268,7 @@ double calculateStock(dynamic item) {
                           ),
                           const SizedBox(height: 8),
                           const Text('Total QTY:'),
-                          Text('${totalQty.toStringAsFixed(1)} Lusin'),
+                          Text(formatLusinQty(totalQty)),
                         ],
                       ),
                       Column(
