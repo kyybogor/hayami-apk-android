@@ -104,12 +104,42 @@ Future<void> showStrukDialog(
 
         // Header Produk
         // Header Produk
+// Header Produk
 Row(
   children: const [
-    Expanded(flex: 5, child: Text('Nama Barang', style: TextStyle(fontWeight: FontWeight.bold))),
-    Expanded(flex: 2, child: Text('Ukuran', style: TextStyle(fontWeight: FontWeight.bold))),
-    Expanded(flex: 2, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-    Expanded(flex: 3, child: Text('Harga', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+    Expanded(
+      flex: 5,
+      child: Text(
+        'Nama Barang',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    ),
+    Expanded(
+      flex: 2,
+      child: Padding(
+        padding: EdgeInsets.only(left: 29), // geser ke kanan 8 pixel
+        child: Text(
+          'Ukuran',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+    ),
+    Expanded(
+      flex: 2,
+      child: Text(
+        'Qty',
+        style: TextStyle(fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    Expanded(
+      flex: 3,
+      child: Text(
+        'Harga',
+        style: TextStyle(fontWeight: FontWeight.bold),
+        textAlign: TextAlign.right,
+      ),
+    ),
   ],
 ),
 
@@ -139,14 +169,32 @@ Row(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(flex: 5, child: Text(firstLine)),
-            Expanded(flex: 2, child: Text(item.size)),
-            Expanded(flex: 2, child: Text(qtyDus.toStringAsFixed(2), textAlign: TextAlign.center)),
-            Expanded(flex: 3, child: Text('Rp${hargaDus.toStringAsFixed(0)}', textAlign: TextAlign.right)),
-          ],
-        ),
+Row(
+  children: [
+    Expanded(flex: 5, child: Text(firstLine)),
+    Expanded(
+      flex: 2,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 29), // geser kanan juga
+        child: Text(item.size),
+      ),
+    ),
+    Expanded(
+      flex: 2,
+      child: Text(
+        qtyDus.toStringAsFixed(2),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    Expanded(
+      flex: 3,
+      child: Text(
+        'Rp${hargaDus.toStringAsFixed(0)}',
+        textAlign: TextAlign.right,
+      ),
+    ),
+  ],
+),
         if (secondLine != null)
           Padding(
             padding: const EdgeInsets.only(left: 0, top: 2),

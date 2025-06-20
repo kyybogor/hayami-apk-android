@@ -647,7 +647,7 @@ class _PosscreenState extends State<Posscreen> {
 
   Future<List<Customer>> fetchCustomers(String keyword) async {
     final response = await http.get(
-      Uri.parse('http://192.168.1.35/glorboo/tb_customer.php'),
+      Uri.parse('http://192.168.1.8/hayami/customer.php'),
     );
 
     if (response.statusCode == 200) {
