@@ -143,16 +143,7 @@ Row(
           children: [
             Expanded(flex: 5, child: Text(firstLine)),
             Expanded(flex: 2, child: Text(item.size)),
-            Expanded(
-  flex: 2,
-  child: Align(
-    alignment: Alignment.centerRight,
-    child: Padding(
-      padding: EdgeInsets.only(left: 6), // tambah jarak dari kiri
-      child: Text(qtyDus.toStringAsFixed(2)),
-    ),
-  ),
-),
+            Expanded(flex: 2, child: Text(qtyDus.toStringAsFixed(2), textAlign: TextAlign.center)),
             Expanded(flex: 3, child: Text('Rp${hargaDus.toStringAsFixed(0)}', textAlign: TextAlign.right)),
           ],
         ),
