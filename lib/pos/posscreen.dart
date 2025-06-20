@@ -24,6 +24,9 @@ final currencyFormatter =
     NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
 class _PosscreenState extends State<Posscreen> {
+  double subTotal = 0;
+double newDiscount = 0;
+double grandTotal = 0;
   List<dynamic> diskonCustList = [];
   List<OrderItem> cartItems = [];
   bool isConfirmMode = false;
@@ -74,9 +77,10 @@ class _PosscreenState extends State<Posscreen> {
     return formatter.format(number);
   }
 
-  void showTransactionDialog(BuildContext context, double grandTotal) {
-    DateTime selectedDate = DateTime.now();
-    final TextEditingController dateController = TextEditingController(
+Future<void> showTransactionDialog(BuildContext context, double grandTotal) async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String idCabang = prefs.getString('id_cabang') ?? ''; // Default kosong jika tidak ada    
+  DateTime selectedDate = DateTime.now();    final TextEditingController dateController = TextEditingController(
         text: DateFormat('dd/MM/yyyy').format(selectedDate));
     splitAmountController.addListener(() {
       String text =
@@ -472,18 +476,53 @@ class _PosscreenState extends State<Posscreen> {
   ),
   child: const Text('Take Payment'),
 ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6)),
-                        minimumSize: const Size(100, 40),
-                      ),
-                      child: const Text('Save Draft'),
-                    ),
-                  ],
+TextButton(
+  onPressed: () async {
+    try {
+      await saveDraft(
+        idCustomer: selectedCustomer!.id,
+        sales: selectedSales,
+        discInvoice: newDiscount,
+        subtotal: subTotal,
+        grandTotal: grandTotal,
+        idCabang: idCabang,
+        dibuatOleh: "admin",
+        items: cartItems.map((item) => {
+          "idBahan": item.idTipe,
+          "model": item.productName,
+          "ukuran": item.size,
+          "quantity": item.quantity,
+          "unitPrice": item.unitPrice / 12,
+          "total": item.total,
+          "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
+        }).toList(),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Data berhasil disimpan"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Gagal menyimpan data: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  },
+  style: TextButton.styleFrom(
+    backgroundColor: Colors.orange,
+    foregroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(6),
+    ),
+    minimumSize: const Size(100, 40),
+  ),
+  child: const Text('Save Draft'),
+),                  ],
                 )
               ],
             );
@@ -556,6 +595,47 @@ class _PosscreenState extends State<Posscreen> {
     final percent = (nominal / subTotal) * 100;
     percentController.text = percent.toStringAsFixed(2);
   }
+
+  Future<void> saveDraft({
+  required String idCustomer,
+  required String sales,
+  required double discInvoice,
+  required double subtotal,
+  required double grandTotal,
+  required String idCabang,
+  required String dibuatOleh,
+  required List<Map<String, dynamic>> items,
+}) async {
+  final url = Uri.parse("http://localhost/hayami/draft.php");
+
+  final body = {
+    "idCustomer": idCustomer,
+    "sales": sales,
+    "discInvoice": discInvoice,
+    "subtotal": subtotal,
+    "grandTotal": grandTotal,
+    "idCabang": idCabang,
+    "dibuatOleh": dibuatOleh,
+    "items": items,
+  };
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final resData = jsonDecode(response.body);
+      print("Status: ${resData['status']}, Message: ${resData['message']}");
+    } else {
+      print("Gagal simpan draft. Kode: ${response.statusCode}");
+    }
+  } catch (e) {
+    print("Error: $e");
+  }
+}
 
   Future<void> fetchPaymentAccounts() async {
     final response =
@@ -650,7 +730,7 @@ class _PosscreenState extends State<Posscreen> {
       Uri.parse('http://192.168.1.8/hayami/customer.php'),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200) { 
       final jsonData = jsonDecode(response.body);
 
       if (jsonData['status'] == 'success' && jsonData['data'] is List) {
@@ -1010,10 +1090,11 @@ class _PosscreenState extends State<Posscreen> {
   }
 
   Widget cartSection() {
-    double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
+double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
     double totalQty =
         cartItems.fold(0, (sum, item) => sum + item.quantity / 12);
 
+        
     String formatLusinQty(double qty) {
       if (qty < 1) {
         // Tampilkan dalam pcs (1 lusin = 12 pcs)
@@ -1049,13 +1130,8 @@ class _PosscreenState extends State<Posscreen> {
         ? (subTotal * (double.tryParse(percentController.text)! / 100))
         : 0;
 
-    // Pilih diskon manual yang aktif, nominal dulu jika ada
-    double newDiscount =
-        manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercent;
-
-    // Total akhir
-    double grandTotal = subTotal - totalDiskon - newDiscount;
-
+newDiscount = manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercent;
+  grandTotal = subTotal - totalDiskon - newDiscount;
     return Container(
       padding: const EdgeInsets.all(12),
       color: Colors.grey[100],
