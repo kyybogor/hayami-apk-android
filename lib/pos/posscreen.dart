@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/cart_screen.dart';
+import 'package:hayami_app/pos/struk.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/pos/customer_model.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
@@ -39,7 +40,8 @@ class _PosscreenState extends State<Posscreen> {
   List<String> bahanList = [];
   String? selectedBahan;
   List<dynamic> paymentAccounts = [];
-  String? selectedPaymentAccount;
+  String? selectedPaymentAccount; // ✅ dipakai oleh Dropdown
+  Map<String, dynamic>? selectedPaymentAccountMap; 
   String selectedSales = 'Sales 1';
   final TextEditingController cashController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
@@ -53,6 +55,19 @@ class _PosscreenState extends State<Posscreen> {
     fetchProducts();
     fetchPaymentAccounts();
   }
+
+  void _handleTakePayment() {
+  double grandTotal = cartItems.fold(0, (sum, item) => sum + item.total);
+
+  showStrukDialog(
+    context,
+    cartItems,
+    selectedCustomer,
+    grandTotal,
+    selectedPaymentAccountMap,
+    null,
+  );
+}
 
   String formatRupiah(dynamic number) {
     final formatter = NumberFormat.decimalPattern('id');
@@ -134,59 +149,58 @@ class _PosscreenState extends State<Posscreen> {
                     ),
                     const SizedBox(height: 10),
                     fieldRow(
-                      label: 'Pembayaran',
-                      child: DropdownButtonFormField<String>(
-                        value: selectedPaymentAccount,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: paymentAccounts.map((item) {
-                          String tipe =
-                              item['tipe']?.toString().trim().toUpperCase() ??
-                                  '';
-                          String displayText = (tipe == 'TRANSFER' ||
-                                  tipe == 'DEBET' ||
-                                  tipe == 'EDC')
-                              ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-                              : tipe;
-                          return DropdownMenuItem(
-                              value: displayText, child: Text(displayText));
-                        }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            selectedPaymentAccount = val;
+  label: 'Pembayaran',
+  child: DropdownButtonFormField<String>(
+    value: selectedPaymentAccount,
+    decoration: const InputDecoration(
+      border: OutlineInputBorder(),
+      isDense: true,
+    ),
+    items: paymentAccounts.map((item) {
+      String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
+      String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
+          ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+          : tipe;
 
-                            final selectedItem = paymentAccounts.firstWhere(
-                              (item) {
-                                String tipe = item['tipe']
-                                        ?.toString()
-                                        .trim()
-                                        .toUpperCase() ??
-                                    '';
-                                String displayText = (tipe == 'TRANSFER' ||
-                                        tipe == 'DEBET' ||
-                                        tipe == 'EDC')
-                                    ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-                                    : tipe;
-                                return displayText == val;
-                              },
-                              orElse: () => {},
-                            );
+      return DropdownMenuItem<String>(
+        value: displayText,
+        child: Text(displayText),
+      );
+    }).toList(),
+    onChanged: (val) {
+      setState(() {
+        selectedPaymentAccount = val;
 
-                            if (selectedItem.isNotEmpty &&
-                                selectedItem['no_akun'] != null &&
-                                selectedItem['no_akun'].toString().isNotEmpty) {
-                              // Isi cash dengan grandTotal terformat
-                              cashController.text = formatRupiah(grandTotal);
-                            } else {
-                              // Kosongkan jika tidak ada no_akun
-                              cashController.clear();
-                            }
+        final selectedItem = paymentAccounts.firstWhere(
+          (item) {
+            String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
+            String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
+                ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                : tipe;
+            return displayText == val;
+          },
+          orElse: () => <String, dynamic>{},
+        );
 
-                            setDialogState(() {});
-                          });
-                        },
+        // Pastikan Map tidak kosong
+        if (selectedItem.isNotEmpty) {
+          selectedPaymentAccountMap = selectedItem;
+        } else {
+          selectedPaymentAccountMap = null;
+        }
+
+        if (selectedItem['no_akun'] != null &&
+            selectedItem['no_akun'].toString().isNotEmpty) {
+          cashController.text = formatRupiah(grandTotal);
+        } else {
+          cashController.clear();
+        }
+
+        setDialogState(() {});
+      });
+    },
+
+
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -447,16 +461,17 @@ class _PosscreenState extends State<Posscreen> {
                       child: const Text('Close'),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6)),
-                        minimumSize: const Size(100, 40),
-                      ),
-                      child: const Text('Take Payment'),
-                    ),
+  onPressed: _handleTakePayment,
+  style: TextButton.styleFrom(
+    backgroundColor: Colors.green,
+    foregroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(6),
+    ),
+    minimumSize: const Size(100, 40),
+  ),
+  child: const Text('Take Payment'),
+),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       style: TextButton.styleFrom(
