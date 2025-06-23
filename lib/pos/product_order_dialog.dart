@@ -68,8 +68,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
     required double diskonLusin,
   }) {
     final lusinQty = quantity / 12;
-    final discount = diskonLusin * lusinQty;
-    return basePrice - discount;
+    return basePrice;
   }
 
   @override
