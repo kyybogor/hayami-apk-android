@@ -7,10 +7,11 @@ import 'package:intl/intl.dart';
 class CartEntry {
   final String customerName;
   final double grandTotal;
-  final String idTransaksi; // sudah diganti dari idPo1
+  final String idTransaksi;
   final double disc;
   final double discPersen;
   final double discBaru;
+  final double diskonLusin; // <--- Tambahan
 
   CartEntry({
     required this.customerName,
@@ -19,6 +20,7 @@ class CartEntry {
     required this.disc,
     required this.discPersen,
     required this.discBaru,
+    required this.diskonLusin, // <--- Tambahan
   });
 }
 
@@ -88,6 +90,7 @@ class _CartScreenState extends State<CartScreen> {
             final discPersen =
                 double.tryParse(item['disc_invoice'] ?? '0') ?? 0.0;
             final discBaru = double.tryParse(item['disc_nilai'] ?? '0') ?? 0.0;
+            final diskonLusin = double.tryParse(item['diskon_lusin'] ?? '0') ?? 0.0;
 
             entries.add(CartEntry(
               customerName: customerName,
@@ -96,6 +99,7 @@ class _CartScreenState extends State<CartScreen> {
               disc: disc,
               discPersen: discPersen,
               discBaru: discBaru,
+              diskonLusin: diskonLusin,
             ));
           });
 
@@ -129,6 +133,7 @@ class _CartScreenState extends State<CartScreen> {
       disc: 0.0,
       discPersen: 0.0,
       discBaru: 0.0,
+      diskonLusin: 0.0, 
     );
 
     setState(() {
@@ -235,6 +240,7 @@ class _CartScreenState extends State<CartScreen> {
                                                 'discBaru': entry.discBaru,
                                                 'idTransaksi':
                                                     entry.idTransaksi,
+                                                'diskonLusin': entry.diskonLusin,
                                               });
                                             } else {
                                               throw Exception(

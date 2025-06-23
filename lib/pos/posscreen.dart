@@ -592,16 +592,19 @@ TextButton(
         grandTotal: grandTotal,
         idCabang: idCabang,
         dibuatOleh: "admin",
-        items: cartItems.map((item) => {
-          "idBahan": item.idTipe,
-          "model": item.productName,
-          "ukuran": item.size,
-          "quantity": item.quantity,
-          "unitPrice": item.unitPrice / 12,
-          "total": item.total,
-          "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
-        }).toList(),
+        items: cartItems
+            .map((item) => {
+                  "idBahan": item.idTipe,
+                  "model": item.productName,
+                  "ukuran": item.size,
+                  "quantity": item.quantity,
+                  "unitPrice": item.unitPrice / 12,
+                  "total": item.total,
+                  "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
+                })
+            .toList(),
       );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Berhasil ditambahkan ke keranjang"),
@@ -609,7 +612,13 @@ TextButton(
         ),
       );
 
-      // Tunggu 0.1 detik sebelum pop
+      // Kosongkan cart dan selectedCustomer setelah berhasil
+      setState(() {
+        cartItems.clear();
+        selectedCustomer = null;
+      });
+
+      // Tunggu sebentar
       await Future.delayed(const Duration(milliseconds: 100));
 
       // Kembali ke halaman sebelumnya
@@ -631,7 +640,7 @@ TextButton(
     minimumSize: const Size(100, 40),
   ),
   child: const Text('Save Draft'),
-),                  
+)
 ],
                 )
               ],
@@ -1029,12 +1038,15 @@ Future<bool> deleteTransaction(String idTransaksi) async {
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: customerData != null
-                                  ? () {
-                                      setState(() =>
-                                          selectedCustomer = customerData!);
-                                      Navigator.pop(context);
-                                    }
+      onPressed: customerData != null
+          ? () {
+              setState(() {
+                selectedCustomer = customerData!;
+                currentTransactionId = null; 
+                cartItems.clear();
+              });
+              Navigator.pop(context);
+            }
                                   : null,
                               child: const Text('Save'),
                             ),
@@ -1378,7 +1390,7 @@ setState(() {
                               address: '',
                               telp: '',
                               storeType: '',
-                              diskonLusin: 0.0,
+                              diskonLusin: selectedEntry.diskonLusin,
                             );
 
                             // ✅ Diskon otomatis masuk ke bagian 'Discount:'
