@@ -1390,7 +1390,7 @@ setState(() {
                               address: '',
                               telp: '',
                               storeType: '',
-                              diskonLusin: selectedEntry.diskonLusin,
+                              diskonLusin: selectedEntry.disc,
                             );
 
                             // ✅ Diskon otomatis masuk ke bagian 'Discount:'
