@@ -59,8 +59,13 @@ double grandTotal = 0;
     fetchPaymentAccounts();
   }
 
-  void _handleTakePayment() {
-  double grandTotal = cartItems.fold(0, (sum, item) => sum + item.total);
+void _handleTakePayment() {
+  double grandTotal = calculateGrandTotal(
+    items: cartItems,
+    customer: selectedCustomer,
+    manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+    manualDiscPercent: double.tryParse(percentController.text) ?? 0,
+  );
 
   showStrukDialog(
     context,
@@ -1089,7 +1094,36 @@ TextButton(
     );
   }
 
+  double calculateGrandTotal({
+  required List<OrderItem> items,
+  required Customer? customer,
+  required double manualDiscNominal,
+  required double manualDiscPercent,
+}) {
+  double subTotal = items.fold(0, (sum, item) => sum + item.total / 12);
+  double autoDisc = 0;
+
+  if (customer != null) {
+    autoDisc = items.fold(
+      0,
+      (sum, item) => sum + (customer.diskonLusin * item.quantity / 12),
+    );
+  }
+
+  double manualDisc = manualDiscNominal > 0
+      ? manualDiscNominal
+      : (manualDiscPercent > 0 ? subTotal * manualDiscPercent / 100 : 0);
+
+  return subTotal - autoDisc - manualDisc;
+}
+
   Widget cartSection() {
+    final double calculatedGrandTotal = calculateGrandTotal(
+  items: cartItems,
+  customer: selectedCustomer,
+  manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+  manualDiscPercent: double.tryParse(percentController.text) ?? 0,
+);
 double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
     double totalQty =
         cartItems.fold(0, (sum, item) => sum + item.quantity / 12);

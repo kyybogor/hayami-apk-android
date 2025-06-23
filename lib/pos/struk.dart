@@ -15,6 +15,7 @@ Future<void> showStrukDialog(
   final now = DateTime.now();
   final formatterDate = DateFormat('dd MMM yyyy');
   final formatterTime = DateFormat('HH:mm');
+  final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
   final prefs = await SharedPreferences.getInstance();
   final collectedBy = prefs.getString('nm_user') ?? '-';
 
@@ -189,9 +190,9 @@ Row(
     Expanded(
       flex: 3,
       child: Text(
-        'Rp${hargaDus.toStringAsFixed(0)}',
-        textAlign: TextAlign.right,
-      ),
+  currencyFormatter.format(hargaDus),
+  textAlign: TextAlign.right,
+),
     ),
   ],
 ),
@@ -231,10 +232,10 @@ Row(
     Expanded(
       flex: 3,
       child: Text(
-        'Total: Rp${grandTotal.toStringAsFixed(0)}',
-        textAlign: TextAlign.right,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
+  'Total: ${currencyFormatter.format(grandTotal)}',
+  textAlign: TextAlign.right,
+  style: const TextStyle(fontWeight: FontWeight.bold),
+),
     ),
   ],
 ),
