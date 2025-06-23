@@ -24,6 +24,7 @@ final currencyFormatter =
     NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
 class _PosscreenState extends State<Posscreen> {
+  String? currentTransactionId;
   double subTotal = 0;
 double newDiscount = 0;
 double grandTotal = 0;
@@ -510,14 +511,24 @@ Future<void> showTransactionDialog(BuildContext context, double grandTotal) asyn
                       ),
                       child: const Text('Close'),
                     ),
-                    TextButton(
+TextButton(
   onPressed: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
       ? null
       : () async {
           await _handleTakePayment();
 
+          if (currentTransactionId != null) {
+            final success = await deleteTransaction(currentTransactionId!);
+            if (success) {
+              setState(() {
+                currentTransactionId = null;
+                isConfirmMode = false;
+              });
+            }
+          }
+
           Navigator.of(context).pop();
-          resetTransaction();
+          resetTransaction(); // jika kamu punya fungsi ini untuk reset state
         },
   style: TextButton.styleFrom(
     backgroundColor: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
@@ -534,6 +545,16 @@ Future<void> showTransactionDialog(BuildContext context, double grandTotal) asyn
 
 TextButton(
   onPressed: () async {
+    if (currentTransactionId != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Sudah ada di keranjang"),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
     try {
       await saveDraft(
         idCustomer: selectedCustomer!.id,
@@ -553,18 +574,22 @@ TextButton(
           "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
         }).toList(),
       );
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Data berhasil disimpan"),
-          backgroundColor: Colors.green,
+        const SnackBar(
+          content: Text("Berhasil ditambahkan ke keranjang"),
+          duration: Duration(seconds: 1),
         ),
       );
+
+      // Tunggu 0.1 detik sebelum pop
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Kembali ke halaman sebelumnya
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Gagal menyimpan data: $e"),
-          backgroundColor: Colors.red,
         ),
       );
     }
@@ -578,7 +603,8 @@ TextButton(
     minimumSize: const Size(100, 40),
   ),
   child: const Text('Save Draft'),
-),                  ],
+),                  
+],
                 )
               ],
             );
@@ -690,6 +716,30 @@ TextButton(
     }
   } catch (e) {
     print("Error: $e");
+  }
+}
+
+Future<bool> deleteTransaction(String idTransaksi) async {
+  try {
+    final response = await http.post(
+      Uri.parse('http://192.168.1.8/hayami/delete_cart.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'id_transaksi': idTransaksi}),
+    );
+
+    final responseBody = json.decode(response.body);
+
+    if (response.statusCode == 200 && responseBody['status'] == 'success') {
+      return true; // Berhasil hapus
+    } else {
+      throw Exception(responseBody['message'] ?? 'Gagal menghapus data');
+    }
+  } catch (e) {
+    debugPrint('Delete Error: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Terjadi kesalahan saat menghapus data.')),
+    );
+    return false;
   }
 }
 
@@ -1270,10 +1320,11 @@ newDiscount = manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercen
                         ),
                       );
 
-                      if (result != null && result is Map<String, dynamic>) {
+if (result != null && result is Map<String, dynamic>) {
                         final selectedItems =
                             result['items'] as List<OrderItem>?;
                         final selectedEntry = result['entry'] as CartEntry?;
+                        final String? idTransaksi = result['idTransaksi'] as String?;
 
                         if (selectedItems != null && selectedEntry != null) {
                           // Ambil semua nilai diskon dari result
@@ -1286,9 +1337,10 @@ newDiscount = manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercen
                               result['discBaru'] as double? ??
                                   0.0; // diskon manual (Rp)
 
-                          setState(() {
+setState(() {
                             // Ganti cart dan customer
                             cartItems = selectedItems;
+                            currentTransactionId = idTransaksi;
                             isConfirmMode = false;
 
                             selectedCustomer = Customer(
