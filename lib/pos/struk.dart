@@ -30,10 +30,10 @@ Future<void> showStrukDialog(
     paymentMethod = ['TRANSFER', 'DEBET', 'EDC'].contains(tipe) ? '$tipe - $bank' : tipe;
   }
 
-  showDialog(
-    context: context,
-    barrierDismissible: true, // <-- Bisa ditutup dengan klik luar (tombol X)
-    builder: (dialogContext) => AlertDialog(
+return await showDialog(
+  context: context,
+  barrierDismissible: true,
+  builder: (dialogContext) => AlertDialog(
       shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.zero, // sudut kotak tanpa lengkung
     ),
@@ -212,29 +212,47 @@ Row(
 
         const Divider(thickness: 1),
 
-        Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    // Total Lusin di kiri
-    Expanded(
-      flex: 5,
-      child: Text(
-        'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        if ((totalDiskon + newDiscount) > 0)
+  Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      // Total Lusin di kiri
+      Expanded(
+        flex: 5,
+        child: Text(
+          'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
       ),
-    ),
 
-    // Total Diskon di kanan
-    Expanded(
-      flex: 3,
-      child: Text(
-        'Diskon: ${currencyFormatter.format(totalDiskon + newDiscount)}',
-        textAlign: TextAlign.right,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.red),
+      // Diskon hanya jika ada
+      Expanded(
+        flex: 3,
+        child: Text(
+          'Diskon: ${currencyFormatter.format(totalDiskon + newDiscount)}',
+          textAlign: TextAlign.right,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Colors.red,
+          ),
+        ),
       ),
-    ),
-  ],
-),
+    ],
+  )
+else
+  // Jika tidak ada diskon, hanya tampilkan total lusin
+  Row(
+    children: [
+      Expanded(
+        child: Text(
+          'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+      ),
+    ],
+  ),
+
 const SizedBox(height: 8),
         Row(
   crossAxisAlignment: CrossAxisAlignment.start,

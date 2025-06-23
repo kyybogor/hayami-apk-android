@@ -61,7 +61,7 @@ double totalLusin = 0;
     fetchPaymentAccounts();
   }
 
-void _handleTakePayment() {
+Future<void> _handleTakePayment() async {
   double totalDiskon = 0;
   double totalLusin = 0;
 
@@ -80,7 +80,7 @@ void _handleTakePayment() {
     manualDiscPercent: double.tryParse(percentController.text) ?? 0,
   );
 
-  showStrukDialog(
+  await showStrukDialog(
     context,
     cartItems,
     selectedCustomer,
@@ -90,6 +90,30 @@ void _handleTakePayment() {
     totalDiskon,
     newDiscount,
     totalLusin,
+  );
+}
+
+
+void resetTransaction() {
+  setState(() {
+    cartItems.clear();
+    selectedCustomer = null;
+    nominalController.clear();
+    percentController.clear();
+    newDiscount = 0;
+    grandTotal = 0;
+    isConfirmMode = false;
+    showDiscountInput = false;
+    selectedPaymentAccount = null;
+    selectedPaymentAccountMap = null;
+    splitPayments.clear();
+    splitAmountController.clear();
+    cashController.clear();
+    notesController.clear();
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Transaksi selesai')),
   );
 }
 
@@ -487,9 +511,18 @@ Future<void> showTransactionDialog(BuildContext context, double grandTotal) asyn
                       child: const Text('Close'),
                     ),
                     TextButton(
-  onPressed: _handleTakePayment,
+  onPressed: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
+      ? null
+      : () async {
+          await _handleTakePayment();
+
+          Navigator.of(context).pop();
+          resetTransaction();
+        },
   style: TextButton.styleFrom(
-    backgroundColor: Colors.green,
+    backgroundColor: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
+        ? Colors.grey
+        : Colors.green,
     foregroundColor: Colors.white,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(6),
@@ -498,6 +531,7 @@ Future<void> showTransactionDialog(BuildContext context, double grandTotal) asyn
   ),
   child: const Text('Take Payment'),
 ),
+
 TextButton(
   onPressed: () async {
     try {
@@ -915,6 +949,7 @@ TextButton(
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
                               ),
                               onPressed: customerData != null
                                   ? () {
