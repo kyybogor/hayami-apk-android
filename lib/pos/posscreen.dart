@@ -1469,14 +1469,16 @@ setState(() {
                           ],
                         ),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                                '${(item.quantity / 12)} Ls @ Rp ${((item.unitPrice / 4)).toStringAsFixed(0)}'),
-                            Text(
-                                'Total: ${currencyFormatter.format((item.total / 12))}'),
-                          ],
-                        ),
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Text(
+      '${(item.quantity / 12).toStringAsFixed(2)} Ls @ ${currencyFormatter.format(item.unitPrice / 4)} /3pcs',
+    ),
+    Text(
+      'Total: ${currencyFormatter.format(item.total / 12)}',
+    ),
+  ],
+),
                         const Divider(),
                       ],
                     );
