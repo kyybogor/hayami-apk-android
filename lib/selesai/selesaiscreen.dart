@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
 import 'package:hayami_app/pengiriman/detailpengiriman.dart';
-import 'package:hayami_app/tagihan/tambahtagihan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -30,76 +28,109 @@ class _SelesaiPageState extends State<SelesaiPage> {
     fetchInvoices();
   }
 
-Future<void> fetchInvoices() async {
-  try {
-    final response = await http.get(
-      Uri.parse('https://hayami.id/apps/erp/api-android/api/daftar_delivery.php'),
-    );
+  Future<void> fetchInvoices() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://hayami.id/apps/erp/api-android/api/daftar_delivery.php'),
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
 
-      final openInvoices = data.where((item) {
-        final resi = item["resi"];
-        return resi != null && resi.toString().trim().isNotEmpty;
-      }).toList();
+        final openInvoices = data.where((item) {
+          final resi = item["resi"];
+          return resi != null && resi.toString().trim().isNotEmpty;
+        }).toList();
 
-      invoices = openInvoices.map<Map<String, dynamic>>((item) {
-        String? dibuatTgl = item["date"] ?? item["tgl"];
-        String? resi = item["resi"];
-        return {
-          "id": item["id"] ?? item["id_do1"] ?? '-',
-          "name": (item["nama"] ?? item["id_cust"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : (item["nama"] ?? item["id_cust"]),
-          "invoice": (item["invoice"] ?? item["no_inv"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : (item["invoice"] ?? item["no_inv"]),
-          "date": dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
-          "amount": (item["amount"] ?? item["grandttl"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : (item["amount"] ?? item["grandttl"]),
-          "resi": resi ?? '',
-          "status": "delivered",
-          "file": item["file"] ?? '',
-        };
-      }).toList();
+        invoices = openInvoices.map<Map<String, dynamic>>((item) {
+          String? dibuatTgl = item["date"] ?? item["tgl"];
+          String? resi = item["resi"];
+          return {
+            "id": item["id"] ?? item["id_do1"] ?? '-',
+            "name": (item["nama"] ?? item["id_cust"] ?? '')
+                    .toString()
+                    .trim()
+                    .isEmpty
+                ? '-'
+                : (item["nama"] ?? item["id_cust"]),
+            "invoice": (item["invoice"] ?? item["no_inv"] ?? '')
+                    .toString()
+                    .trim()
+                    .isEmpty
+                ? '-'
+                : (item["invoice"] ?? item["no_inv"]),
+            "date":
+                dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
+            "amount": (item["amount"] ?? item["grandttl"] ?? '')
+                    .toString()
+                    .trim()
+                    .isEmpty
+                ? '-'
+                : (item["amount"] ?? item["grandttl"]),
+            "resi": resi ?? '',
+            "status": "delivered",
+            "file": item["file"] ?? '',
+          };
+        }).toList();
 
+        // Sort terbaru ke terlama
+        invoices.sort((a, b) {
+          try {
+            final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+            final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+            return dateB.compareTo(dateA);
+          } catch (e) {
+            return 0;
+          }
+        });
+
+        setState(() {
+          isLoading = false;
+        });
+        filterByMonthYear();
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (e) {
+      print("Error: $e");
       setState(() {
         isLoading = false;
       });
-      filterByMonthYear();
-    } else {
-      throw Exception('Gagal mengambil data');
     }
-  } catch (e) {
-    print("Error: $e");
+  }
+
+  void filterByMonthYear() {
     setState(() {
-      isLoading = false;
+      filteredInvoices = invoices.where((invoice) {
+        try {
+          final dateStr = invoice["date"];
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-')
+            return false;
+
+          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+          final matchMonth = selectedMonth == 'Semua' ||
+              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
+          final matchYear = selectedYear == 'Semua' ||
+              invoiceDate.year.toString() == selectedYear;
+          return matchMonth && matchYear;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+
+      // Sort hasil filter dari terbaru
+      filteredInvoices.sort((a, b) {
+        try {
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+          return dateB.compareTo(dateA);
+        } catch (e) {
+          return 0;
+        }
+      });
     });
   }
-}
-
-void filterByMonthYear() {
-  setState(() {
-    filteredInvoices = invoices.where((invoice) {
-      try {
-        final dateStr = invoice["date"];
-        if (dateStr == null || dateStr.isEmpty || dateStr == '-')
-          return false;
-
-        final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
-        // hanya bulan dan tahun sekarang
-        final matchMonth = invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-        final matchYear = invoiceDate.year.toString() == selectedYear;
-        return matchMonth && matchYear;
-      } catch (e) {
-        return false;
-      }
-    }).toList();
-  });
-}
-
 
   void _onSearchChanged() {
     String keyword = _searchController.text.toLowerCase();
@@ -123,6 +154,17 @@ void filterByMonthYear() {
           return false;
         }
       }).toList();
+
+      // Sort hasil pencarian dari terbaru
+      filteredInvoices.sort((a, b) {
+        try {
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+          return dateB.compareTo(dateA);
+        } catch (e) {
+          return 0;
+        }
+      });
     });
   }
 
@@ -187,7 +229,6 @@ void filterByMonthYear() {
               child: Row(
                 children: [
                   Flexible(
-                    flex: 1,
                     child: DropdownButtonFormField<String>(
                       value: selectedMonth,
                       isExpanded: true,
@@ -228,7 +269,6 @@ void filterByMonthYear() {
                   ),
                   const SizedBox(width: 8),
                   Flexible(
-                    flex: 1,
                     child: DropdownButtonFormField<String>(
                       value: selectedYear,
                       isExpanded: true,
@@ -309,8 +349,7 @@ void filterByMonthYear() {
                                   MaterialPageRoute(
                                     builder: (context) => DetailPengirimanPage(
                                       invoice: invoice,
-                                      resi: invoice["resi"] ??
-                                          '-', // <== tambahkan ini
+                                      resi: invoice["resi"] ?? '-',
                                     ),
                                   ),
                                 );
