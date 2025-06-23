@@ -513,24 +513,51 @@ Future<void> showTransactionDialog(BuildContext context, double grandTotal) asyn
                       child: const Text('Close'),
                     ),
 TextButton(
-  onPressed: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
-      ? null
-      : () async {
-          await _handleTakePayment();
+  onPressed: () async {
+    // Hitung total split saat ini
+    double totalSplit = 0;
+    for (var item in splitPayments) {
+      final jumlah = double.tryParse(
+              item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
+          0;
+      totalSplit += jumlah;
+    }
 
-          if (currentTransactionId != null) {
-            final success = await deleteTransaction(currentTransactionId!);
-            if (success) {
-              setState(() {
-                currentTransactionId = null;
-                isConfirmMode = false;
-              });
-            }
-          }
+    // Jika SPLIT dan total split belum sama dengan grandTotal -> tolak
+    if (selectedPaymentAccount == 'SPLIT' && totalSplit != grandTotal) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Peringatan"),
+          content: Text(
+            "Total split pembayaran harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
-          Navigator.of(context).pop();
-          resetTransaction(); // jika kamu punya fungsi ini untuk reset state
-        },
+    // Lanjutkan proses pembayaran
+    await _handleTakePayment();
+
+    if (currentTransactionId != null) {
+      final success = await deleteTransaction(currentTransactionId!);
+      if (success) {
+        setState(() {
+          currentTransactionId = null;
+          isConfirmMode = false;
+        });
+      }
+    }
+
+    Navigator.of(context).pop();
+    resetTransaction();
+  },
   style: TextButton.styleFrom(
     backgroundColor: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
         ? Colors.grey

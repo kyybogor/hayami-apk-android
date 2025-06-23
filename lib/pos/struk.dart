@@ -27,8 +27,8 @@ Future<void> showStrukDialog(
   String paymentMethod = '-';
   if (selectedPaymentAccount != null) {
     final tipe = selectedPaymentAccount['tipe']?.toString().toUpperCase().trim() ?? '';
-    final bank = selectedPaymentAccount['bank']?.toString().toUpperCase().trim() ?? '';
-    paymentMethod = ['TRANSFER', 'DEBET', 'EDC'].contains(tipe) ? '$tipe - $bank' : tipe;
+final bank = selectedPaymentAccount['bank']?.toString().toUpperCase().trim() ?? '';
+paymentMethod = ['TRANSFER', 'DEBET', 'EDC'].contains(tipe) ? '$tipe $bank' : tipe;
   }
 
 return await showDialog(
@@ -104,6 +104,27 @@ return await showDialog(
             ),
           ],
         ),
+
+            const SizedBox(height: 4),
+
+    // Split Payments
+    if (splitPayments.isNotEmpty) ...[
+      const SizedBox(height: 4),
+      ...splitPayments.map((item) {
+        final metodeRaw = item['metode'] ?? '-';
+final metodeParts = metodeRaw.split(' - ');
+final metode = metodeParts.length >= 2 ? '${metodeParts[0]} ${metodeParts[1]}' : metodeRaw;
+        final nominal = double.tryParse(item['jumlah']!.replaceAll('.', '').replaceAll(',', '')) ?? 0;
+        final formatted = currencyFormatter.format(nominal);
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(metode),
+            Text(formatted),
+          ],
+        );
+      }).toList(),
+    ],
 
         const Divider(thickness: 1),
 
@@ -215,60 +236,68 @@ Row(
 
 // Menampilkan Total Lusin, Diskon, Total, dan Split Payment
 Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
   children: [
-    if (splitPayments.isNotEmpty) ...List.generate(splitPayments.length, (index) {
-      final item = splitPayments[index];
-      final metode = item['metode'] ?? '-';
-      final nominal = double.tryParse(item['jumlah']!.replaceAll('.', '').replaceAll(',', '')) ?? 0;
-      final formatted = currencyFormatter.format(nominal);
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Kolom kiri (Total Lusin, Diskon, Total)
-            if (index == 0)
-              Text(
-                'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              )
-            else if (index == 1 && (totalDiskon + newDiscount) > 0)
-              Text(
-                'Diskon: ${currencyFormatter.format(totalDiskon + newDiscount)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.red,
-                ),
-              )
-            else
-              const SizedBox(width: 10),
-
-            // Kolom kanan (Metode Split + Jumlah)
-            Text(
-              '$metode: $formatted',
-              style: const TextStyle(fontSize: 14),
-            ),
-          ],
-        ),
-      );
-    }),
-
-    const SizedBox(height: 6),
-    // Baris Total di bawah split
+    // Total Lusin
     Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        const Text(
+          'Total Lusin',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         Text(
-          'Total: ${currencyFormatter.format(grandTotal)}',
+          totalLusin.toStringAsFixed(2),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
-        const SizedBox(width: 10),
+      ],
+    ),
+
+    // Diskon (jika ada)
+    if ((totalDiskon + newDiscount) > 0) ...[
+      const SizedBox(height: 4),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Diskon',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Colors.red,
+            ),
+          ),
+          Text(
+            currencyFormatter.format(totalDiskon + newDiscount),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Colors.red,
+            ),
+          ),
+        ],
+      ),
+    ],
+
+    const SizedBox(height: 6),
+    // Total
+    Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'Total',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        Text(
+          currencyFormatter.format(grandTotal),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
       ],
     ),
 
     const SizedBox(height: 12),
+
+    // Notes
     const Align(
       alignment: Alignment.centerLeft,
       child: Column(
@@ -288,8 +317,6 @@ Column(
     ),
   ],
 ),
-
-
       ],
     ),
   ),
