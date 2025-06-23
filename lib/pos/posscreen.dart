@@ -66,12 +66,11 @@ void _handleTakePayment() {
   double totalLusin = 0;
 
   for (var item in cartItems) {
-    totalLusin += item.quantity / 12;
+    final double jumlahLusin = item.quantity / 12;
+    totalLusin += jumlahLusin;
 
-    // Misal diskon per item = harga normal - harga setelah diskon (item.total)
-    final hargaNormal = item.unitPrice * item.quantity;
-    final diskonItem = hargaNormal - item.total;
-    totalDiskon += diskonItem > 0 ? diskonItem : 0;
+    final double diskonItem = selectedCustomer!.diskonLusin * jumlahLusin;
+    totalDiskon += diskonItem;
   }
 
   double grandTotal = calculateGrandTotal(
@@ -81,8 +80,6 @@ void _handleTakePayment() {
     manualDiscPercent: double.tryParse(percentController.text) ?? 0,
   );
 
-  // Misal newDiscount adalah diskon manual (pastikan sudah kamu definisikan)
-  
   showStrukDialog(
     context,
     cartItems,
