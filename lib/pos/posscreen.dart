@@ -27,6 +27,8 @@ class _PosscreenState extends State<Posscreen> {
   double subTotal = 0;
 double newDiscount = 0;
 double grandTotal = 0;
+double totalDiskon = 0;
+double totalLusin = 0;
   List<dynamic> diskonCustList = [];
   List<OrderItem> cartItems = [];
   bool isConfirmMode = false;
@@ -60,6 +62,18 @@ double grandTotal = 0;
   }
 
 void _handleTakePayment() {
+  double totalDiskon = 0;
+  double totalLusin = 0;
+
+  for (var item in cartItems) {
+    totalLusin += item.quantity / 12;
+
+    // Misal diskon per item = harga normal - harga setelah diskon (item.total)
+    final hargaNormal = item.unitPrice * item.quantity;
+    final diskonItem = hargaNormal - item.total;
+    totalDiskon += diskonItem > 0 ? diskonItem : 0;
+  }
+
   double grandTotal = calculateGrandTotal(
     items: cartItems,
     customer: selectedCustomer,
@@ -67,6 +81,8 @@ void _handleTakePayment() {
     manualDiscPercent: double.tryParse(percentController.text) ?? 0,
   );
 
+  // Misal newDiscount adalah diskon manual (pastikan sudah kamu definisikan)
+  
   showStrukDialog(
     context,
     cartItems,
@@ -74,8 +90,12 @@ void _handleTakePayment() {
     grandTotal,
     selectedPaymentAccountMap,
     null,
+    totalDiskon,
+    newDiscount,
+    totalLusin,
   );
 }
+
 
   String formatRupiah(dynamic number) {
     final formatter = NumberFormat.decimalPattern('id');

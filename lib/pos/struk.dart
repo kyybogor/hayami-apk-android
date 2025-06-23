@@ -11,6 +11,9 @@ Future<void> showStrukDialog(
   double grandTotal,
   Map<String, dynamic>? selectedPaymentAccount,
   String? __,
+  double totalDiskon,   // tambah parameter ini
+  double newDiscount,   // tambah parameter ini
+  double totalLusin, 
 ) async {
   final now = DateTime.now();
   final formatterDate = DateFormat('dd MMM yyyy');
@@ -208,6 +211,31 @@ Row(
 }),
 
         const Divider(thickness: 1),
+
+        Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    // Total Lusin di kiri
+    Expanded(
+      flex: 5,
+      child: Text(
+        'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+    ),
+
+    // Total Diskon di kanan
+    Expanded(
+      flex: 3,
+      child: Text(
+        'Diskon: ${currencyFormatter.format(totalDiskon + newDiscount)}',
+        textAlign: TextAlign.right,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.red),
+      ),
+    ),
+  ],
+),
+const SizedBox(height: 8),
         Row(
   crossAxisAlignment: CrossAxisAlignment.start,
   children: [
