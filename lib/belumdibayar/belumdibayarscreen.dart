@@ -29,73 +29,86 @@ class _BelumDibayarState extends State<BelumDibayar> {
     fetchInvoices();
   }
 
-Future<void> fetchInvoices() async {
-  try {
-    final response = await http.get(
-      Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
-    );
+  Future<void> fetchInvoices() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
 
-      final openInvoices = data.where((item) =>
-        item["status"] != null && item["status"].toString().toLowerCase() == 'open'
-      ).toList();
+        final openInvoices = data
+            .where((item) =>
+                item["status"] != null &&
+                item["status"].toString().toLowerCase() == 'open')
+            .toList();
 
-      invoices = openInvoices.map<Map<String, dynamic>>((item) {
-        String? dibuatTgl = item["tgl"];
-        return {
-          "id": item["id_do1"] ?? '-',
-          "name": (item["id_cust"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["id_cust"],
-          "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["id_group"],
-          "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["no_inv"],
-          "date": dibuatTgl?.toString().trim().isEmpty ?? true
-              ? null
-              : dibuatTgl,
-          "due": (item["tgltop"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["tgltop"],
-          "alamat": (item["address"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["address"],
-          "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
-              ? '-'
-              : item["grandttl"],
-    "disc": (item["disc"] ?? '0.00').toString(),
-    "ppn": (item["ppn"] ?? '0.00').toString(),
-    "tax": (item["tax"] ?? '0.00').toString(),
-          "status": 'Belum Dibayar',
-        };
-      }).toList();
+        invoices = openInvoices.map<Map<String, dynamic>>((item) {
+          String? dibuatTgl = item["tgl"];
+          return {
+            "id": item["id_do1"] ?? '-',
+            "name": (item["id_cust"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_cust"],
+            "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["id_group"],
+            "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["no_inv"],
+            "date":
+                dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
+            "due": (item["tgltop"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["tgltop"],
+            "alamat": (item["address"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["address"],
+            "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
+                ? '-'
+                : item["grandttl"],
+            "disc": (item["disc"] ?? '0.00').toString(),
+            "ppn": (item["ppn"] ?? '0.00').toString(),
+            "tax": (item["tax"] ?? '0.00').toString(),
+            "status": 'Belum Dibayar',
+          };
+        }).toList();
 
+        // Tambahkan pengurutan berdasarkan tanggal dari terlama ke terbaru
+        invoices.sort((a, b) {
+          try {
+            final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+            final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+            return dateA
+                .compareTo(dateB); // ascending = dari terlama ke terbaru
+          } catch (e) {
+            return 0;
+          }
+        });
+
+        setState(() {
+          filteredInvoices = invoices;
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (e) {
+      print("Error: $e");
       setState(() {
-        filteredInvoices = invoices;
         isLoading = false;
       });
-    } else {
-      throw Exception('Gagal mengambil data');
     }
-  } catch (e) {
-    print("Error: $e");
-    setState(() {
-      isLoading = false;
-    });
   }
-}
-
 
   void filterByMonthYear() {
     setState(() {
       filteredInvoices = invoices.where((invoice) {
         try {
           final dateStr = invoice["date"];
-          if (dateStr == null || dateStr.isEmpty || dateStr == '-') return false;
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-')
+            return false;
 
           final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
           final matchMonth = selectedMonth == 'Semua' ||
@@ -114,11 +127,13 @@ Future<void> fetchInvoices() async {
     String keyword = _searchController.text.toLowerCase();
     setState(() {
       filteredInvoices = invoices.where((invoice) {
-        final nameMatch = invoice["name"].toString().toLowerCase().contains(keyword);
+        final nameMatch =
+            invoice["name"].toString().toLowerCase().contains(keyword);
 
         try {
           final dateStr = invoice["date"];
-          if (dateStr == null || dateStr.isEmpty || dateStr == '-') return false;
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-')
+            return false;
 
           final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
           final matchMonth = selectedMonth == 'Semua' ||
@@ -136,7 +151,8 @@ Future<void> fetchInvoices() async {
   String formatRupiah(String amount) {
     try {
       final double value = double.parse(amount);
-      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+      return NumberFormat.currency(
+              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
           .format(value);
     } catch (e) {
       return amount;
@@ -159,7 +175,8 @@ Future<void> fetchInvoices() async {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text("Belum Dibayar", style: TextStyle(color: Colors.blue)),
+          title:
+              const Text("Belum Dibayar", style: TextStyle(color: Colors.blue)),
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -188,7 +205,8 @@ Future<void> fetchInvoices() async {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
               child: Row(
                 children: [
                   Flexible(
@@ -208,14 +226,16 @@ Future<void> fetchInvoices() async {
                       ),
                       items: [
                         'Semua',
-                        ...List.generate(12, (index) => (index + 1).toString().padLeft(2, '0')),
+                        ...List.generate(12,
+                            (index) => (index + 1).toString().padLeft(2, '0')),
                       ].map((month) {
                         return DropdownMenuItem(
                           value: month,
                           child: Text(
                             month == 'Semua'
                                 ? 'Semua Bulan'
-                                : DateFormat('MMMM').format(DateTime(0, int.parse(month))),
+                                : DateFormat('MMMM')
+                                    .format(DateTime(0, int.parse(month))),
                           ),
                         );
                       }).toList(),
@@ -287,7 +307,8 @@ Future<void> fetchInvoices() async {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.pink.shade50,
                                       borderRadius: BorderRadius.circular(20),
@@ -301,7 +322,8 @@ Future<void> fetchInvoices() async {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                  const Icon(Icons.arrow_forward_ios,
+                                      size: 16, color: Colors.grey),
                                 ],
                               ),
                               onTap: () async {
@@ -322,7 +344,8 @@ Future<void> fetchInvoices() async {
                                   context: context,
                                   builder: (context) => AlertDialog(
                                     title: const Text("Hapus Data"),
-                                    content: const Text("Yakin ingin menghapus data ini?"),
+                                    content: const Text(
+                                        "Yakin ingin menghapus data ini?"),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.pop(context),
