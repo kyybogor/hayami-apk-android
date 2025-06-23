@@ -91,6 +91,7 @@ Future<void> _handleTakePayment() async {
     totalDiskon,
     newDiscount,
     totalLusin,
+    splitPayments,
   );
 }
 

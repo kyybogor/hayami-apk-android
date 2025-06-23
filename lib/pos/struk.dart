@@ -14,6 +14,7 @@ Future<void> showStrukDialog(
   double totalDiskon,   // tambah parameter ini
   double newDiscount,   // tambah parameter ini
   double totalLusin, 
+  List<Map<String, dynamic>> splitPayments,
 ) async {
   final now = DateTime.now();
   final formatterDate = DateFormat('dd MMM yyyy');
@@ -212,56 +213,67 @@ Row(
 
         const Divider(thickness: 1),
 
-        if ((totalDiskon + newDiscount) > 0)
-  Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      // Total Lusin di kiri
-      Expanded(
-        flex: 5,
-        child: Text(
-          'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-      ),
-
-      // Diskon hanya jika ada
-      Expanded(
-        flex: 3,
-        child: Text(
-          'Diskon: ${currencyFormatter.format(totalDiskon + newDiscount)}',
-          textAlign: TextAlign.right,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Colors.red,
-          ),
-        ),
-      ),
-    ],
-  )
-else
-  // Jika tidak ada diskon, hanya tampilkan total lusin
-  Row(
-    children: [
-      Expanded(
-        child: Text(
-          'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-      ),
-    ],
-  ),
-
-const SizedBox(height: 8),
-        Row(
-  crossAxisAlignment: CrossAxisAlignment.start,
+// Menampilkan Total Lusin, Diskon, Total, dan Split Payment
+Column(
   children: [
-    Expanded(
-      flex: 5,
+    if (splitPayments.isNotEmpty) ...List.generate(splitPayments.length, (index) {
+      final item = splitPayments[index];
+      final metode = item['metode'] ?? '-';
+      final nominal = double.tryParse(item['jumlah']!.replaceAll('.', '').replaceAll(',', '')) ?? 0;
+      final formatted = currencyFormatter.format(nominal);
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Kolom kiri (Total Lusin, Diskon, Total)
+            if (index == 0)
+              Text(
+                'Total Lusin: ${totalLusin.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              )
+            else if (index == 1 && (totalDiskon + newDiscount) > 0)
+              Text(
+                'Diskon: ${currencyFormatter.format(totalDiskon + newDiscount)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.red,
+                ),
+              )
+            else
+              const SizedBox(width: 10),
+
+            // Kolom kanan (Metode Split + Jumlah)
+            Text(
+              '$metode: $formatted',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }),
+
+    const SizedBox(height: 6),
+    // Baris Total di bawah split
+    Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Total: ${currencyFormatter.format(grandTotal)}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(width: 10),
+      ],
+    ),
+
+    const SizedBox(height: 12),
+    const Align(
+      alignment: Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
             'Notes :',
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
@@ -271,20 +283,13 @@ const SizedBox(height: 8),
             'Barang yang sudah di beli tidak dapat dikembalikan',
             style: TextStyle(fontSize: 10),
           ),
-          SizedBox(height: 8), // <-- ruang tambahan di sini
         ],
       ),
     ),
-    Expanded(
-      flex: 3,
-      child: Text(
-  'Total: ${currencyFormatter.format(grandTotal)}',
-  textAlign: TextAlign.right,
-  style: const TextStyle(fontWeight: FontWeight.bold),
-),
-    ),
   ],
 ),
+
+
       ],
     ),
   ),
