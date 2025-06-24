@@ -28,10 +28,10 @@ class _PosscreenState extends State<Posscreen> {
   String? currentInvoiceId;
   String? currentTransactionId;
   double subTotal = 0;
-double newDiscount = 0;
-double grandTotal = 0;
-double totalDiskon = 0;
-double totalLusin = 0;
+  double newDiscount = 0;
+  double grandTotal = 0;
+  double totalDiskon = 0;
+  double totalLusin = 0;
   List<dynamic> diskonCustList = [];
   List<OrderItem> cartItems = [];
   bool isConfirmMode = false;
@@ -49,7 +49,7 @@ double totalLusin = 0;
   String? selectedBahan;
   List<dynamic> paymentAccounts = [];
   String? selectedPaymentAccount; // ✅ dipakai oleh Dropdown
-  Map<String, dynamic>? selectedPaymentAccountMap; 
+  Map<String, dynamic>? selectedPaymentAccountMap;
   String selectedSales = 'Sales 1';
   final TextEditingController cashController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
@@ -64,75 +64,75 @@ double totalLusin = 0;
     fetchPaymentAccounts();
   }
 
-Future<void> _handleTakePayment() async {
-  double totalDiskon = 0;
-  double totalLusin = 0;
+  Future<void> _handleTakePayment() async {
+    double totalDiskon = 0;
+    double totalLusin = 0;
 
-  for (var item in cartItems) {
-    final double jumlahLusin = item.quantity / 12;
-    totalLusin += jumlahLusin;
+    for (var item in cartItems) {
+      final double jumlahLusin = item.quantity / 12;
+      totalLusin += jumlahLusin;
 
-    final double diskonItem = selectedCustomer!.diskonLusin * jumlahLusin;
-    totalDiskon += diskonItem;
+      final double diskonItem = selectedCustomer!.diskonLusin * jumlahLusin;
+      totalDiskon += diskonItem;
+    }
+
+    double grandTotal = calculateGrandTotal(
+      items: cartItems,
+      customer: selectedCustomer,
+      manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+      manualDiscPercent: double.tryParse(percentController.text) ?? 0,
+    );
+
+    await showStrukDialog(
+      context,
+      cartItems,
+      selectedCustomer,
+      grandTotal,
+      selectedPaymentAccountMap,
+      null,
+      totalDiskon,
+      newDiscount,
+      totalLusin,
+      splitPayments,
+    );
+    await saveFinalTransaction(); // setelah showStrukDialog
   }
 
-  double grandTotal = calculateGrandTotal(
-    items: cartItems,
-    customer: selectedCustomer,
-    manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
-    manualDiscPercent: double.tryParse(percentController.text) ?? 0,
-  );
+  void resetTransaction() {
+    setState(() {
+      cartItems.clear();
+      selectedCustomer = null;
+      nominalController.clear();
+      percentController.clear();
+      newDiscount = 0;
+      grandTotal = 0;
+      isConfirmMode = false;
+      showDiscountInput = false;
+      selectedPaymentAccount = null;
+      selectedPaymentAccountMap = null;
+      splitPayments.clear();
+      splitAmountController.clear();
+      cashController.clear();
+      notesController.clear();
+    });
 
-  await showStrukDialog(
-    context,
-    cartItems,
-    selectedCustomer,
-    grandTotal,
-    selectedPaymentAccountMap,
-    null,
-    totalDiskon,
-    newDiscount,
-    totalLusin,
-    splitPayments,
-  );
-  await saveFinalTransaction(); // setelah showStrukDialog
-
-}
-
-
-void resetTransaction() {
-  setState(() {
-    cartItems.clear();
-    selectedCustomer = null;
-    nominalController.clear();
-    percentController.clear();
-    newDiscount = 0;
-    grandTotal = 0;
-    isConfirmMode = false;
-    showDiscountInput = false;
-    selectedPaymentAccount = null;
-    selectedPaymentAccountMap = null;
-    splitPayments.clear();
-    splitAmountController.clear();
-    cashController.clear();
-    notesController.clear();
-  });
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Transaksi selesai')),
-  );
-}
-
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Transaksi selesai')),
+    );
+  }
 
   String formatRupiah(dynamic number) {
     final formatter = NumberFormat.decimalPattern('id');
     return formatter.format(number);
   }
 
-Future<void> showTransactionDialog(BuildContext context, double grandTotal) async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String idCabang = prefs.getString('id_cabang') ?? ''; // Default kosong jika tidak ada    
-  DateTime selectedDate = DateTime.now();    final TextEditingController dateController = TextEditingController(
+  Future<void> showTransactionDialog(
+      BuildContext context, double grandTotal) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String idCabang =
+        prefs.getString('id_cabang') ?? ''; // Default kosong jika tidak ada
+    DateTime selectedDate = DateTime.now();
+    final TextEditingController dateController = TextEditingController(
         text: DateFormat('dd/MM/yyyy').format(selectedDate));
     splitAmountController.addListener(() {
       String text =
@@ -205,58 +205,66 @@ Future<void> showTransactionDialog(BuildContext context, double grandTotal) asyn
                     ),
                     const SizedBox(height: 10),
                     fieldRow(
-  label: 'Pembayaran',
-  child: DropdownButtonFormField<String>(
-    value: selectedPaymentAccount,
-    decoration: const InputDecoration(
-      border: OutlineInputBorder(),
-      isDense: true,
-    ),
-    items: paymentAccounts.map((item) {
-      String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
-      String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
-          ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-          : tipe;
+                      label: 'Pembayaran',
+                      child: DropdownButtonFormField<String>(
+                        value: selectedPaymentAccount,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        items: paymentAccounts.map((item) {
+                          String tipe =
+                              item['tipe']?.toString().trim().toUpperCase() ??
+                                  '';
+                          String displayText = (tipe == 'TRANSFER' ||
+                                  tipe == 'DEBET' ||
+                                  tipe == 'EDC')
+                              ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                              : tipe;
 
-      return DropdownMenuItem<String>(
-        value: displayText,
-        child: Text(displayText),
-      );
-    }).toList(),
-    onChanged: (val) {
-      setState(() {
-        selectedPaymentAccount = val;
+                          return DropdownMenuItem<String>(
+                            value: displayText,
+                            child: Text(displayText),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            selectedPaymentAccount = val;
 
-        final selectedItem = paymentAccounts.firstWhere(
-          (item) {
-            String tipe = item['tipe']?.toString().trim().toUpperCase() ?? '';
-            String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
-                ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-                : tipe;
-            return displayText == val;
-          },
-          orElse: () => <String, dynamic>{},
-        );
+                            final selectedItem = paymentAccounts.firstWhere(
+                              (item) {
+                                String tipe = item['tipe']
+                                        ?.toString()
+                                        .trim()
+                                        .toUpperCase() ??
+                                    '';
+                                String displayText = (tipe == 'TRANSFER' ||
+                                        tipe == 'DEBET' ||
+                                        tipe == 'EDC')
+                                    ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                                    : tipe;
+                                return displayText == val;
+                              },
+                              orElse: () => <String, dynamic>{},
+                            );
 
-        // Pastikan Map tidak kosong
-        if (selectedItem.isNotEmpty) {
-          selectedPaymentAccountMap = selectedItem;
-        } else {
-          selectedPaymentAccountMap = null;
-        }
+                            // Pastikan Map tidak kosong
+                            if (selectedItem.isNotEmpty) {
+                              selectedPaymentAccountMap = selectedItem;
+                            } else {
+                              selectedPaymentAccountMap = null;
+                            }
 
-        if (selectedItem['no_akun'] != null &&
-            selectedItem['no_akun'].toString().isNotEmpty) {
-          cashController.text = formatRupiah(grandTotal);
-        } else {
-          cashController.clear();
-        }
+                            if (selectedItem['no_akun'] != null &&
+                                selectedItem['no_akun'].toString().isNotEmpty) {
+                              cashController.text = formatRupiah(grandTotal);
+                            } else {
+                              cashController.clear();
+                            }
 
-        setDialogState(() {});
-      });
-    },
-
-
+                            setDialogState(() {});
+                          });
+                        },
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -516,152 +524,154 @@ Future<void> showTransactionDialog(BuildContext context, double grandTotal) asyn
                       ),
                       child: const Text('Close'),
                     ),
-TextButton(
-  onPressed: () async {
-    // Hitung total split saat ini
-    double totalSplit = 0;
-    for (var item in splitPayments) {
-      final jumlah = double.tryParse(
-              item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
-          0;
-      totalSplit += jumlah;
-    }
+                    TextButton(
+                      onPressed: () async {
+                        // Hitung total split saat ini
+                        double totalSplit = 0;
+                        for (var item in splitPayments) {
+                          final jumlah = double.tryParse(item['jumlah']
+                                  .toString()
+                                  .replaceAll('.', '')
+                                  .replaceAll(',', '')) ??
+                              0;
+                          totalSplit += jumlah;
+                        }
 
-    // Jika SPLIT dan total split belum sama dengan grandTotal -> tolak
-    if (selectedPaymentAccount == 'SPLIT' && totalSplit != grandTotal) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text("Peringatan"),
-          content: Text(
-            "Total split pembayaran harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+                        // Jika SPLIT dan total split belum sama dengan grandTotal -> tolak
+                        if (selectedPaymentAccount == 'SPLIT' &&
+                            totalSplit != grandTotal) {
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text("Peringatan"),
+                              content: Text(
+                                  "Total split pembayaran harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})."),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            ),
+                          );
+                          return;
+                        }
 
-        Map<String, dynamic> selectedPaymentMap = {};
+                        Map<String, dynamic> selectedPaymentMap = {};
 
-if (selectedPaymentAccount != null && selectedPaymentAccount is Map<String, dynamic>) {
-  selectedPaymentMap = selectedPaymentAccount as Map<String, dynamic>;
-} else if (selectedPaymentAccount != null) {
-  selectedPaymentMap = {'tipe': selectedPaymentAccount.toString()};
-}
+                        if (selectedPaymentAccount != null &&
+                            selectedPaymentAccount is Map<String, dynamic>) {
+                          selectedPaymentMap =
+                              selectedPaymentAccount as Map<String, dynamic>;
+                        } else if (selectedPaymentAccount != null) {
+                          selectedPaymentMap = {
+                            'tipe': selectedPaymentAccount.toString()
+                          };
+                        }
 
-await generateAndPrintStrukPdf(
-  cartItems: cartItems,
-  grandTotal: grandTotal,
-  totalDiskon: totalDiskon,
-  newDiscount: newDiscount,
-  totalLusin: totalLusin,
-  selectedPaymentAccount: selectedPaymentMap,
-  splitPayments: splitPayments,
-  collectedBy: prefs.getString('nm_user') ?? '-',
-);
+                        // Lanjutkan proses pembayaran
+                        await _handleTakePayment();
 
-    // Lanjutkan proses pembayaran
-    await _handleTakePayment();
+                        if (currentTransactionId != null) {
+                          final success =
+                              await deleteTransaction(currentTransactionId!);
+                          if (success) {
+                            setState(() {
+                              currentTransactionId = null;
+                              isConfirmMode = false;
+                            });
+                          }
+                        }
 
-    if (currentTransactionId != null) {
-      final success = await deleteTransaction(currentTransactionId!);
-      if (success) {
-        setState(() {
-          currentTransactionId = null;
-          isConfirmMode = false;
-        });
-      }
-    }
+                        Navigator.of(context).pop();
+                        resetTransaction();
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: selectedPaymentAccount == null ||
+                                selectedPaymentAccount!.isEmpty
+                            ? Colors.grey
+                            : Colors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        minimumSize: const Size(100, 40),
+                      ),
+                      child: const Text('Take Payment'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        if (currentTransactionId != null) {}
 
-    Navigator.of(context).pop();
-    resetTransaction();
-  },
-  style: TextButton.styleFrom(
-    backgroundColor: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
-        ? Colors.grey
-        : Colors.green,
-    foregroundColor: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(6),
-    ),
-    minimumSize: const Size(100, 40),
-  ),
-  child: const Text('Take Payment'),
-),
+                        try {
+                          SharedPreferences prefs =
+                              await SharedPreferences.getInstance();
+                          String namaUser = prefs.getString('nm_user') ?? '';
 
-TextButton(
-  onPressed: () async {
-    if (currentTransactionId != null) {
-    }
+                          await saveDraft(
+                            idCustomer: selectedCustomer!.id,
+                            sales: selectedSales,
+                            discInvoice: newDiscount,
+                            subtotal: subTotal,
+                            grandTotal: grandTotal,
+                            idCabang: idCabang,
+                            dibuatOleh: namaUser,
+                            items: cartItems
+                                .map((item) => {
+                                      "idBahan": item.idTipe,
+                                      "model": item.productName,
+                                      "ukuran": item.size,
+                                      "quantity": item.quantity,
+                                      "unitPrice": item.unitPrice / 12,
+                                      "total": item.total,
+                                      "disc": selectedCustomer!.diskonLusin *
+                                          item.quantity /
+                                          12,
+                                    })
+                                .toList(),
+                            existingIdTransaksi: currentTransactionId,
+                            existingIdInvoice: currentInvoiceId,
+                          );
 
-    try {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String namaUser = prefs.getString('nm_user') ?? '';   
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text("Berhasil ditambahkan ke keranjang"),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
 
-await saveDraft(
-  idCustomer: selectedCustomer!.id,
-  sales: selectedSales,
-  discInvoice: newDiscount,
-  subtotal: subTotal,
-  grandTotal: grandTotal,
-  idCabang: idCabang,
-  dibuatOleh: namaUser,
-  items: cartItems.map((item) => {
-    "idBahan": item.idTipe,
-    "model": item.productName,
-    "ukuran": item.size,
-    "quantity": item.quantity,
-    "unitPrice": item.unitPrice / 12,
-    "total": item.total,
-    "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
-  }).toList(),
-  existingIdTransaksi: currentTransactionId,
-  existingIdInvoice: currentInvoiceId,
-);
+                          // Kosongkan cart dan selectedCustomer setelah berhasil
+                          setState(() {
+                            cartItems.clear();
+                            selectedCustomer = null;
+                          });
 
+                          // Tunggu sebentar
+                          await Future.delayed(
+                              const Duration(milliseconds: 100));
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Berhasil ditambahkan ke keranjang"),
-          duration: Duration(seconds: 1),
-        ),
-      );
-
-      // Kosongkan cart dan selectedCustomer setelah berhasil
-      setState(() {
-        cartItems.clear();
-        selectedCustomer = null;
-      });
-
-      // Tunggu sebentar
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Kembali ke halaman sebelumnya
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Gagal menyimpan data: $e"),
-        ),
-      );
-    }
-  },
-  style: TextButton.styleFrom(
-    backgroundColor: Colors.orange,
-    foregroundColor: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(6),
-    ),
-    minimumSize: const Size(100, 40),
-  ),
-  child: const Text('Save Draft'),
-)
-],
+                          // Kembali ke halaman sebelumnya
+                          Navigator.pop(context);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Gagal menyimpan data: $e"),
+                            ),
+                          );
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        minimumSize: const Size(100, 40),
+                      ),
+                      child: const Text('Save Draft'),
+                    )
+                  ],
                 )
               ],
             );
@@ -670,8 +680,6 @@ await saveDraft(
       },
     );
   }
-
-
 
   Widget fieldRow({required String label, required Widget child}) {
     const double rowHeight = 40;
@@ -737,158 +745,156 @@ await saveDraft(
     percentController.text = percent.toStringAsFixed(2);
   }
 
-Future<void> saveFinalTransaction() async {
-  final prefs = await SharedPreferences.getInstance();
-  final String? idCabangPref = prefs.getString('id_cabang');
-  final String? dibuatOlehPref = prefs.getString('nm_user');
+  Future<void> saveFinalTransaction() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? idCabangPref = prefs.getString('id_cabang');
+    final String? dibuatOlehPref = prefs.getString('nm_user');
 
-  final url = Uri.parse("http://192.168.1.8/hayami/takepayment.php"); // endpoint baru
+    final url =
+        Uri.parse("http://192.168.1.8/hayami/takepayment.php"); // endpoint baru
 
-  final double discInvoice = newDiscount;
-  final double subtotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
-  final double grandTotal = calculateGrandTotal(
-    items: cartItems,
-    customer: selectedCustomer,
-    manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
-    manualDiscPercent: double.tryParse(percentController.text) ?? 0,
-  );
-
-  String? akunType;
-  double cashAmount = 0;
-  double sisaBayar = 0;
-
-if (selectedSplitMethod != null && splitPayments.isNotEmpty) {
-  akunType = "SPLIT";
-  // Tambahan jika SPLIT, kamu bisa hitung cash dan sisa dari list
-  // atau biarkan saja jika nilainya sudah dikalkulasi di tempat lain
-} else if (selectedPaymentAccountMap != null) {
-  final tipe = selectedPaymentAccountMap!['tipe'];
-  akunType = tipe.toUpperCase(); // HUTANG, CASH, TRANSFER
-
-  if (akunType == 'HUTANG') {
-    sisaBayar = grandTotal;
-  } else {
-    cashAmount = grandTotal;
-  }
-}
-
-  final itemsData = cartItems.map((item) {
-    return {
-      "idBahan": item.idTipe,
-      "model": item.productName,
-      "ukuran": item.size,
-      "quantity": item.quantity,
-      "unitPrice": item.unitPrice,
-      "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
-      "total": item.total,
-    };
-  }).toList();
-
-  final body = {
-    "idCustomer": selectedCustomer?.id ?? "",
-    "sales": selectedSales,
-    "discInvoice": discInvoice,
-    "subtotal": subtotal,
-    "grandTotal": grandTotal,
-    "idCabang": idCabangPref ?? "C1", // default kalau null
-    "dibuatOleh": dibuatOlehPref ?? "admin", // default kalau null
-    "items": itemsData,
-    "akun": akunType,
-    "cash": cashAmount,
-    "sisa_bayar": sisaBayar,
-  };
-
-  try {
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
+    final double discInvoice = newDiscount;
+    final double subtotal =
+        cartItems.fold(0, (sum, item) => sum + item.total / 12);
+    final double grandTotal = calculateGrandTotal(
+      items: cartItems,
+      customer: selectedCustomer,
+      manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+      manualDiscPercent: double.tryParse(percentController.text) ?? 0,
     );
 
-    if (response.statusCode == 200) {
-      final resData = jsonDecode(response.body);
-      print("Sukses simpan transaksi: ${resData['message']}");
-      resetTransaction();
-    } else {
-      print("Gagal simpan transaksi. Kode: ${response.statusCode}");
-    }
-  } catch (e) {
-    print("Error simpan transaksi: $e");
-  }
-}
+    String? akunType;
+    double cashAmount = 0;
+    double sisaBayar = 0;
 
+    if (selectedSplitMethod != null && splitPayments.isNotEmpty) {
+      akunType = "SPLIT";
+      // Tambahan jika SPLIT, kamu bisa hitung cash dan sisa dari list
+      // atau biarkan saja jika nilainya sudah dikalkulasi di tempat lain
+    } else if (selectedPaymentAccountMap != null) {
+      final tipe = selectedPaymentAccountMap!['tipe'];
+      akunType = tipe.toUpperCase(); // HUTANG, CASH, TRANSFER
+
+      if (akunType == 'HUTANG') {
+        sisaBayar = grandTotal;
+      } else {
+        cashAmount = grandTotal;
+      }
+    }
+
+    final itemsData = cartItems.map((item) {
+      return {
+        "idBahan": item.idTipe,
+        "model": item.productName,
+        "ukuran": item.size,
+        "quantity": item.quantity,
+        "unitPrice": item.unitPrice,
+        "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
+        "total": item.total,
+      };
+    }).toList();
+
+    final body = {
+      "idCustomer": selectedCustomer?.id ?? "",
+      "sales": selectedSales,
+      "discInvoice": discInvoice,
+      "subtotal": subtotal,
+      "grandTotal": grandTotal,
+      "idCabang": idCabangPref ?? "C1", // default kalau null
+      "dibuatOleh": dibuatOlehPref ?? "admin", // default kalau null
+      "items": itemsData,
+      "akun": akunType,
+      "cash": cashAmount,
+      "sisa_bayar": sisaBayar,
+    };
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final resData = jsonDecode(response.body);
+        print("Sukses simpan transaksi: ${resData['message']}");
+        resetTransaction();
+      } else {
+        print("Gagal simpan transaksi. Kode: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error simpan transaksi: $e");
+    }
+  }
 
   Future<void> saveDraft({
-      String? existingIdTransaksi,
-  String? existingIdInvoice,
+    String? existingIdTransaksi,
+    String? existingIdInvoice,
+    required String idCustomer,
+    required String sales,
+    required double discInvoice,
+    required double subtotal,
+    required double grandTotal,
+    required String idCabang,
+    required String dibuatOleh,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final url = Uri.parse("http://192.168.1.8/hayami/draft.php");
 
-  required String idCustomer,
-  required String sales,
-  required double discInvoice,
-  required double subtotal,
-  required double grandTotal,
-  required String idCabang,
-  required String dibuatOleh,
-  required List<Map<String, dynamic>> items,
-}) async {
-  final url = Uri.parse("http://192.168.1.8/hayami/draft.php");
+    final body = {
+      "idCustomer": idCustomer,
+      "sales": sales,
+      "discInvoice": discInvoice,
+      "subtotal": subtotal,
+      "grandTotal": grandTotal,
+      "idCabang": idCabang,
+      "dibuatOleh": dibuatOleh,
+      "items": items,
+      "existingIdTransaksi": existingIdTransaksi,
+      "existingIdInvoice": existingIdInvoice,
+    };
 
-  final body = {
-    "idCustomer": idCustomer,
-    "sales": sales,
-    "discInvoice": discInvoice,
-    "subtotal": subtotal,
-    "grandTotal": grandTotal,
-    "idCabang": idCabang,
-    "dibuatOleh": dibuatOleh,
-    "items": items,
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
 
-    "existingIdTransaksi": existingIdTransaksi,
-"existingIdInvoice": existingIdInvoice,
-
-  };
-
-  try {
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 200) {
-      final resData = jsonDecode(response.body);
-      print("Status: ${resData['status']}, Message: ${resData['message']}");
-    } else {
-      print("Gagal simpan draft. Kode: ${response.statusCode}");
+      if (response.statusCode == 200) {
+        final resData = jsonDecode(response.body);
+        print("Status: ${resData['status']}, Message: ${resData['message']}");
+      } else {
+        print("Gagal simpan draft. Kode: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error: $e");
     }
-  } catch (e) {
-    print("Error: $e");
   }
-}
 
-Future<bool> deleteTransaction(String idTransaksi) async {
-  try {
-    final response = await http.post(
-      Uri.parse('http://192.168.1.8/hayami/delete_cart.php'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'id_transaksi': idTransaksi}),
-    );
+  Future<bool> deleteTransaction(String idTransaksi) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.8/hayami/delete_cart.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'id_transaksi': idTransaksi}),
+      );
 
-    final responseBody = json.decode(response.body);
+      final responseBody = json.decode(response.body);
 
-    if (response.statusCode == 200 && responseBody['status'] == 'success') {
-      return true; // Berhasil hapus
-    } else {
-      throw Exception(responseBody['message'] ?? 'Gagal menghapus data');
+      if (response.statusCode == 200 && responseBody['status'] == 'success') {
+        return true; // Berhasil hapus
+      } else {
+        throw Exception(responseBody['message'] ?? 'Gagal menghapus data');
+      }
+    } catch (e) {
+      debugPrint('Delete Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Terjadi kesalahan saat menghapus data.')),
+      );
+      return false;
     }
-  } catch (e) {
-    debugPrint('Delete Error: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Terjadi kesalahan saat menghapus data.')),
-    );
-    return false;
   }
-}
 
   Future<void> fetchPaymentAccounts() async {
     final response =
@@ -983,7 +989,7 @@ Future<bool> deleteTransaction(String idTransaksi) async {
       Uri.parse('http://192.168.1.8/hayami/customer.php'),
     );
 
-    if (response.statusCode == 200) { 
+    if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
       if (jsonData['status'] == 'success' && jsonData['data'] is List) {
@@ -1148,15 +1154,15 @@ Future<bool> deleteTransaction(String idTransaksi) async {
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
                               ),
-      onPressed: customerData != null
-          ? () {
-              setState(() {
-                selectedCustomer = customerData!;
-                currentTransactionId = null; 
-                cartItems.clear();
-              });
-              Navigator.pop(context);
-            }
+                              onPressed: customerData != null
+                                  ? () {
+                                      setState(() {
+                                        selectedCustomer = customerData!;
+                                        currentTransactionId = null;
+                                        cartItems.clear();
+                                      });
+                                      Navigator.pop(context);
+                                    }
                                   : null,
                               child: const Text('Save'),
                             ),
@@ -1175,31 +1181,32 @@ Future<bool> deleteTransaction(String idTransaksi) async {
   }
 
   void showProductOrderDialog(
-  BuildContext context,
-  Map<String, dynamic> representative,
-  List<dynamic> allSizes,
-) {
-  showDialog(
-    context: context,
-    builder: (_) => Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 750),
-        child: ProductOrderDialogContent(
-          representative: representative,
-          allSizes: allSizes,
-          selectedCustomer: selectedCustomer,
-          currentCart: List<OrderItem>.from(cartItems), // ✅ Tambahkan ini
-          onAddToOrder: (updatedItems) {
-            setState(() {
-              cartItems = updatedItems; // ✅ Replace cartItems dengan yang sudah digabung & divalidasi
-            });
-          },
+    BuildContext context,
+    Map<String, dynamic> representative,
+    List<dynamic> allSizes,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 750),
+          child: ProductOrderDialogContent(
+            representative: representative,
+            allSizes: allSizes,
+            selectedCustomer: selectedCustomer,
+            currentCart: List<OrderItem>.from(cartItems), // ✅ Tambahkan ini
+            onAddToOrder: (updatedItems) {
+              setState(() {
+                cartItems =
+                    updatedItems; // ✅ Replace cartItems dengan yang sudah digabung & divalidasi
+              });
+            },
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   double calculateStock(dynamic item) {
     final rawStock = item['stock'];
@@ -1346,43 +1353,41 @@ Future<bool> deleteTransaction(String idTransaksi) async {
       }).toList(),
     );
   }
-  
 
   double calculateGrandTotal({
-  required List<OrderItem> items,
-  required Customer? customer,
-  required double manualDiscNominal,
-  required double manualDiscPercent,
-}) {
-  double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
-  double autoDisc = 0;
+    required List<OrderItem> items,
+    required Customer? customer,
+    required double manualDiscNominal,
+    required double manualDiscPercent,
+  }) {
+    double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
+    double autoDisc = 0;
 
-  if (customer != null) {
-    autoDisc = items.fold(
-      0,
-      (sum, item) => sum + (customer.diskonLusin * item.quantity / 12),
-    );
+    if (customer != null) {
+      autoDisc = items.fold(
+        0,
+        (sum, item) => sum + (customer.diskonLusin * item.quantity / 12),
+      );
+    }
+
+    double manualDisc = manualDiscNominal > 0
+        ? manualDiscNominal
+        : (manualDiscPercent > 0 ? subTotal * manualDiscPercent / 100 : 0);
+
+    return subTotal - autoDisc - manualDisc;
   }
-
-  double manualDisc = manualDiscNominal > 0
-      ? manualDiscNominal
-      : (manualDiscPercent > 0 ? subTotal * manualDiscPercent / 100 : 0);
-
-  return subTotal - autoDisc - manualDisc;
-}
 
   Widget cartSection() {
     final double calculatedGrandTotal = calculateGrandTotal(
-  items: cartItems,
-  customer: selectedCustomer,
-  manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
-  manualDiscPercent: double.tryParse(percentController.text) ?? 0,
-);
-double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
+      items: cartItems,
+      customer: selectedCustomer,
+      manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+      manualDiscPercent: double.tryParse(percentController.text) ?? 0,
+    );
+    double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
     double totalQty =
         cartItems.fold(0, (sum, item) => sum + item.quantity / 12);
 
-        
     String formatLusinQty(double qty) {
       if (qty < 1) {
         // Tampilkan dalam pcs (1 lusin = 12 pcs)
@@ -1418,8 +1423,9 @@ double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
         ? (subTotal * (double.tryParse(percentController.text)! / 100))
         : 0;
 
-newDiscount = manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercent;
-  grandTotal = subTotal - totalDiskon - newDiscount;
+    newDiscount =
+        manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercent;
+    grandTotal = subTotal - totalDiskon - newDiscount;
     return Container(
       padding: const EdgeInsets.all(12),
       color: Colors.grey[100],
@@ -1472,12 +1478,14 @@ newDiscount = manualDiskonNominal > 0 ? manualDiskonNominal : manualDiskonPercen
                         ),
                       );
 
-if (result != null && result is Map<String, dynamic>) {
+                      if (result != null && result is Map<String, dynamic>) {
                         final selectedItems =
                             result['items'] as List<OrderItem>?;
                         final selectedEntry = result['entry'] as CartEntry?;
-                        final String? idTransaksi = result['idTransaksi'] as String?;
-                        final String? idInvoice = result['idInvoice'] as String?;
+                        final String? idTransaksi =
+                            result['idTransaksi'] as String?;
+                        final String? idInvoice =
+                            result['idInvoice'] as String?;
 
                         if (selectedItems != null && selectedEntry != null) {
                           // Ambil semua nilai diskon dari result
@@ -1490,7 +1498,7 @@ if (result != null && result is Map<String, dynamic>) {
                               result['discBaru'] as double? ??
                                   0.0; // diskon manual (Rp)
 
-setState(() {
+                          setState(() {
                             // Ganti cart dan customer
                             cartItems = selectedItems;
                             currentTransactionId = idTransaksi;
@@ -1583,16 +1591,16 @@ setState(() {
                           ],
                         ),
                         Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    Text(
-      '${(item.quantity / 12).toStringAsFixed(2)} Ls @ ${currencyFormatter.format(item.unitPrice / 4)} /3pcs',
-    ),
-    Text(
-      'Total: ${currencyFormatter.format(item.total / 12)}',
-    ),
-  ],
-),
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${(item.quantity / 12).toStringAsFixed(2)} Ls @ ${currencyFormatter.format(item.unitPrice / 4)} /3pcs',
+                            ),
+                            Text(
+                              'Total: ${currencyFormatter.format(item.total / 12)}',
+                            ),
+                          ],
+                        ),
                         const Divider(),
                       ],
                     );

@@ -75,13 +75,12 @@ class _BelumDibayarState extends State<BelumDibayar> {
           };
         }).toList();
 
-        // Tambahkan pengurutan berdasarkan tanggal dari terlama ke terbaru
+        // Urutkan dari tanggal terlama ke terbaru
         invoices.sort((a, b) {
           try {
             final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
             final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
-            return dateA
-                .compareTo(dateB); // ascending = dari terlama ke terbaru
+            return dateA.compareTo(dateB);
           } catch (e) {
             return 0;
           }
@@ -120,6 +119,17 @@ class _BelumDibayarState extends State<BelumDibayar> {
           return false;
         }
       }).toList();
+
+      // Tambahkan sort tanggal dari terlama
+      filteredInvoices.sort((a, b) {
+        try {
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+          return dateA.compareTo(dateB);
+        } catch (e) {
+          return 0;
+        }
+      });
     });
   }
 
@@ -145,6 +155,17 @@ class _BelumDibayarState extends State<BelumDibayar> {
           return false;
         }
       }).toList();
+
+      // Tambahkan sort tanggal dari terlama
+      filteredInvoices.sort((a, b) {
+        try {
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+          return dateA.compareTo(dateB);
+        } catch (e) {
+          return 0;
+        }
+      });
     });
   }
 
