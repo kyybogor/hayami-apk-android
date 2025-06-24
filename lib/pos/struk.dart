@@ -16,6 +16,7 @@ Future<void> showStrukDialog(
   double newDiscount, // tambah parameter ini
   double totalLusin,
   List<Map<String, dynamic>> splitPayments,
+  String? idTransaksi,
 ) async {
   final now = DateTime.now();
   final formatterDate = DateFormat('dd MMM yyyy');
@@ -101,12 +102,12 @@ Future<void> showStrukDialog(
 
             // Order info
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('Order ID'),
-                Text('SO/xxxx/yyyy'),
-              ],
-            ),
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    const Text('Order ID'),
+    Text(idTransaksi ?? 'SO/xxxx/yyyy'), // tampilkan idTransaksi jika ada, kalau tidak pakai default
+  ],
+),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

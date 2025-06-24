@@ -65,38 +65,46 @@ class _PosscreenState extends State<Posscreen> {
   }
 
   Future<void> _handleTakePayment() async {
-    double totalDiskon = 0;
-    double totalLusin = 0;
+  double totalDiskon = 0;
+  double totalLusin = 0;
 
-    for (var item in cartItems) {
-      final double jumlahLusin = item.quantity / 12;
-      totalLusin += jumlahLusin;
+  for (var item in cartItems) {
+    final double jumlahLusin = item.quantity / 12;
+    totalLusin += jumlahLusin;
 
-      final double diskonItem = selectedCustomer!.diskonLusin * jumlahLusin;
-      totalDiskon += diskonItem;
-    }
-
-    double grandTotal = calculateGrandTotal(
-      items: cartItems,
-      customer: selectedCustomer,
-      manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
-      manualDiscPercent: double.tryParse(percentController.text) ?? 0,
-    );
-
-    await showStrukDialog(
-      context,
-      cartItems,
-      selectedCustomer,
-      grandTotal,
-      selectedPaymentAccountMap,
-      null,
-      totalDiskon,
-      newDiscount,
-      totalLusin,
-      splitPayments,
-    );
-    await saveFinalTransaction(); // setelah showStrukDialog
+    final double diskonItem = selectedCustomer!.diskonLusin * jumlahLusin;
+    totalDiskon += diskonItem;
   }
+
+  double grandTotal = calculateGrandTotal(
+    items: cartItems,
+    customer: selectedCustomer,
+    manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+    manualDiscPercent: double.tryParse(percentController.text) ?? 0,
+  );
+
+  // Simpan transaksi dan dapatkan idTransaksi dulu
+  final String idTransaksi = await saveFinalTransaction();
+
+  // Tampilkan struk dengan idTransaksi yg didapat
+  await showStrukDialog(
+    context,
+    cartItems,
+    selectedCustomer,
+    grandTotal,
+    selectedPaymentAccountMap,
+    null,
+    totalDiskon,
+    newDiscount,
+    totalLusin,
+    splitPayments,
+    idTransaksi, // pastikan param ini ada di definisi showStrukDialog
+  );
+
+  // Reset transaksi setelah dialog ditutup
+  resetTransaction();
+}
+
 
   void resetTransaction() {
     setState(() {
@@ -116,9 +124,6 @@ class _PosscreenState extends State<Posscreen> {
       notesController.clear();
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Transaksi selesai')),
-    );
   }
 
   String formatRupiah(dynamic number) {
@@ -745,87 +750,91 @@ class _PosscreenState extends State<Posscreen> {
     percentController.text = percent.toStringAsFixed(2);
   }
 
-  Future<void> saveFinalTransaction() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? idCabangPref = prefs.getString('id_cabang');
-    final String? dibuatOlehPref = prefs.getString('nm_user');
+Future<String> saveFinalTransaction() async {
+  final prefs = await SharedPreferences.getInstance();
+  final String? idCabangPref = prefs.getString('id_cabang');
+  final String? dibuatOlehPref = prefs.getString('nm_user');
 
-    final url =
-        Uri.parse("http://192.168.1.8/hayami/takepayment.php"); // endpoint baru
+  final url = Uri.parse("http://192.168.1.8/hayami/takepayment.php");
 
-    final double discInvoice = newDiscount;
-    final double subtotal =
-        cartItems.fold(0, (sum, item) => sum + item.total / 12);
-    final double grandTotal = calculateGrandTotal(
-      items: cartItems,
-      customer: selectedCustomer,
-      manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
-      manualDiscPercent: double.tryParse(percentController.text) ?? 0,
-    );
+  final double discInvoice = newDiscount;
+  final double subtotal =
+      cartItems.fold(0, (sum, item) => sum + item.total / 12);
+  final double grandTotal = calculateGrandTotal(
+    items: cartItems,
+    customer: selectedCustomer,
+    manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+    manualDiscPercent: double.tryParse(percentController.text) ?? 0,
+  );
 
-    String? akunType;
-    double cashAmount = 0;
-    double sisaBayar = 0;
+  String? akunType;
+  double cashAmount = 0;
+  double sisaBayar = 0;
 
-    if (selectedSplitMethod != null && splitPayments.isNotEmpty) {
-      akunType = "SPLIT";
-      // Tambahan jika SPLIT, kamu bisa hitung cash dan sisa dari list
-      // atau biarkan saja jika nilainya sudah dikalkulasi di tempat lain
-    } else if (selectedPaymentAccountMap != null) {
-      final tipe = selectedPaymentAccountMap!['tipe'];
-      akunType = tipe.toUpperCase(); // HUTANG, CASH, TRANSFER
+  if (selectedSplitMethod != null && splitPayments.isNotEmpty) {
+    akunType = "SPLIT";
+    // Hitung cashAmount dan sisaBayar dari splitPayments jika perlu
+  } else if (selectedPaymentAccountMap != null) {
+    final tipe = selectedPaymentAccountMap!['tipe'];
+    akunType = tipe.toUpperCase(); // HUTANG, CASH, TRANSFER
 
-      if (akunType == 'HUTANG') {
-        sisaBayar = grandTotal;
-      } else {
-        cashAmount = grandTotal;
-      }
-    }
-
-    final itemsData = cartItems.map((item) {
-      return {
-        "idBahan": item.idTipe,
-        "model": item.productName,
-        "ukuran": item.size,
-        "quantity": item.quantity,
-        "unitPrice": item.unitPrice,
-        "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
-        "total": item.total,
-      };
-    }).toList();
-
-    final body = {
-      "idCustomer": selectedCustomer?.id ?? "",
-      "sales": selectedSales,
-      "discInvoice": discInvoice,
-      "subtotal": subtotal,
-      "grandTotal": grandTotal,
-      "idCabang": idCabangPref ?? "C1", // default kalau null
-      "dibuatOleh": dibuatOlehPref ?? "admin", // default kalau null
-      "items": itemsData,
-      "akun": akunType,
-      "cash": cashAmount,
-      "sisa_bayar": sisaBayar,
-    };
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(body),
-      );
-
-      if (response.statusCode == 200) {
-        final resData = jsonDecode(response.body);
-        print("Sukses simpan transaksi: ${resData['message']}");
-        resetTransaction();
-      } else {
-        print("Gagal simpan transaksi. Kode: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Error simpan transaksi: $e");
+    if (akunType == 'HUTANG') {
+      sisaBayar = grandTotal;
+    } else {
+      cashAmount = grandTotal;
     }
   }
+
+  final itemsData = cartItems.map((item) {
+    return {
+      "idBahan": item.idTipe,
+      "model": item.productName,
+      "ukuran": item.size,
+      "quantity": item.quantity,
+      "unitPrice": item.unitPrice,
+      "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
+      "total": item.total,
+    };
+  }).toList();
+
+  final body = {
+    "idCustomer": selectedCustomer?.id ?? "",
+    "sales": selectedSales,
+    "discInvoice": discInvoice,
+    "subtotal": subtotal,
+    "grandTotal": grandTotal,
+    "idCabang": idCabangPref ?? "C1",
+    "dibuatOleh": dibuatOlehPref ?? "admin",
+    "items": itemsData,
+    "akun": akunType,
+    "cash": cashAmount,
+    "sisa_bayar": sisaBayar,
+  };
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final resData = jsonDecode(response.body);
+      if (resData['status'] == 'success') {
+        print("Sukses simpan transaksi: ${resData['message']}");
+        return resData['id_transaksi'] ?? '';
+      } else {
+        throw Exception('Gagal simpan transaksi: ${resData['message']}');
+      }
+    } else {
+      throw Exception('Server error dengan status code: ${response.statusCode}');
+    }
+  } catch (e) {
+    print("Error simpan transaksi: $e");
+    rethrow; // supaya error bisa di-handle di caller jika perlu
+  }
+}
+
 
   Future<void> saveDraft({
     String? existingIdTransaksi,
