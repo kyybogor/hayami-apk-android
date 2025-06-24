@@ -47,7 +47,8 @@ Future<void> generateAndPrintStrukPdf({
 
   pdf.addPage(
     pw.Page(
-      pageFormat: PdfPageFormat.roll80,
+      pageFormat: PdfPageFormat.a5,
+      margin: const pw.EdgeInsets.all(20),
       build: (context) {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
