@@ -94,6 +94,8 @@ Future<void> _handleTakePayment() async {
     totalLusin,
     splitPayments,
   );
+  await saveFinalTransaction(); // setelah showStrukDialog
+
 }
 
 
@@ -578,6 +580,9 @@ TextButton(
     }
 
     try {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String namaUser = prefs.getString('nm_user') ?? '';   
+
 await saveDraft(
   idCustomer: selectedCustomer!.id,
   sales: selectedSales,
@@ -585,7 +590,7 @@ await saveDraft(
   subtotal: subTotal,
   grandTotal: grandTotal,
   idCabang: idCabang,
-  dibuatOleh: "admin",
+  dibuatOleh: namaUser,
   items: cartItems.map((item) => {
     "idBahan": item.idTipe,
     "model": item.productName,
@@ -712,9 +717,90 @@ await saveDraft(
     percentController.text = percent.toStringAsFixed(2);
   }
 
+Future<void> saveFinalTransaction() async {
+  final prefs = await SharedPreferences.getInstance();
+  final String? idCabangPref = prefs.getString('id_cabang');
+  final String? dibuatOlehPref = prefs.getString('nm_user');
+
+  final url = Uri.parse("http://192.168.1.8/hayami/takepayment.php"); // endpoint baru
+
+  final double discInvoice = newDiscount;
+  final double subtotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
+  final double grandTotal = calculateGrandTotal(
+    items: cartItems,
+    customer: selectedCustomer,
+    manualDiscNominal: double.tryParse(nominalController.text) ?? 0,
+    manualDiscPercent: double.tryParse(percentController.text) ?? 0,
+  );
+
+  String? akunType;
+  double cashAmount = 0;
+  double sisaBayar = 0;
+
+if (selectedSplitMethod != null && splitPayments.isNotEmpty) {
+  akunType = "SPLIT";
+  // Tambahan jika SPLIT, kamu bisa hitung cash dan sisa dari list
+  // atau biarkan saja jika nilainya sudah dikalkulasi di tempat lain
+} else if (selectedPaymentAccountMap != null) {
+  final tipe = selectedPaymentAccountMap!['tipe'];
+  akunType = tipe.toUpperCase(); // HUTANG, CASH, TRANSFER
+
+  if (akunType == 'HUTANG') {
+    sisaBayar = grandTotal;
+  } else {
+    cashAmount = grandTotal;
+  }
+}
+
+  final itemsData = cartItems.map((item) {
+    return {
+      "idBahan": item.idTipe,
+      "model": item.productName,
+      "ukuran": item.size,
+      "quantity": item.quantity,
+      "unitPrice": item.unitPrice,
+      "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
+      "total": item.total,
+    };
+  }).toList();
+
+  final body = {
+    "idCustomer": selectedCustomer?.id ?? "",
+    "sales": selectedSales,
+    "discInvoice": discInvoice,
+    "subtotal": subtotal,
+    "grandTotal": grandTotal,
+    "idCabang": idCabangPref ?? "C1", // default kalau null
+    "dibuatOleh": dibuatOlehPref ?? "admin", // default kalau null
+    "items": itemsData,
+    "akun": akunType,
+    "cash": cashAmount,
+    "sisa_bayar": sisaBayar,
+  };
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final resData = jsonDecode(response.body);
+      print("Sukses simpan transaksi: ${resData['message']}");
+      resetTransaction();
+    } else {
+      print("Gagal simpan transaksi. Kode: ${response.statusCode}");
+    }
+  } catch (e) {
+    print("Error simpan transaksi: $e");
+  }
+}
+
+
   Future<void> saveDraft({
-      String? existingIdTransaksi,  // tambahkan ini
-  String? existingIdInvoice,    // dan ini
+      String? existingIdTransaksi,
+  String? existingIdInvoice,
 
   required String idCustomer,
   required String sales,

@@ -88,8 +88,8 @@ class _CartScreenState extends State<CartScreen> {
                 double.tryParse(item['total_invoice'] ?? '0') ?? 0.0;
             final disc = double.tryParse(item['disc'] ?? '0') ?? 0.0;
             final discPersen =
-                double.tryParse(item['disc_invoice'] ?? '0') ?? 0.0;
-            final discBaru = double.tryParse(item['disc_nilai'] ?? '0') ?? 0.0;
+                double.tryParse(item['disc_nilai'] ?? '0') ?? 0.0;
+            final discBaru = double.tryParse(item['disc_invoice'] ?? '0') ?? 0.0;
             final diskonLusin = double.tryParse(item['diskon_lusin'] ?? '0') ?? 0.0;
 
             entries.add(CartEntry(
