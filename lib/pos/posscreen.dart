@@ -24,6 +24,7 @@ final currencyFormatter =
     NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
 class _PosscreenState extends State<Posscreen> {
+  String? currentInvoiceId;
   String? currentTransactionId;
   double subTotal = 0;
 double newDiscount = 0;
@@ -574,36 +575,30 @@ TextButton(
 TextButton(
   onPressed: () async {
     if (currentTransactionId != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Sudah ada di keranjang"),
-          duration: Duration(seconds: 1),
-        ),
-      );
-      return;
     }
 
     try {
-      await saveDraft(
-        idCustomer: selectedCustomer!.id,
-        sales: selectedSales,
-        discInvoice: newDiscount,
-        subtotal: subTotal,
-        grandTotal: grandTotal,
-        idCabang: idCabang,
-        dibuatOleh: "admin",
-        items: cartItems
-            .map((item) => {
-                  "idBahan": item.idTipe,
-                  "model": item.productName,
-                  "ukuran": item.size,
-                  "quantity": item.quantity,
-                  "unitPrice": item.unitPrice / 12,
-                  "total": item.total,
-                  "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
-                })
-            .toList(),
-      );
+await saveDraft(
+  idCustomer: selectedCustomer!.id,
+  sales: selectedSales,
+  discInvoice: newDiscount,
+  subtotal: subTotal,
+  grandTotal: grandTotal,
+  idCabang: idCabang,
+  dibuatOleh: "admin",
+  items: cartItems.map((item) => {
+    "idBahan": item.idTipe,
+    "model": item.productName,
+    "ukuran": item.size,
+    "quantity": item.quantity,
+    "unitPrice": item.unitPrice / 12,
+    "total": item.total,
+    "disc": selectedCustomer!.diskonLusin * item.quantity / 12,
+  }).toList(),
+  existingIdTransaksi: currentTransactionId,
+  existingIdInvoice: currentInvoiceId,
+);
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -650,6 +645,8 @@ TextButton(
       },
     );
   }
+
+
 
   Widget fieldRow({required String label, required Widget child}) {
     const double rowHeight = 40;
@@ -716,6 +713,9 @@ TextButton(
   }
 
   Future<void> saveDraft({
+      String? existingIdTransaksi,  // tambahkan ini
+  String? existingIdInvoice,    // dan ini
+
   required String idCustomer,
   required String sales,
   required double discInvoice,
@@ -736,6 +736,10 @@ TextButton(
     "idCabang": idCabang,
     "dibuatOleh": dibuatOleh,
     "items": items,
+
+    "existingIdTransaksi": existingIdTransaksi,
+"existingIdInvoice": existingIdInvoice,
+
   };
 
   try {
@@ -1235,6 +1239,7 @@ Future<bool> deleteTransaction(String idTransaksi) async {
       }).toList(),
     );
   }
+  
 
   double calculateGrandTotal({
   required List<OrderItem> items,
@@ -1242,7 +1247,7 @@ Future<bool> deleteTransaction(String idTransaksi) async {
   required double manualDiscNominal,
   required double manualDiscPercent,
 }) {
-  double subTotal = items.fold(0, (sum, item) => sum + item.total / 12);
+  double subTotal = cartItems.fold(0, (sum, item) => sum + item.total / 12);
   double autoDisc = 0;
 
   if (customer != null) {
@@ -1365,6 +1370,7 @@ if (result != null && result is Map<String, dynamic>) {
                             result['items'] as List<OrderItem>?;
                         final selectedEntry = result['entry'] as CartEntry?;
                         final String? idTransaksi = result['idTransaksi'] as String?;
+                        final String? idInvoice = result['idInvoice'] as String?;
 
                         if (selectedItems != null && selectedEntry != null) {
                           // Ambil semua nilai diskon dari result
@@ -1381,6 +1387,7 @@ setState(() {
                             // Ganti cart dan customer
                             cartItems = selectedItems;
                             currentTransactionId = idTransaksi;
+                            currentInvoiceId = idInvoice;
                             isConfirmMode = false;
 
                             selectedCustomer = Customer(
