@@ -25,12 +25,15 @@ class ProductOrderDialogContent extends StatefulWidget {
   final Map<String, dynamic> representative;
   final List<dynamic> allSizes;
   final void Function(List<OrderItem>) onAddToOrder;
+  final List<OrderItem> currentCart;
+
 
   ProductOrderDialogContent({
     required this.representative,
     required this.allSizes,
     required this.onAddToOrder,
     required this.selectedCustomer,
+    required this.currentCart,
     super.key,
   });
 
@@ -189,39 +192,80 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    final List<OrderItem> orderedItems = [];
+  final List<OrderItem> updatedCart = List.from(widget.currentCart);
 
-                    for (var item in widget.allSizes) {
-                      final size = item['ukuran'].toString();
-                      final qtyText = qtyControllers[size]?.text ?? '0';
-                      final qty = double.tryParse(qtyText) ?? 0.0;
+  for (var item in widget.allSizes) {
+    final size = item['ukuran'].toString();
+    final qtyText = qtyControllers[size]?.text ?? '0';
+    final qty = double.tryParse(qtyText) ?? 0.0;
 
-                      if (qty > 0) {
-                        final basePrice = double.tryParse(item['harga'].toString()) ?? 0.0;
-                        final idTipe = widget.representative['id_bahan'].toString();
-                        double finalPrice = basePrice;
+    if (qty > 0) {
+      final basePrice = double.tryParse(item['harga'].toString()) ?? 0.0;
+      final idTipe = widget.representative['id_bahan'].toString();
+      final stock = double.tryParse(item['stock'].toString()) ?? 0.0;
 
-                        if (widget.selectedCustomer != null) {
-                          finalPrice = calculateFinalUnitPrice(
-                            basePrice: basePrice,
-                            quantity: qty,
-                            diskonLusin: widget.selectedCustomer!.diskonLusin,
-                          );
-                        }
+      double finalPrice = basePrice;
 
-                        orderedItems.add(OrderItem(
-                          idTipe: idTipe,
-                          productName: '$idTipe ${widget.representative['model']}',
-                          size: size,
-                          quantity: qty,
-                          unitPrice: finalPrice,
-                        ));
-                      }
-                    }
+      if (widget.selectedCustomer != null) {
+        finalPrice = calculateFinalUnitPrice(
+          basePrice: basePrice,
+          quantity: qty,
+          diskonLusin: widget.selectedCustomer!.diskonLusin,
+        );
+      }
 
-                    widget.onAddToOrder(orderedItems);
-                    Navigator.pop(context);
-                  },
+      final existingItemIndex = updatedCart.indexWhere(
+        (e) => e.idTipe == idTipe && e.size == size,
+      );
+
+      double currentQtyInCart = 0.0;
+      if (existingItemIndex != -1) {
+        currentQtyInCart = updatedCart[existingItemIndex].quantity;
+      }
+
+      if ((currentQtyInCart + qty) > stock) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Stok tidak mencukupi'),
+            content: Text(
+              'Stok tersedia hanya ${stock - currentQtyInCart} untuk ukuran $size.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return; // Stop proses jika tidak cukup stok
+      }
+
+      if (existingItemIndex != -1) {
+        updatedCart[existingItemIndex] = OrderItem(
+          idTipe: idTipe,
+          productName: '$idTipe ${widget.representative['model']}',
+          size: size,
+          quantity: currentQtyInCart + qty,
+          unitPrice: finalPrice,
+        );
+      } else {
+        updatedCart.add(OrderItem(
+          idTipe: idTipe,
+          productName: '$idTipe ${widget.representative['model']}',
+          size: size,
+          quantity: qty,
+          unitPrice: finalPrice,
+        ));
+      }
+    }
+  }
+
+  widget.onAddToOrder(updatedCart);
+  Navigator.pop(context);
+},
+
                   child: const Text('Add to Order'),
                 ),
               ],

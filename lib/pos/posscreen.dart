@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/cart_screen.dart';
+import 'package:hayami_app/pos/print.dart';
 import 'package:hayami_app/pos/struk.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/pos/customer_model.dart';
@@ -544,6 +545,25 @@ TextButton(
       );
       return;
     }
+
+        Map<String, dynamic> selectedPaymentMap = {};
+
+if (selectedPaymentAccount != null && selectedPaymentAccount is Map<String, dynamic>) {
+  selectedPaymentMap = selectedPaymentAccount as Map<String, dynamic>;
+} else if (selectedPaymentAccount != null) {
+  selectedPaymentMap = {'tipe': selectedPaymentAccount.toString()};
+}
+
+await generateAndPrintStrukPdf(
+  cartItems: cartItems,
+  grandTotal: grandTotal,
+  totalDiskon: totalDiskon,
+  newDiscount: newDiscount,
+  totalLusin: totalLusin,
+  selectedPaymentAccount: selectedPaymentMap,
+  splitPayments: splitPayments,
+  collectedBy: prefs.getString('nm_user') ?? '-',
+);
 
     // Lanjutkan proses pembayaran
     await _handleTakePayment();
@@ -1155,30 +1175,31 @@ Future<bool> deleteTransaction(String idTransaksi) async {
   }
 
   void showProductOrderDialog(
-    BuildContext context,
-    Map<String, dynamic> representative,
-    List<dynamic> allSizes,
-  ) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 750),
-          child: ProductOrderDialogContent(
-            representative: representative,
-            allSizes: allSizes,
-            onAddToOrder: (items) {
-              setState(() {
-                cartItems.addAll(items);
-              });
-            },
-            selectedCustomer: selectedCustomer,
-          ),
+  BuildContext context,
+  Map<String, dynamic> representative,
+  List<dynamic> allSizes,
+) {
+  showDialog(
+    context: context,
+    builder: (_) => Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 750),
+        child: ProductOrderDialogContent(
+          representative: representative,
+          allSizes: allSizes,
+          selectedCustomer: selectedCustomer,
+          currentCart: List<OrderItem>.from(cartItems), // ✅ Tambahkan ini
+          onAddToOrder: (updatedItems) {
+            setState(() {
+              cartItems = updatedItems; // ✅ Replace cartItems dengan yang sudah digabung & divalidasi
+            });
+          },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   double calculateStock(dynamic item) {
     final rawStock = item['stock'];
