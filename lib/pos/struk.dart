@@ -36,6 +36,7 @@ Future<void> showStrukDialog(
       selectedPaymentAccount: selectedPaymentAccount ?? {},
       splitPayments: splitPayments,
       collectedBy: collectedBy,
+      idTransaksi: idTransaksi,
     );
   });
 

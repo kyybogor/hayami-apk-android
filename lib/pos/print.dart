@@ -15,7 +15,7 @@ Future<void> generateAndPrintStrukPdf({
   required dynamic selectedPaymentAccount,
   required List<Map<String, dynamic>> splitPayments,
   required String collectedBy,
-  String orderId = 'SO/XXXX/YYYY',
+    String? idTransaksi,
 }) async {
   final double diskonCustomer = totalDiskon ?? 0;
   final double diskonTambahan = newDiscount ?? 0;
@@ -87,7 +87,7 @@ Future<void> generateAndPrintStrukPdf({
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text('Order ID', style: pw.TextStyle(fontSize: 9)),
-                pw.Text(orderId, style: pw.TextStyle(fontSize: 9)),
+                pw.Text(idTransaksi ?? 'SO/xxxx/yyyy', style: pw.TextStyle(fontSize: 9)),
               ],
             ),
             pw.Row(
