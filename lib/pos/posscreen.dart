@@ -103,6 +103,17 @@ class _PosscreenState extends State<Posscreen> {
 
   // Reset transaksi setelah dialog ditutup
   resetTransaction();
+
+  setState(() {
+  isLoading = true;
+});
+
+await fetchProducts();
+
+setState(() {
+  isLoading = false;
+});
+
 }
 
 
