@@ -279,6 +279,15 @@ Future<void> fetchCustomers() async {
     diskonLusin = matchingDiskon.discp;
   }
 
+  final alreadyInCart = cartItems.any((item) =>
+    item.sku == selectedProduct.sku && item.idTipe == selectedProduct.idTipe);
+
+if (alreadyInCart) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text('Produk ${selectedProduct.sku} sudah ada di keranjang.'),
+    duration: Duration(seconds: 2),
+  ));
+} else {
   setState(() {
     cartItems.add(Produk(
       sku: selectedProduct.sku,
@@ -288,16 +297,16 @@ Future<void> fetchCustomers() async {
       qtycleardo: selectedProduct.qtycleardo,
       harga: selectedProduct.harga,
       orderQty: 0.0,
-      diskonPerLusin: diskonLusin, // ⬅ Diskon diterapkan langsung
+      diskonPerLusin: diskonLusin,
       percentage: selectedCustomerObj?.percentage ?? 100.0,
     ));
     selectedSku = null;
   });
 
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    content: Text(
-        'Pesanan untuk $selectedCustomer - ${selectedProduct.sku} disimpan.'),
+    content: Text('Pesanan untuk $selectedCustomer - ${selectedProduct.sku} disimpan.'),
   ));
+}
 }
                       },
                       style: ElevatedButton.styleFrom(
