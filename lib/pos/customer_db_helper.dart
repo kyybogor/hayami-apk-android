@@ -66,6 +66,7 @@ class CustomerDBHelper {
 
     final batch = db.batch();
     for (var customer in customers) {
+      print('📝 Simpan: ${customer.nmCustomer}');
       batch.insert(
         'tb_customer',
         customer.toMap(),

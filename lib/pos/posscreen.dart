@@ -21,7 +21,8 @@ Future<bool> isOnline() async {
   } catch (e) {
     return false;
   }
-}class Posscreen extends StatefulWidget {
+}
+class Posscreen extends StatefulWidget {
   const Posscreen({super.key});
 
   @override
@@ -1028,9 +1029,13 @@ Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) as
             .toList();
 
         // Filter manual karena API tidak menerima ?keyword=
-        final filtered = allCustomers
-            .where((c) => c.nmCustomer.toLowerCase().contains(keyword.toLowerCase()))
-            .toList();
+        // Sinkronisasi ke SQLite setelah fetch online
+await CustomerDBHelper.syncCustomers(allCustomers);
+
+// Filter manual karena API tidak menerima ?keyword=
+final filtered = allCustomers
+    .where((c) => c.nmCustomer.toLowerCase().contains(keyword.toLowerCase()))
+    .toList();
 
         print('🌍 Ambil dari API, hasil filter: ${filtered.length}');
         return filtered;
