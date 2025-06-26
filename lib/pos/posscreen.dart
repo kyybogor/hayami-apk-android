@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/cart_screen.dart';
+import 'package:hayami_app/pos/customer_db_helper.dart';
 import 'package:hayami_app/pos/print.dart';
 import 'package:hayami_app/pos/struk.dart';
 import 'package:http/http.dart' as http;
@@ -8,7 +10,16 @@ import 'package:hayami_app/pos/customer_model.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart';
 
+Future<bool> isOnline() async {
+  try {
+    final response = await http.get(Uri.parse('http://192.168.1.8/hayami/customer.php')).timeout(const Duration(seconds: 2));
+    return response.statusCode == 200;
+  } catch (e) {
+    return false;
+  }
+}
 class Posscreen extends StatefulWidget {
   const Posscreen({super.key});
 
@@ -1004,10 +1015,25 @@ Future<String> saveFinalTransaction() async {
     });
   }
 
-  Future<List<Customer>> fetchCustomers(String keyword) async {
-    final response = await http.get(
-      Uri.parse('http://192.168.1.8/hayami/customer.php'),
+Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) async {
+  print('🔁 fetchCustomers dipanggil dengan offline=$offline');
+  print('📥 keyword="$keyword"');
+
+  if (offline) {
+    await CustomerDBHelper.initDb(); // Pastikan DB siap
+    final db = await CustomerDBHelper.database;
+    final result = await db.query(
+      'tb_customer',
+      where: 'nama_customer LIKE ?',
+      whereArgs: ['%$keyword%'],
     );
+
+    print('📦 Ambil dari SQLite: ${result.length} hasil');
+    return result.map((e) => Customer.fromMap(e)).toList();
+  } else {
+    print('🌐 Mengakses http://192.168.1.8/hayami/customer.php');
+
+    final response = await http.get(Uri.parse('http://192.168.1.8/hayami/customer.php'));
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
@@ -1017,10 +1043,26 @@ Future<String> saveFinalTransaction() async {
             .map((data) => Customer.fromJson(data))
             .toList();
 
-        return allCustomers
-            .where((c) =>
-                c.nmCustomer.toLowerCase().contains(keyword.toLowerCase()))
+        // Simpan ke SQLite
+        await CustomerDBHelper.initDb(); // pastikan DB tersedia
+        final db = await CustomerDBHelper.database;
+
+        await db.delete('tb_customer'); // 🔥 Hapus data lama sebelum sync
+        for (var customer in allCustomers) {
+          await db.insert(
+            'tb_customer',
+            customer.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+
+        // Filter data sesuai keyword
+        final filtered = allCustomers
+            .where((c) => c.nmCustomer.toLowerCase().contains(keyword.toLowerCase()))
             .toList();
+
+        print('🌍 Ambil dari API, hasil filter: ${filtered.length}');
+        return filtered;
       } else {
         throw Exception('Data tidak ditemukan atau status bukan success');
       }
@@ -1028,6 +1070,7 @@ Future<String> saveFinalTransaction() async {
       throw Exception('Gagal memuat data customer: ${response.statusCode}');
     }
   }
+}
 
   Widget buildFormRow(String label, String? value) {
     return Padding(
@@ -1057,148 +1100,153 @@ Future<String> saveFinalTransaction() async {
     );
   }
 
+//customer select
   void showCustomerFormDialog(BuildContext context) {
-    final customerIdController = TextEditingController();
-    Customer? customerData;
-    List<Customer> searchResults = [];
+  final customerIdController = TextEditingController();
+  Customer? customerData;
+  List<Customer> searchResults = [];
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Future<void> handleCustomerIdChange(String id) async {
-              if (id.length >= 3) {
-                try {
-                  final customers = await fetchCustomers(id);
-                  setDialogState(() => searchResults = customers);
-                } catch (_) {
-                  setDialogState(() => searchResults = []);
-                }
-              } else {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> handleCustomerIdChange(String id) async {
+            if (id.length >= 3) {
+              try {
+                final online = await isOnline();
+                print('🔌 Status online: $online');
+
+                final customers = await fetchCustomers(id, offline: !online);
+                print('✅ Jumlah customer ditemukan: ${customers.length}');
+
+                setDialogState(() => searchResults = customers);
+              } catch (e) {
+                print('❌ Gagal fetch customer: $e');
                 setDialogState(() => searchResults = []);
               }
+            } else {
+              setDialogState(() => searchResults = []);
             }
+          }
 
-            void handleCustomerSelection(Customer customer) {
-              setDialogState(() {
-                customerData = customer;
-                customerIdController.text = customer.nmCustomer;
-                searchResults = [];
-              });
-            }
+          void handleCustomerSelection(Customer customer) {
+            setDialogState(() {
+              customerData = customer;
+              customerIdController.text = customer.nmCustomer;
+              searchResults = [];
+            });
+          }
 
-            String getContactNumber(Customer? data) {
-              if (data == null) return '';
-              return (data.telp ?? '').isNotEmpty ? data.telp! : '';
-            }
+          String getContactNumber(Customer? data) {
+            if (data == null) return '';
+            return data.telp;
+          }
 
-            return Dialog(
-              insetPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Select Customer',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const SizedBox(
-                              width: 130,
-                              child: Text('Customer ID',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w500)),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: customerIdController,
-                                decoration: const InputDecoration(
-                                  contentPadding:
-                                      EdgeInsets.symmetric(horizontal: 12),
-                                  border: OutlineInputBorder(),
-                                ),
-                                onChanged: handleCustomerIdChange,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        if (searchResults.isNotEmpty)
-                          SizedBox(
-                            height: 150,
-                            child: ListView.builder(
-                              itemCount: searchResults.length,
-                              itemBuilder: (context, index) {
-                                final customer = searchResults[index];
-                                return ListTile(
-                                  title: Text(customer.nmCustomer),
-                                  subtitle: Text(customer.address.isNotEmpty
-                                      ? customer.address
-                                      : 'Alamat tidak tersedia'),
-                                  onTap: () =>
-                                      handleCustomerSelection(customer),
-                                );
-                              },
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Customer',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 130,
+                            child: Text(
+                              'Customer ID',
+                              style: TextStyle(fontWeight: FontWeight.w500),
                             ),
                           ),
-                        const SizedBox(height: 12),
-                        buildFormRow('Customer Name', customerData?.nmCustomer),
-                        buildFormRow('Address', customerData?.address),
-                        buildFormRow(
-                            'Contact Number', getContactNumber(customerData)),
-                        buildFormRow('Store Type', customerData?.storeType),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.grey,
+                          Expanded(
+                            child: TextField(
+                              controller: customerIdController,
+                              decoration: const InputDecoration(
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                                border: OutlineInputBorder(),
                               ),
-                              child: const Text('Cancel'),
+                              onChanged: handleCustomerIdChange,
                             ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                              ),
-                              onPressed: customerData != null
-                                  ? () {
-                                      setState(() {
-                                        selectedCustomer = customerData!;
-                                        currentTransactionId = null;
-                                        cartItems.clear();
-                                      });
-                                      Navigator.pop(context);
-                                    }
-                                  : null,
-                              child: const Text('Save'),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (searchResults.isNotEmpty)
+                        SizedBox(
+                          height: 150,
+                          child: ListView.builder(
+                            itemCount: searchResults.length,
+                            itemBuilder: (context, index) {
+                              final customer = searchResults[index];
+                              return ListTile(
+                                title: Text(customer.nmCustomer),
+                                subtitle: Text(
+                                  customer.address.isNotEmpty
+                                      ? customer.address
+                                      : 'Alamat tidak tersedia',
+                                ),
+                                onTap: () => handleCustomerSelection(customer),
+                              );
+                            },
+                          ),
                         ),
-                      ],
-                    ),
+                      const SizedBox(height: 12),
+                      buildFormRow('Customer Name', customerData?.nmCustomer),
+                      buildFormRow('Address', customerData?.address),
+                      buildFormRow('Contact Number', getContactNumber(customerData)),
+                      buildFormRow('Store Type', customerData?.storeType),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.grey,
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: customerData != null
+                                ? () {
+                                    setState(() {
+                                      selectedCustomer = customerData!;
+                                      currentTransactionId = null;
+                                      cartItems.clear();
+                                    });
+                                    Navigator.pop(context);
+                                  }
+                                : null,
+                            child: const Text('Save'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   void showProductOrderDialog(
     BuildContext context,
@@ -1533,6 +1581,16 @@ Future<String> saveFinalTransaction() async {
                               telp: '',
                               storeType: '',
                               diskonLusin: selectedEntry.diskonLusin,
+                              kota: '',
+                              email: '',
+                              sourceCustomer: '',
+                              noNpwp: '',
+                              namaNpwp: '',
+                              alamatNpwp: '',
+                              idLogin: '',
+                              passLogin: '',
+                              idCabang: '',
+                              sts: '',
                             );
 
                             // ✅ Diskon otomatis masuk ke bagian 'Discount:'
