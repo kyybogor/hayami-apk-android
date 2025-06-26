@@ -9,10 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class CustomerDBHelper {
   static Database? _db;
   static const _dbName = 'mydb.db';
-  static const _dbVersion = 1; // Ganti ini saat update struktur
+  static const _dbVersion = 1;
   static const _dbVersionKey = 'db_version';
 
-  /// Inisialisasi database: copy dari assets jika belum ada atau versi berubah
   static Future<void> initDb() async {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, _dbName);
@@ -23,18 +22,17 @@ class CustomerDBHelper {
 
     if (!exists || currentVersion < _dbVersion) {
       try {
-        if (exists && currentVersion < _dbVersion) {
+        if (exists) {
           await deleteDatabase(path);
           print('🧹 Database lama dihapus karena versi lama.');
         }
 
         await Directory(dirname(path)).create(recursive: true);
-
         ByteData data = await rootBundle.load('assets/$_dbName');
         List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
         await File(path).writeAsBytes(bytes, flush: true);
-
         await prefs.setInt(_dbVersionKey, _dbVersion);
+
         print('✅ Database berhasil disalin atau diperbarui.');
       } catch (e) {
         print('❌ Gagal menyalin database: $e');
@@ -44,7 +42,6 @@ class CustomerDBHelper {
     }
   }
 
-  /// Getter: buka database jika belum terbuka
   static Future<Database> get database async {
     if (_db != null && _db!.isOpen) return _db!;
     await initDb();
@@ -53,7 +50,6 @@ class CustomerDBHelper {
     return _db!;
   }
 
-  /// Ambil customer berdasarkan keyword (offline mode)
   static Future<List<Customer>> fetchCustomers(String keyword) async {
     final db = await database;
     final result = await db.query(
@@ -64,11 +60,8 @@ class CustomerDBHelper {
     return result.map((e) => Customer.fromMap(e)).toList();
   }
 
-  /// Sinkronisasi customer dari data online ke SQLite
   static Future<void> syncCustomers(List<Customer> customers) async {
     final db = await database;
-
-    // Optional: hapus semua data dulu untuk fresh sync
     await db.delete('tb_customer');
 
     final batch = db.batch();

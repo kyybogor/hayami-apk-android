@@ -14,13 +14,14 @@ import 'package:sqflite/sqflite.dart';
 
 Future<bool> isOnline() async {
   try {
-    final response = await http.get(Uri.parse('http://192.168.1.8/hayami/customer.php')).timeout(const Duration(seconds: 2));
+    final response = await http.get(Uri.parse('http://192.168.1.8/hayami/customer.php')).timeout(
+      const Duration(seconds: 2),
+    );
     return response.statusCode == 200;
   } catch (e) {
     return false;
   }
-}
-class Posscreen extends StatefulWidget {
+}class Posscreen extends StatefulWidget {
   const Posscreen({super.key});
 
   @override
@@ -940,68 +941,59 @@ Future<String> saveFinalTransaction() async {
     }
   }
 
-  Future<void> fetchProducts() async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? idCabang = prefs.getString('id_cabang');
-      String? idUser = prefs.getString('id_user');
+Future<void> fetchProducts() async {
+  try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idCabang = prefs.getString('id_cabang');
+    String? idUser = prefs.getString('id_user');
 
-      if (idUser == 'admin') {
-        final stockUrl = Uri.parse('http://192.168.1.8/hayami/stock.php');
-        final stockResponse = await http.get(stockUrl);
+    final stockUrl = Uri.parse('http://192.168.1.8/hayami/stock.php');
+    final stockResponse = await http.get(stockUrl);
 
-        if (stockResponse.statusCode == 200) {
-          final stockJson = json.decode(stockResponse.body);
+    if (stockResponse.statusCode == 200) {
+      final stockJson = json.decode(stockResponse.body);
 
-          if (stockJson['status'] == 'success' &&
-              stockJson['data'] != null &&
-              stockJson['data'].isNotEmpty) {
-            idCabang = stockJson['data'][0]['id_cabang'].toString();
+      if (stockJson['status'] == 'success' && stockJson['data'] != null) {
+        List<dynamic> data = stockJson['data'];
 
-            await prefs.setString('idCabang', idCabang);
-          } else {
-            throw Exception(
-                'Data cabang tidak ditemukan di response stock.php.');
+        List<dynamic> filteredData;
+
+        if (idUser == 'admin') {
+          // Admin melihat semua data
+          filteredData = data;
+        } else {
+          // Non-admin difilter berdasarkan id_cabang
+          if (idCabang == null || idCabang.isEmpty) {
+            throw Exception('Cabang belum diset untuk user bukan admin.');
           }
-        } else {
-          throw Exception(
-              'Gagal mengambil cabang dari stock.php: ${stockResponse.statusCode}');
-        }
-      } else {
-        if (idCabang == null || idCabang.isEmpty) {
-          throw Exception('Cabang belum diset untuk user bukan admin.');
-        }
-      }
 
-      final url =
-          Uri.parse('http://192.168.1.8/hayami/stockpos.php?cabang=$idCabang');
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final jsonResult = json.decode(response.body);
-        if (jsonResult['status'] == 'success') {
-          setState(() {
-            allProducts = jsonResult['data'];
-            products = allProducts;
-            bahanList = allProducts
-                .map<String>((item) => item['id_bahan'].toString())
-                .toSet()
-                .toList();
-            isLoading = false;
-          });
-        } else {
-          throw Exception('Status bukan success: ${jsonResult['status']}');
+          filteredData = data
+              .where((item) => item['id_cabang'].toString() == idCabang)
+              .toList();
         }
+
+        setState(() {
+          allProducts = filteredData;
+          products = filteredData;
+          bahanList = filteredData
+              .map<String>((item) => item['id_bahan'].toString())
+              .toSet()
+              .toList();
+          isLoading = false;
+        });
       } else {
-        throw Exception('Gagal memuat produk: ${response.statusCode}');
+        throw Exception('Status bukan success atau data kosong.');
       }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      print('Terjadi kesalahan: $e');
+    } else {
+      throw Exception('Gagal mengambil data dari stock.php: ${stockResponse.statusCode}');
     }
+  } catch (e) {
+    setState(() {
+      isLoading = false;
+    });
+    print('Terjadi kesalahan: $e');
   }
+}
 
   void filterByBahan(String? bahan) {
     setState(() {
@@ -1020,18 +1012,10 @@ Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) as
   print('📥 keyword="$keyword"');
 
   if (offline) {
-    await CustomerDBHelper.initDb(); // Pastikan DB siap
-    final db = await CustomerDBHelper.database;
-    final result = await db.query(
-      'tb_customer',
-      where: 'nama_customer LIKE ?',
-      whereArgs: ['%$keyword%'],
-    );
-
-    print('📦 Ambil dari SQLite: ${result.length} hasil');
-    return result.map((e) => Customer.fromMap(e)).toList();
+    await CustomerDBHelper.initDb();
+    return await CustomerDBHelper.fetchCustomers(keyword);
   } else {
-    print('🌐 Mengakses http://192.168.1.8/hayami/customer.php');
+    print('🌐 Mengakses API...');
 
     final response = await http.get(Uri.parse('http://192.168.1.8/hayami/customer.php'));
 
@@ -1043,20 +1027,7 @@ Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) as
             .map((data) => Customer.fromJson(data))
             .toList();
 
-        // Simpan ke SQLite
-        await CustomerDBHelper.initDb(); // pastikan DB tersedia
-        final db = await CustomerDBHelper.database;
-
-        await db.delete('tb_customer'); // 🔥 Hapus data lama sebelum sync
-        for (var customer in allCustomers) {
-          await db.insert(
-            'tb_customer',
-            customer.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
-        }
-
-        // Filter data sesuai keyword
+        // Filter manual karena API tidak menerima ?keyword=
         final filtered = allCustomers
             .where((c) => c.nmCustomer.toLowerCase().contains(keyword.toLowerCase()))
             .toList();
@@ -1064,14 +1035,13 @@ Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) as
         print('🌍 Ambil dari API, hasil filter: ${filtered.length}');
         return filtered;
       } else {
-        throw Exception('Data tidak ditemukan atau status bukan success');
+        throw Exception('Data tidak valid');
       }
     } else {
       throw Exception('Gagal memuat data customer: ${response.statusCode}');
     }
   }
 }
-
   Widget buildFormRow(String label, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1111,24 +1081,24 @@ Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) as
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setDialogState) {
-          Future<void> handleCustomerIdChange(String id) async {
-            if (id.length >= 3) {
-              try {
-                final online = await isOnline();
-                print('🔌 Status online: $online');
+Future<void> handleCustomerIdChange(String id) async {
+  if (id.length >= 3) {
+    try {
+      final online = await isOnline();
+      print('🔌 Status online: $online');
 
-                final customers = await fetchCustomers(id, offline: !online);
-                print('✅ Jumlah customer ditemukan: ${customers.length}');
+      final customers = await fetchCustomers(id, offline: !online);
+      print('✅ Jumlah customer ditemukan: ${customers.length}');
 
-                setDialogState(() => searchResults = customers);
-              } catch (e) {
-                print('❌ Gagal fetch customer: $e');
-                setDialogState(() => searchResults = []);
-              }
-            } else {
-              setDialogState(() => searchResults = []);
-            }
-          }
+      setDialogState(() => searchResults = customers);
+    } catch (e) {
+      print('❌ Gagal fetch customer: $e');
+      setDialogState(() => searchResults = []);
+    }
+  } else {
+    setDialogState(() => searchResults = []);
+  }
+}
 
           void handleCustomerSelection(Customer customer) {
             setDialogState(() {
