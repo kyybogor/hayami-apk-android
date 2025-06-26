@@ -15,24 +15,24 @@ dependencies:
   intl: ^0.20.2
   google_fonts: ^6.1.0
   shared_preferences: ^2.5.3
-  webview_flutter: 4.0.7
-  webview_flutter_android: 3.10.0
-  dropdown_search: ^5.0.6
+  webview_flutter: ^4.13.0
+  webview_flutter_android: ^4.7.0
+  dropdown_search: ^6.0.2
   flutter_multi_formatter: ^2.4.0
   pdf: ^3.10.4
   printing: ^5.12.0
   sqflite: ^2.3.0
   path: ^1.9.0
   sqflite_common_ffi: ^2.3.2
-  sqflite_common_ffi_web: ^0.4.0
+  sqflite_common_ffi_web: ^1.0.0
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   http: ^1.3.0
-  flutter_launcher_icons: ^0.13.1  # <-- Tambahkan ini
+  flutter_launcher_icons: ^0.14.4  # <-- Tambahkan ini
 
 flutter:
   uses-material-design: true

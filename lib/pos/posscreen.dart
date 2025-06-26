@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/cart_screen.dart';
 import 'package:hayami_app/pos/customer_db_helper.dart';
 import 'package:hayami_app/pos/print.dart';
+import 'package:hayami_app/pos/stock_db_helper.dart';
 import 'package:hayami_app/pos/struk.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/pos/customer_model.dart';
@@ -948,46 +949,42 @@ Future<void> fetchProducts() async {
     String? idCabang = prefs.getString('id_cabang');
     String? idUser = prefs.getString('id_user');
 
-    final stockUrl = Uri.parse('http://192.168.1.8/hayami/stock.php');
-    final stockResponse = await http.get(stockUrl);
-
-    if (stockResponse.statusCode == 200) {
-      final stockJson = json.decode(stockResponse.body);
-
-      if (stockJson['status'] == 'success' && stockJson['data'] != null) {
-        List<dynamic> data = stockJson['data'];
-
-        List<dynamic> filteredData;
-
-        if (idUser == 'admin') {
-          // Admin melihat semua data
-          filteredData = data;
-        } else {
-          // Non-admin difilter berdasarkan id_cabang
-          if (idCabang == null || idCabang.isEmpty) {
-            throw Exception('Cabang belum diset untuk user bukan admin.');
-          }
-
-          filteredData = data
-              .where((item) => item['id_cabang'].toString() == idCabang)
-              .toList();
-        }
-
-        setState(() {
-          allProducts = filteredData;
-          products = filteredData;
-          bahanList = filteredData
-              .map<String>((item) => item['id_bahan'].toString())
-              .toSet()
-              .toList();
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Status bukan success atau data kosong.');
-      }
-    } else {
-      throw Exception('Gagal mengambil data dari stock.php: ${stockResponse.statusCode}');
+    bool online = false;
+    try {
+      final response = await http.get(Uri.parse('https://www.google.com')).timeout(Duration(seconds: 5));
+      if (response.statusCode == 200) online = true;
+    } catch (_) {
+      online = false;
     }
+
+    if (online) {
+      final stockUrl = Uri.parse('http://192.168.1.8/hayami/stock.php');
+      final stockResponse = await http.get(stockUrl);
+
+      if (stockResponse.statusCode == 200) {
+        final stockJson = json.decode(stockResponse.body);
+
+        if (stockJson['status'] == 'success' && stockJson['data'] != null) {
+          List<dynamic> data = stockJson['data'];
+          await StockDBHelper.syncStock(List<Map<String, dynamic>>.from(data));
+        }
+      }
+    }
+
+    final dbResult = await StockDBHelper.fetchStock(
+      idCabang: idCabang,
+      isAdmin: idUser == 'admin',
+    );
+
+    setState(() {
+      allProducts = dbResult;
+      products = dbResult;
+      bahanList = dbResult
+          .map<String>((item) => item['id_bahan'].toString())
+          .toSet()
+          .toList();
+      isLoading = false;
+    });
   } catch (e) {
     setState(() {
       isLoading = false;
