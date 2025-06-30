@@ -15,6 +15,50 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path/path.dart' as path;
+
+Future<Database> initDatabase() async {
+  final dbPath = await getDatabasesPath();
+  return openDatabase(
+    path.join(dbPath, 'mydb.db'),
+    version: 1,
+    onCreate: (db, version) async {
+      await db.execute('''
+        CREATE TABLE tb_akun (
+          id_akun TEXT PRIMARY KEY,
+          tipe TEXT,
+          bank TEXT,
+          nama_akun TEXT,
+          no_akun TEXT,
+          status_sj TEXT
+        )
+      ''');
+    },
+  );
+}
+
+Future<void> saveAccountsToLocalDB(List<Map<String, dynamic>> accounts) async {
+  final db = await initDatabase();
+  await db.delete('tb_akun');
+
+  for (var item in accounts) {
+    await db.insert('tb_akun', {
+      'id_akun': item['id_akun']?.toString() ?? '',
+      'tipe': item['tipe'] ?? '',
+      'bank': item['bank'] ?? '',
+      'nama_akun': item['nama_akun'] ?? '',
+      'no_akun': item['no_akun'] ?? '',
+      'status_sj': item['status_sj'] ?? '',
+    });
+  }
+}
+
+Future<List<Map<String, dynamic>>> loadAccountsFromLocalDB() async {
+  final db = await initDatabase();
+  return await db.query('tb_akun');
+}
+
+
 
 Future<void> syncTransaksiToServer() async {
   final db = await TransaksiHelper.instance.database;
@@ -90,7 +134,7 @@ class _PosscreenState extends State<Posscreen> {
   List<dynamic> allProducts = []; // untuk data asli
   List<String> bahanList = [];
   String? selectedBahan;
-  List<dynamic> paymentAccounts = [];
+  List<Map<String, dynamic>> paymentAccounts = [];
   String? selectedPaymentAccount; // ✅ dipakai oleh Dropdown
   Map<String, dynamic>? selectedPaymentAccountMap;
   String selectedSales = 'Sales 1';
@@ -1001,18 +1045,32 @@ Future<String> saveFinalTransaction() async {
     }
   }
 
-  Future<void> fetchPaymentAccounts() async {
-    final response =
-        await http.get(Uri.parse('http://192.168.1.8/hayami/akun.php'));
-    if (response.statusCode == 200) {
-      final result = json.decode(response.body);
-      if (result['status'] == 'success') {
-        setState(() {
-          paymentAccounts = result['data'];
-        });
+Future<void> fetchPaymentAccounts() async {
+  final connectivityResult = await Connectivity().checkConnectivity();
+
+  if (connectivityResult != ConnectivityResult.none) {
+    try {
+      final response = await http.get(Uri.parse('http://192.168.1.8/hayami/akun.php'));
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['status'] == 'success') {
+          paymentAccounts = List<Map<String, dynamic>>.from(result['data']);
+
+          // Simpan ke SQLite untuk offline
+          await saveAccountsToLocalDB(paymentAccounts);
+        }
       }
+    } catch (e) {
+      print('Gagal fetch online: $e');
+      paymentAccounts = await loadAccountsFromLocalDB();
     }
+  } else {
+    // Offline: load dari SQLite
+    paymentAccounts = await loadAccountsFromLocalDB();
   }
+
+  setState(() {});
+}
 
 Future<void> fetchProducts() async {
   try {
