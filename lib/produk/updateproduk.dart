@@ -46,7 +46,7 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   Future<void> _fetchKategori() async {
-    final url = Uri.parse('http://192.168.1.8/hiyami/kategori.php');
+    final url = Uri.parse('http://192.168.1.9/hiyami/kategori.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -80,7 +80,7 @@ class _EditProductPageState extends State<EditProductPage> {
         return;
       }
 
-      final url = Uri.parse('http://192.168.1.8/nindo2/edit_produk.php');
+      final url = Uri.parse('http://192.168.1.9/nindo2/edit_produk.php');
       try {
 final response = await http.post(url, body: {
   'id_product': widget.product['id_product'].toString(),

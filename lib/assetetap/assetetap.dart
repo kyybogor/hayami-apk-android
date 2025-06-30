@@ -51,7 +51,7 @@ class _AssetPageState extends State<AssetPage> with SingleTickerProviderStateMix
   }
 
   Future<void> fetchAssets() async {
-    final url = Uri.parse('http://192.168.1.8/Hiyami/asset.php'); // Ganti dengan URL kamu
+    final url = Uri.parse('http://192.168.1.9/Hiyami/asset.php'); // Ganti dengan URL kamu
 
     try {
       final response = await http.get(url);

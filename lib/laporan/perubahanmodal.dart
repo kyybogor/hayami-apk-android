@@ -12,7 +12,7 @@ class _PerubahanModalPageState extends State<PerubahanModalPage> {
   bool isLoading = true;
 
   Future<void> fetchData() async {
-    final response = await http.get(Uri.parse('http://192.168.1.8/hiyami/perubahanmodal.php'));
+    final response = await http.get(Uri.parse('http://192.168.1.9/hiyami/perubahanmodal.php'));
 
     if (response.statusCode == 200) {
       final List<dynamic> responseData = json.decode(response.body);

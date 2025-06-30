@@ -44,7 +44,7 @@ class _PendapatanPerpelangganPageState
   // Mengambil data dari API
   Future<void> fetchDataFromApi() async {
     const url =
-        'http://192.168.1.8/Hiyami/pendapatan.php'; // Ganti dengan URL API-mu
+        'http://192.168.1.9/Hiyami/pendapatan.php'; // Ganti dengan URL API-mu
 
     try {
       final response = await http.get(Uri.parse(url));

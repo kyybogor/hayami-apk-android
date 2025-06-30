@@ -28,7 +28,7 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
   }
 
   Future<void> _fetchKategori() async {
-    final url = Uri.parse('http://192.168.1.8/hiyami/kategori.php');
+    final url = Uri.parse('http://192.168.1.9/hiyami/kategori.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -59,7 +59,7 @@ class _TambahProdukPageState extends State<TambahProdukPage> {
         return;
       }
 
-      final url = Uri.parse('http://192.168.1.8/nindo2/tambah_produk.php');
+      final url = Uri.parse('http://192.168.1.9/nindo2/tambah_produk.php');
       try {
         final response = await http.post(url, body: {
           'nm_product': _namaController.text,

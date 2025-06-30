@@ -73,7 +73,7 @@ class _BiayaPageState extends State<BiayaPage> {
   }
 
   Future<void> fetchSummaryData() async {
-    final url = Uri.parse('http://192.168.1.8/Hiyami/infocard.php');
+    final url = Uri.parse('http://192.168.1.9/Hiyami/infocard.php');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {

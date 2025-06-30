@@ -5,7 +5,7 @@ import 'package:intl/intl.dart'; // Import intl untuk format tanggal
 
 // ApiService untuk mengambil data dari API
 class ApiService {
-  final String apiUrl = "http://192.168.1.8/hiyami/neraca.php"; // URL API
+  final String apiUrl = "http://192.168.1.9/hiyami/neraca.php"; // URL API
 
   Future<List<Map<String, dynamic>>> fetchNeracaData() async {
     try {

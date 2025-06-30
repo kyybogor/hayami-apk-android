@@ -79,7 +79,7 @@ class _JurnalListPageState extends State<JurnalListPage> {
 
   Future<List<JurnalItem>> fetchJurnalItems() async {
     final response = await http.get(Uri.parse(
-        'http://192.168.1.8/Hiyami/jurnal.php')); // Ganti dengan URL-mu
+        'http://192.168.1.9/Hiyami/jurnal.php')); // Ganti dengan URL-mu
 
     if (response.statusCode == 200) {
       final List jsonData = jsonDecode(response.body);

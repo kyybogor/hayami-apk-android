@@ -51,7 +51,7 @@ class _StockMovementPageState extends State<StockMovementPage> {
 
   Future<void> fetchProducts() async {
     final response = await http.get(Uri.parse(
-        'http://192.168.1.8/Hiyami/produk.php'));
+        'http://192.168.1.9/Hiyami/produk.php'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data =

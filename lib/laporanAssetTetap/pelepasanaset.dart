@@ -29,7 +29,7 @@ class _PelepasanAsetPageState extends State<PelepasanAsetPage> {
 
   Future<List<Map<String, dynamic>>> fetchSoldAssets() async {
     final response =
-        await http.get(Uri.parse('http://192.168.1.8/hiyami/asset.php'));
+        await http.get(Uri.parse('http://192.168.1.9/hiyami/asset.php'));
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);

@@ -75,11 +75,11 @@ class _PenjualanPerProdukPageState extends State<PenjualanPerProdukPage> {
 
   Future<void> fetchProduk() async {
     final response = await http.get(Uri.parse(
-        'http://192.168.1.8/hiyami/produk.php')); // Ganti dengan URL API kamu
+        'http://192.168.1.9/hiyami/produk.php')); // Ganti dengan URL API kamu
 
     if (response.statusCode == 200) {
       final response =
-          await http.get(Uri.parse('http://192.168.1.8/hiyami/produk.php'));
+          await http.get(Uri.parse('http://192.168.1.9/hiyami/produk.php'));
 
       if (response.statusCode == 200) {
         final jsonMap = jsonDecode(response.body);

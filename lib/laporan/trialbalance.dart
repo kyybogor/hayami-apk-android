@@ -12,7 +12,7 @@ class _TrialBalancePageState extends State<TrialBalancePage> {
 
   Future<List<Map<String, dynamic>>> fetchTrialBalance() async {
     final response =
-        await http.get(Uri.parse('http://192.168.1.8/hiyami/trial.php'));
+        await http.get(Uri.parse('http://192.168.1.9/hiyami/trial.php'));
 
     if (response.statusCode == 200) {
       List data = json.decode(response.body);

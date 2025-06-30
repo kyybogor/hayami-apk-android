@@ -61,7 +61,7 @@ class _CartScreenState extends State<CartScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.8/hayami/cart.php'),
+        Uri.parse('http://192.168.1.9/hayami/cart.php'),
       );
 
       if (response.statusCode == 200) {
@@ -193,7 +193,7 @@ class _CartScreenState extends State<CartScreen> {
                                         try {
                                           final response = await http.get(
                                             Uri.parse(
-                                                'http://192.168.1.8/hayami/cartdetail.php?id_transaksi=$encodedIdTransaksi'),
+                                                'http://192.168.1.9/hayami/cartdetail.php?id_transaksi=$encodedIdTransaksi'),
                                           );
 
                                           if (response.statusCode == 200) {
@@ -274,7 +274,7 @@ onPressed: () async {
   final idTransaksi = entry.idTransaksi;
   try {
     final response = await http.post(
-      Uri.parse('http://192.168.1.8/hayami/delete_cart.php'),
+      Uri.parse('http://192.168.1.9/hayami/delete_cart.php'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'id_transaksi': idTransaksi}),
     );
