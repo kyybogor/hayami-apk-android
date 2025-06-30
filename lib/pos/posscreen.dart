@@ -58,34 +58,6 @@ Future<List<Map<String, dynamic>>> loadAccountsFromLocalDB() async {
   return await db.query('tb_akun');
 }
 
-
-
-Future<void> syncTransaksiToServer() async {
-  final db = await TransaksiHelper.instance.database;
-
-  final unsynced = await db.query(
-    'tb_barang_keluar',
-    where: 'is_synced = 0',
-  );
-
-  for (final trx in unsynced) {
-    final response = await http.post(
-      Uri.parse('http://192.168.1.8/hayami/takepayment.php'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(trx),
-    );
-
-    if (response.statusCode == 200) {
-      await db.update(
-        'tb_barang_keluar',
-        {'is_synced': 1},
-        where: 'no_id = ?',
-        whereArgs: [trx['no_id']],
-      );
-    }
-  }
-}
-
 Future<bool> isOnline() async {
   try {
     final response = await http.get(Uri.parse('http://192.168.1.8/hayami/customer.php')).timeout(
