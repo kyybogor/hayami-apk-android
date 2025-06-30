@@ -19,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-
+ 
   void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -45,22 +45,22 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    final posResponse = await PosApiService.loginUser(email, password);
+final response = await PosApiService.loginUser(email, password);
 
-    setState(() => _isLoading = false);
+  setState(() => _isLoading = false);
 
-    if (posResponse['status'] == 'success') {
-      await _saveUserPrefs(posResponse['user']);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreenPos()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(posResponse['message'] ?? 'Login gagal.')),
-      );
-    }
+  if (response['status'] == 'success') {
+    await _saveUserPrefs(response['user']);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const DashboardScreenPos()),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(response['message'] ?? 'Login gagal.')),
+    );
   }
+}
 
   Future<void> _saveUserPrefs(Map<String, dynamic> user) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
