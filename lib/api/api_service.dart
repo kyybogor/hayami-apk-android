@@ -76,22 +76,35 @@ class PosApiService {
   }
 
   /// Coba login offline dari SQLite
-  static Future<Map<String, dynamic>> _tryOfflineLogin(String email, String password) async {
-    print('Mencoba login offline...');
-    final localUser = await LoginSQLiteHelper.getUserByCredentials(email, password);
-    if (localUser != null) {
-      print('Login offline berhasil: $localUser');
-      return {
-        'status': 'success',
-        'message': 'Login offline berhasil',
-        'user': localUser,
-      };
-    } else {
-      print('Login offline gagal, user tidak ditemukan');
-      return {
-        'status': 'error',
-        'message': 'User untuk POS tidak ditemukan.',
-      };
-    }
+static Future<Map<String, dynamic>> _tryOfflineLogin(String email, String password) async {
+  print('Mencoba login offline...');
+  final localUser = await LoginSQLiteHelper.getUserByCredentials(email, password);
+  if (localUser != null) {
+    print('Login offline berhasil: $localUser');
+
+    // Mapping ulang field ke format yang diinginkan
+    final mappedUser = {
+      "id_karyawan": localUser["id_karyawan"] ?? "",
+      "id_user": localUser["user_id"] ?? "",
+      "nm_user": localUser["nama_lengkap"] ?? "",
+      "alamat": localUser["alamat"] ?? "",
+      "no_telp": localUser["no_telp"] ?? "",
+      "grup": localUser["grup"] ?? "",
+      "jenis_pajak": localUser["jenis_pajak"] ?? "",
+      "id_cabang": localUser["cabang"] ?? "",
+    };
+
+    return {
+      'status': 'success',
+      'message': 'Login offline berhasil',
+      'user': mappedUser,
+    };
+  } else {
+    print('Login offline gagal, user tidak ditemukan');
+    return {
+      'status': 'error',
+      'message': 'User untuk POS tidak ditemukan.',
+    };
   }
+}
 }
