@@ -1,17 +1,46 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/cart_screen.dart';
 import 'package:hayami_app/pos/customer_db_helper.dart';
 import 'package:hayami_app/pos/print.dart';
 import 'package:hayami_app/pos/stock_db_helper.dart';
 import 'package:hayami_app/pos/struk.dart';
+import 'package:hayami_app/pos/transaksi_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:hayami_app/pos/customer_model.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
+
+Future<void> syncTransaksiToServer() async {
+  final db = await TransaksiHelper.instance.database;
+
+  final unsynced = await db.query(
+    'tb_barang_keluar',
+    where: 'is_synced = 0',
+  );
+
+  for (final trx in unsynced) {
+    final response = await http.post(
+      Uri.parse('http://192.168.1.8/hayami/takepayment.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(trx),
+    );
+
+    if (response.statusCode == 200) {
+      await db.update(
+        'tb_barang_keluar',
+        {'is_synced': 1},
+        where: 'no_id = ?',
+        whereArgs: [trx['no_id']],
+      );
+    }
+  }
+}
 
 Future<bool> isOnline() async {
   try {
@@ -555,80 +584,122 @@ setState(() {
                       child: const Text('Close'),
                     ),
                     TextButton(
-                      onPressed: () async {
-                        // Hitung total split saat ini
-                        double totalSplit = 0;
-                        for (var item in splitPayments) {
-                          final jumlah = double.tryParse(item['jumlah']
-                                  .toString()
-                                  .replaceAll('.', '')
-                                  .replaceAll(',', '')) ??
-                              0;
-                          totalSplit += jumlah;
-                        }
+  onPressed: () async {
+    // 1. Validasi total split
+    double totalSplit = 0;
+    for (var item in splitPayments) {
+      final jumlah = double.tryParse(
+            item['jumlah'].toString().replaceAll('.', '').replaceAll(',', ''),
+          ) ??
+          0;
+      totalSplit += jumlah;
+    }
 
-                        // Jika SPLIT dan total split belum sama dengan grandTotal -> tolak
-                        if (selectedPaymentAccount == 'SPLIT' &&
-                            totalSplit != grandTotal) {
-                          showDialog(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: const Text("Peringatan"),
-                              content: Text(
-                                  "Total split pembayaran harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})."),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text("OK"),
-                                ),
-                              ],
-                            ),
-                          );
-                          return;
-                        }
+    if (selectedPaymentAccount == 'SPLIT' && totalSplit != grandTotal) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Peringatan"),
+          content: Text(
+            "Total split pembayaran harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())}).",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
-                        Map<String, dynamic> selectedPaymentMap = {};
+    try {
+      // 2. Ambil data pengguna dan generate UUID
+      final uuid = const Uuid().v4();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      String namaUser = prefs.getString('nm_user') ?? '';
 
-                        if (selectedPaymentAccount != null &&
-                            selectedPaymentAccount is Map<String, dynamic>) {
-                          selectedPaymentMap =
-                              selectedPaymentAccount as Map<String, dynamic>;
-                        } else if (selectedPaymentAccount != null) {
-                          selectedPaymentMap = {
-                            'tipe': selectedPaymentAccount.toString()
-                          };
-                        }
+      // 3. Siapkan data transaksi
+      final transaksi = {
+  'no_id': uuid,
+  'id_transaksi': uuid,
+  'tgl_transaksi': DateTime.now().toIso8601String(),
+  'id_customer': selectedCustomer?.id ?? '',
+  'sales': selectedSales ?? '',
+  'keterangan': '', // Isi jika ada catatan transaksi
+  'id_bahan': '', // Isi jika ada, atau ambil dari detail transaksi
+  'model': '', // opsional
+  'ukuran': '', // opsional
+  'qty': 0.0, // total qty, jika dihitung dari detail bisa dijumlahkan
+  'uom': '', // satuan, jika ada
+  'harga': 0.0, // bisa dari harga total dibagi qty
+  'subtotal': subTotal.toInt(),
+  'total': grandTotal.toInt(),
+  'disc': selectedCustomer?.diskonLusin ?? 0,
+  'disc_nilai': newDiscount,
+  'ppn': 0.0, // isi jika ada perhitungan pajak
+  'status_keluar': 'keluar',
+  'jatuh_tempo': 0, // isi jika ada tempo
+  'tgl_jatuh_tempo': '', // opsional, atau isi jika ada
+  'by_user_pajak': 1,
+  'non_stock': 0,
+  'id_invoice': currentInvoiceId ?? '',
+  'disc_invoice': newDiscount,
+  'cust_invoice': selectedCustomer?.name ?? '',
+  'tgl_invoice': DateTime.now().toIso8601String(),
+  'subtotal_invoice': subTotal,
+  'total_invoice': grandTotal,
+  'sisa_bayar': 0.0,
+  'cash': 1,
+  'status': 'baru',
+  'from_cust': 0, // bisa 1 jika dari customer input langsung
+  'qty_jenis_1': 0,
+  'qty_jenis_2': 0,
+  'hhp_jenis_1': 0,
+  'hhp_jenis_2': 0,
+  'untung': 0, // bisa dihitung dari penjualan - HPP kalau kamu simpan data HPP
+  'akun': selectedPaymentAccount ?? '',
+  'dibuat_oleh': namaUser,
+  'dibuat_tgl': DateTime.now().toIso8601String(),
+  'diubah_oleh': '', // kosong dulu, nanti saat update baru diisi
+  'diubah_tgl': '', // kosong dulu
+  'id_cabang': idCabang,
+  'sts': 1, // aktif
+  'sts_void': 0,
+  'is_synced': 0,
+};
+      // 4. Simpan transaksi ke SQLite
+      await TransaksiHelper.instance.saveTransaksiToSQLite(transaksi);
 
-                        // Lanjutkan proses pembayaran
-                        await _handleTakePayment();
+      // 5. Sync ke server jika ada koneksi
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult != ConnectivityResult.none) {
+        await TransaksiHelper.instance.syncTransaksiToServer();
+      }
+      // 7. Tutup dialog dan reset UI
+      Navigator.of(context).pop();
+      resetTransaction();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal menyimpan transaksi: $e")),
+      );
+    }
+  },
+  style: TextButton.styleFrom(
+    backgroundColor: selectedPaymentAccount == null ||
+            selectedPaymentAccount!.isEmpty
+        ? Colors.grey
+        : Colors.green,
+    foregroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(6),
+    ),
+    minimumSize: const Size(100, 40),
+  ),
+  child: const Text('Take Payment'),
+),
 
-                        if (currentTransactionId != null) {
-                          final success =
-                              await deleteTransaction(currentTransactionId!);
-                          if (success) {
-                            setState(() {
-                              currentTransactionId = null;
-                              isConfirmMode = false;
-                            });
-                          }
-                        }
-
-                        Navigator.of(context).pop();
-                        resetTransaction();
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: selectedPaymentAccount == null ||
-                                selectedPaymentAccount!.isEmpty
-                            ? Colors.grey
-                            : Colors.green,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        minimumSize: const Size(100, 40),
-                      ),
-                      child: const Text('Take Payment'),
-                    ),
                     TextButton(
                       onPressed: () async {
                         if (currentTransactionId != null) {}
