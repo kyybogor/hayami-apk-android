@@ -599,15 +599,14 @@ setState(() {
                       ),
                       child: const Text('Close'),
                     ),
-                    TextButton(
+TextButton(
   onPressed: () async {
-    // 1. Validasi total split
+    // 1. Validasi SPLIT
     double totalSplit = 0;
     for (var item in splitPayments) {
       final jumlah = double.tryParse(
-            item['jumlah'].toString().replaceAll('.', '').replaceAll(',', ''),
-          ) ??
-          0;
+        item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')
+      ) ?? 0;
       totalSplit += jumlah;
     }
 
@@ -616,9 +615,7 @@ setState(() {
         context: context,
         builder: (_) => AlertDialog(
           title: const Text("Peringatan"),
-          content: Text(
-            "Total split pembayaran harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())}).",
-          ),
+          content: Text("Total split harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -631,69 +628,88 @@ setState(() {
     }
 
     try {
-      // 2. Ambil data pengguna dan generate UUID
+      final prefs = await SharedPreferences.getInstance();
+      final String namaUser = prefs.getString('nm_user') ?? "admin";
+      final String idCabang = prefs.getString('id_cabang') ?? "C1";
+
       final uuid = const Uuid().v4();
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      String namaUser = prefs.getString('nm_user') ?? '';
+      final String idTransaksi = uuid;
+      final String idInvoice = uuid;
 
-      // 3. Siapkan data transaksi
-      final transaksi = {
-  'no_id': uuid,
-  'id_transaksi': uuid,
-  'tgl_transaksi': DateTime.now().toIso8601String(),
-  'id_customer': selectedCustomer?.id ?? '',
-  'sales': selectedSales ?? '',
-  'keterangan': '', // Isi jika ada catatan transaksi
-  'id_bahan': '', // Isi jika ada, atau ambil dari detail transaksi
-  'model': '', // opsional
-  'ukuran': '', // opsional
-  'qty': 0.0, // total qty, jika dihitung dari detail bisa dijumlahkan
-  'uom': '', // satuan, jika ada
-  'harga': 0.0, // bisa dari harga total dibagi qty
-  'subtotal': subTotal.toInt(),
-  'total': grandTotal.toInt(),
-  'disc': selectedCustomer?.diskonLusin ?? 0,
-  'disc_nilai': newDiscount,
-  'ppn': 0.0, // isi jika ada perhitungan pajak
-  'status_keluar': 'keluar',
-  'jatuh_tempo': 0, // isi jika ada tempo
-  'tgl_jatuh_tempo': '', // opsional, atau isi jika ada
-  'by_user_pajak': 1,
-  'non_stock': 0,
-  'id_invoice': currentInvoiceId ?? '',
-  'disc_invoice': newDiscount,
-  'cust_invoice': selectedCustomer?.name ?? '',
-  'tgl_invoice': DateTime.now().toIso8601String(),
-  'subtotal_invoice': subTotal,
-  'total_invoice': grandTotal,
-  'sisa_bayar': 0.0,
-  'cash': 1,
-  'status': 'baru',
-  'from_cust': 0, // bisa 1 jika dari customer input langsung
-  'qty_jenis_1': 0,
-  'qty_jenis_2': 0,
-  'hhp_jenis_1': 0,
-  'hhp_jenis_2': 0,
-  'untung': 0, // bisa dihitung dari penjualan - HPP kalau kamu simpan data HPP
-  'akun': selectedPaymentAccount ?? '',
-  'dibuat_oleh': namaUser,
-  'dibuat_tgl': DateTime.now().toIso8601String(),
-  'diubah_oleh': '', // kosong dulu, nanti saat update baru diisi
-  'diubah_tgl': '', // kosong dulu
-  'id_cabang': idCabang,
-  'sts': 1, // aktif
-  'sts_void': 0,
-  'is_synced': 0,
-};
-      // 4. Simpan transaksi ke SQLite
-      await TransaksiHelper.instance.saveTransaksiToSQLite(transaksi);
+      String? akunType;
+      double sisaBayar = 0;
 
-      // 5. Sync ke server jika ada koneksi
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult != ConnectivityResult.none) {
-        await TransaksiHelper.instance.syncTransaksiToServer();
+      if (selectedPaymentAccount == 'SPLIT') {
+        akunType = 'SPLIT';
+      } else {
+        final tipe = selectedPaymentAccountMap?['tipe'];
+        akunType = tipe?.toUpperCase() ?? 'CASH';
+        if (akunType == 'HUTANG') {
+          sisaBayar = grandTotal;
+        }
       }
-      // 7. Tutup dialog dan reset UI
+
+      for (var item in cartItems) {
+  final double harga = item.unitPrice;
+  final double diskon = item.discount ?? 0.0;
+  final double subtotalItem = harga * item.quantity;
+  final double totalItem = subtotalItem - diskon;
+
+  final data = {
+    'no_id': const Uuid().v4(),
+    'id_transaksi': idTransaksi,
+    'tgl_transaksi': DateTime.now().toIso8601String(),
+    'id_customer': selectedCustomer?.id ?? '',
+    'sales': selectedSales ?? '',
+    'keterangan': '',
+    'id_bahan': item.idTipe,
+    'model': item.productName,
+    'ukuran': item.size,
+    'qty': item.quantity,
+    'uom': 'PCS',
+    'harga': harga,
+    'subtotal': subtotalItem.toInt(),
+    'total': totalItem.toInt(),
+    'disc': selectedCustomer?.diskonLusin ?? 0,
+    'disc_nilai': diskon,
+    'ppn': 0.0,
+    'status_keluar': 'keluar',
+    'jatuh_tempo': 0,
+    'tgl_jatuh_tempo': '',
+    'by_user_pajak': 1,
+    'non_stock': 0,
+    'id_invoice': idInvoice,
+    'disc_invoice': newDiscount,
+    'cust_invoice': selectedCustomer?.name ?? '',
+    'tgl_invoice': DateTime.now().toIso8601String(),
+    'subtotal_invoice': subTotal,
+    'total_invoice': grandTotal,
+    'sisa_bayar': sisaBayar,
+    'cash': akunType == 'HUTANG' ? 0 : 1,
+    'status': 'baru',
+    'from_cust': 0,
+    'qty_jenis_1': 0,
+    'qty_jenis_2': 0,
+    'hhp_jenis_1': 0,
+    'hhp_jenis_2': 0,
+    'untung': 0,
+    'akun': akunType,
+    'dibuat_oleh': namaUser,
+    'dibuat_tgl': DateTime.now().toIso8601String(),
+    'diubah_oleh': '',
+    'diubah_tgl': '',
+    'id_cabang': idCabang,
+    'sts': 1,
+    'sts_void': 0,
+    'is_synced': 0,
+  };
+
+  await TransaksiHelper.instance.saveTransaksiToSQLite(data);
+}
+
+      // Sync jika online
+      await TransaksiHelper.instance.trySyncIfOnline();
+
       Navigator.of(context).pop();
       resetTransaction();
     } catch (e) {
@@ -703,8 +719,7 @@ setState(() {
     }
   },
   style: TextButton.styleFrom(
-    backgroundColor: selectedPaymentAccount == null ||
-            selectedPaymentAccount!.isEmpty
+    backgroundColor: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
         ? Colors.grey
         : Colors.green,
     foregroundColor: Colors.white,
@@ -715,7 +730,6 @@ setState(() {
   ),
   child: const Text('Take Payment'),
 ),
-
                     TextButton(
                       onPressed: () async {
                         if (currentTransactionId != null) {}
@@ -863,6 +877,12 @@ setState(() {
   }
 
 Future<String> saveFinalTransaction() async {
+  final connectivityResult = await Connectivity().checkConnectivity();
+if (connectivityResult != ConnectivityResult.none) {
+  await TransaksiHelper.instance.syncTransaksiToServer();
+}
+
+
   final prefs = await SharedPreferences.getInstance();
   final String? idCabangPref = prefs.getString('id_cabang');
   final String? dibuatOlehPref = prefs.getString('nm_user');

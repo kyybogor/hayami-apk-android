@@ -8,6 +8,7 @@ class OrderItem {
   final String size;
   final double quantity;
   final double unitPrice;
+  final double discount; // ✅ Tambahkan diskon per item
 
   OrderItem({
     required this.idTipe,
@@ -15,9 +16,11 @@ class OrderItem {
     required this.size,
     required this.quantity,
     required this.unitPrice,
+    this.discount = 0.0, // ✅ Default ke 0 jika tidak ada diskon
   });
 
-  double get total => quantity * unitPrice;
+  double get subtotal => quantity * unitPrice;
+  double get total => subtotal - discount;
 }
 
 class ProductOrderDialogContent extends StatefulWidget {
