@@ -670,7 +670,7 @@ TextButton(
     'harga': harga,
     'subtotal': subtotalItem.toInt(),
     'total': totalItem.toInt(),
-    'disc': selectedCustomer?.diskonLusin ?? 0,
+    'disc': selectedCustomer!.diskonLusin * item.quantity / 12,
     'disc_nilai': diskon,
     'ppn': 0.0,
     'status_keluar': 'keluar',
