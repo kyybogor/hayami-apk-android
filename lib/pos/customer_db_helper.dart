@@ -12,33 +12,24 @@ class CustomerDBHelper {
   static const _dbVersion = 1;
   static const _dbVersionKey = 'db_version';
 
+  /// Tidak akan menghapus database lagi, hanya menyalin kalau belum ada
   static Future<void> initDb() async {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, _dbName);
-    final prefs = await SharedPreferences.getInstance();
 
     final exists = await databaseExists(path);
-    final currentVersion = prefs.getInt(_dbVersionKey) ?? 0;
-
-    if (!exists || currentVersion < _dbVersion) {
+    if (!exists) {
       try {
-        if (exists) {
-          await deleteDatabase(path);
-          print('🧹 Database lama dihapus karena versi lama.');
-        }
-
         await Directory(dirname(path)).create(recursive: true);
         ByteData data = await rootBundle.load('assets/$_dbName');
         List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
         await File(path).writeAsBytes(bytes, flush: true);
-        await prefs.setInt(_dbVersionKey, _dbVersion);
-
-        print('✅ Database berhasil disalin atau diperbarui.');
+        print('✅ Database berhasil disalin dari assets.');
       } catch (e) {
         print('❌ Gagal menyalin database: $e');
       }
     } else {
-      print('📦 Database sudah ada dan versi terbaru.');
+      print('📦 Database sudah ada, tidak disalin ulang.');
     }
   }
 
@@ -46,7 +37,33 @@ class CustomerDBHelper {
     if (_db != null && _db!.isOpen) return _db!;
     await initDb();
     final path = join(await getDatabasesPath(), _dbName);
-    _db = await openDatabase(path);
+
+    _db = await openDatabase(
+      path,
+      version: _dbVersion,
+      onOpen: (db) async {
+        print('🔍 Mengecek struktur tb_customer...');
+        // Tambahkan kolom baru jika perlu (contoh: phone_number)
+        try {
+          await db.execute("ALTER TABLE tb_customer ADD COLUMN phone_number TEXT");
+          print('🆕 Kolom phone_number ditambahkan ke tb_customer.');
+        } catch (e) {
+          // Biasanya error karena kolom sudah ada — ini bisa diabaikan
+          print('ℹ️ Kolom phone_number sudah ada atau gagal ditambahkan: $e');
+        }
+
+        // Jika ingin membuat ulang tabel jika belum ada (optional)
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS tb_customer (
+            id_customer TEXT PRIMARY KEY,
+            nama_customer TEXT,
+            phone_number TEXT
+            -- Tambahkan kolom lain jika perlu
+          )
+        ''');
+      },
+    );
+
     return _db!;
   }
 

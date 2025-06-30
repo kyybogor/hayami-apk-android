@@ -5,7 +5,7 @@ import 'package:path/path.dart';
 
 class LoginSQLiteHelper {
   static Database? _db;
-  static const _dbName = 'mydb.db'; // pastikan file db ada di assets
+  static const _dbName = 'mydb.db'; // file database di assets
 
   static Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
@@ -24,7 +24,24 @@ class LoginSQLiteHelper {
       }
     }
 
-    return openDatabase(path, readOnly: false);
+    return openDatabase(
+      path,
+      readOnly: false,
+      onOpen: (db) async {
+        // Tambahkan migrasi tabel atau kolom baru jika perlu
+        print('🔄 Mengecek dan memperbarui struktur tabel tb_karyawan...');
+
+        // Contoh: menambahkan kolom 'phone' jika belum ada
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS tb_karyawan (
+            user_id TEXT PRIMARY KEY,
+            pass TEXT,
+            name TEXT,
+            phone TEXT
+          )
+        ''');
+      },
+    );
   }
 
   static Future<Database> get db async {

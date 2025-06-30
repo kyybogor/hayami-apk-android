@@ -45,6 +45,7 @@ flutter:
     - assets/image/hayamibaru.png
     - assets/image/hayamilogo.png
     - assets/mydb.db
+    - assets/
 
 
 flutter_icons:
