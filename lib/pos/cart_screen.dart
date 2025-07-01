@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:hayami_app/pos/cart_db_helper.dart';
 import 'package:hayami_app/pos/product_order_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -54,76 +56,83 @@ class _CartScreenState extends State<CartScreen> {
     fetchCartData();
   }
 
-  Future<void> fetchCartData() async {
-    setState(() {
-      isLoading = true;
-    });
+double parseDouble(dynamic val) {
+  if (val == null) return 0.0;
+  if (val is double) return val;
+  if (val is int) return val.toDouble();
+  if (val is String) return double.tryParse(val) ?? 0.0;
+  return 0.0;
+}
 
+Future<void> fetchCartData() async {
+  setState(() => isLoading = true);
+
+  final connectivityResult = await Connectivity().checkConnectivity();
+
+  if (connectivityResult != ConnectivityResult.none) {
+    // Online: fetch from API + update SQLite
     try {
-      final response = await http.get(
-        Uri.parse('http://192.168.1.9/hayami/cart.php'),
-      );
-
+      final response = await http.get(Uri.parse('http://192.168.1.9/hayami/cart.php'));
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-
         if (jsonResponse['status'] == 'success') {
+          await CartDBHelper.instance.clearCart();
           final List<dynamic> data = jsonResponse['data'];
 
-          // Simpan satu data per id_transaksi
-          final Map<String, dynamic> uniqueEntries = {};
-
           for (var item in data) {
-            final idTransaksi = item['id_transaksi'] ?? 'unknown';
-            if (!uniqueEntries.containsKey(idTransaksi)) {
-              uniqueEntries[idTransaksi] = item;
-            }
+            // Pastikan semua key ada dan bernilai default jika null
+            item['diskon_lusin'] = item.containsKey('diskon_lusin') ? item['diskon_lusin'] : 0.0;
+
+            // Parse semua nilai numerik agar aman tipe datanya
+            item['disc'] = parseDouble(item['disc']);
+            item['disc_nilai'] = parseDouble(item['disc_nilai']);
+            item['disc_invoice'] = parseDouble(item['disc_invoice']);
+            item['diskon_lusin'] = parseDouble(item['diskon_lusin']);
+            item['total_invoice'] = parseDouble(item['total_invoice']);
+
+            await CartDBHelper.instance.insertOrUpdateCartItem(item);
           }
-
-          final List<CartEntry> entries = [];
-
-          uniqueEntries.forEach((idTransaksi, item) {
-            final customerName = item['id_customer'] ?? 'Unknown';
-            final grandTotal =
-                double.tryParse(item['total_invoice'] ?? '0') ?? 0.0;
-            final disc = double.tryParse(item['disc'] ?? '0') ?? 0.0;
-            final discPersen =
-                double.tryParse(item['disc_nilai'] ?? '0') ?? 0.0;
-            final discBaru = double.tryParse(item['disc_invoice'] ?? '0') ?? 0.0;
-            final diskonLusin = double.tryParse(item['diskon_lusin'] ?? '0') ?? 0.0;
-
-            entries.add(CartEntry(
-              customerName: customerName,
-              grandTotal: grandTotal,
-              idTransaksi: idTransaksi,
-              disc: disc,
-              discPersen: discPersen,
-              discBaru: discBaru,
-              diskonLusin: diskonLusin,
-            ));
-          });
-
-          setState(() {
-            cartSummaryList.clear();
-            cartSummaryList.addAll(entries);
-          });
-        } else {
-          throw Exception('Status not success');
         }
-      } else {
-        throw Exception('Failed to load data');
       }
     } catch (e) {
-      debugPrint('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal mengambil data dari API.")),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      debugPrint('Error syncing from API: $e');
+      // fallback ambil dari SQLite
     }
   }
+
+  // Ambil data dari SQLite, online maupun offline
+  final localData = await CartDBHelper.instance.getAllCartData();
+
+  // Map unik berdasarkan id_transaksi
+  final uniqueEntries = <String, Map<String, dynamic>>{};
+  for (var item in localData) {
+    final idTransaksi = item['id_transaksi'] ?? 'unknown';
+    if (!uniqueEntries.containsKey(idTransaksi)) {
+      uniqueEntries[idTransaksi] = item;
+    }
+  }
+
+  final entries = uniqueEntries.entries.map((e) {
+    final item = e.value;
+    return CartEntry(
+      customerName: item['id_customer'] ?? 'Unknown',
+      grandTotal: parseDouble(item['total_invoice']),
+      idTransaksi: item['id_transaksi'] ?? '',
+      disc: parseDouble(item['disc']),
+      discPersen: parseDouble(item['disc_nilai']),
+      discBaru: parseDouble(item['disc_invoice']),
+      diskonLusin: parseDouble(item['diskon_lusin']),
+    );
+  }).toList();
+
+  setState(() {
+    cartSummaryList.clear();
+    cartSummaryList.addAll(entries);
+    isLoading = false;
+  });
+}
+
+
 
   void addToCart() {
     final entry = CartEntry(
@@ -185,81 +194,44 @@ class _CartScreenState extends State<CartScreen> {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.green,
                                       ),
-                                      onPressed: () async {
-                                        final idTransaksi = entry.idTransaksi;
-                                        final encodedIdTransaksi =
-                                            Uri.encodeComponent(idTransaksi);
+onPressed: () async {
+  final idTransaksi = entry.idTransaksi;
 
-                                        try {
-                                          final response = await http.get(
-                                            Uri.parse(
-                                                'http://192.168.1.9/hayami/cartdetail.php?id_transaksi=$encodedIdTransaksi'),
-                                          );
+  try {
+    // Ambil data detail dari SQLite
+    final List<Map<String, dynamic>> localCartDetails =
+        await CartDBHelper.instance.getCartDetailsById(idTransaksi);
 
-                                          if (response.statusCode == 200) {
-                                            final Map<String, dynamic>
-                                                jsonResponse =
-                                                json.decode(response.body);
+    // Ubah hasil query menjadi List<OrderItem>
+    final List<OrderItem> items = localCartDetails.map((item) {
+      return OrderItem(
+        productName: item['model'] ?? '',
+        size: item['ukuran'] ?? '',
+        quantity: double.tryParse(item['qty'].toString()) ?? 0,
+        unitPrice: (double.tryParse(item['harga'].toString()) ?? 0) * 12,
+        idTipe: item['id_bahan'] ?? '',
+      );
+    }).toList();
 
-                                            if (jsonResponse['status'] ==
-                                                'success') {
-                                              final List<dynamic> allItems =
-                                                  jsonResponse['data'];
-
-                                              final filteredItems = allItems
-                                                  .where((item) =>
-                                                      item['id_transaksi'] ==
-                                                      idTransaksi)
-                                                  .toList();
-
-                                              final List<OrderItem> items =
-                                                  filteredItems.map((item) {
-                                                return OrderItem(
-                                                  productName:
-                                                      item['model'] ?? '',
-                                                  size: item['ukuran'] ?? '',
-                                                  quantity: double.tryParse(
-                                                          item['qty'] ?? '0') ??
-                                                      0,
-                                                  unitPrice: (double.tryParse(
-                                                              item['harga'] ??
-                                                                  '0') ??
-                                                          0) *
-                                                      12,
-                                                  idTipe:
-                                                      item['id_bahan'] ?? '',
-                                                );
-                                              }).toList();
-
-                                              widget.onSelect(entry);
-                                              Navigator.pop(context, {
-                                                'entry': entry,
-                                                'items': items,
-                                                'disc': entry.disc,
-                                                'discPersen': entry.discPersen,
-                                                'discBaru': entry.discBaru,
-                                                'idTransaksi':
-                                                    entry.idTransaksi,
-                                                'diskonLusin': entry.diskonLusin,
-                                              });
-                                            } else {
-                                              throw Exception(
-                                                  'Response status not success');
-                                            }
-                                          } else {
-                                            throw Exception(
-                                                'Failed to load item data');
-                                          }
-                                        } catch (e) {
-                                          debugPrint('Error: $e');
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Gagal mengambil item dari server')),
-                                          );
-                                        }
-                                      },
+    widget.onSelect(entry);
+    Navigator.pop(context, {
+      'entry': entry,
+      'items': items,
+      'disc': entry.disc,
+      'discPersen': entry.discPersen,
+      'discBaru': entry.discBaru,
+      'idTransaksi': entry.idTransaksi,
+      'diskonLusin': entry.diskonLusin,
+    });
+  } catch (e) {
+    debugPrint('SQLite Error: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Gagal mengambil item dari lokal database'),
+      ),
+    );
+  }
+},
                                       child: const Text(
                                         "Select",
                                         style: TextStyle(fontSize: 12),

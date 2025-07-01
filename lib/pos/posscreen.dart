@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:hayami_app/pos/cart_db_helper.dart';
 import 'package:hayami_app/pos/cart_screen.dart';
 import 'package:hayami_app/pos/customer_db_helper.dart';
 import 'package:hayami_app/pos/print.dart';
@@ -195,6 +196,22 @@ setState(() {
     });
 
   }
+
+String generateLocalId() {
+  final now = DateTime.now();
+  final prefix = "C";
+  
+  // Format tanggal ddmmyy
+  final day = now.day.toString().padLeft(2, '0');
+  final month = now.month.toString().padLeft(2, '0');
+  final year = (now.year % 100).toString().padLeft(2, '0'); // ambil 2 digit terakhir tahun
+  
+  // Nomor urut sementara pakai random 4 digit atau microsecond mod 10000
+  final count = (now.microsecondsSinceEpoch % 10000).toInt();
+  final urutan = count.toString().padLeft(4, '0');
+  
+  return "$prefix$day$month$year$urutan";
+}
 
   String formatRupiah(dynamic number) {
     final formatter = NumberFormat.decimalPattern('id');
@@ -654,6 +671,7 @@ TextButton(
   final double diskon = item.discount ?? 0.0;
   final double subtotalItem = harga * item.quantity;
   final double totalItem = subtotalItem - diskon;
+  
 
   final data = {
     'no_id': const Uuid().v4(),
@@ -731,67 +749,63 @@ TextButton(
   child: const Text('Take Payment'),
 ),
                     TextButton(
-                      onPressed: () async {
-                        if (currentTransactionId != null) {}
+onPressed: () async {
+  try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String namaUser = prefs.getString('nm_user') ?? '';
 
-                        try {
-                          SharedPreferences prefs =
-                              await SharedPreferences.getInstance();
-                          String namaUser = prefs.getString('nm_user') ?? '';
+    final idTransaksi = currentTransactionId ?? generateLocalId();
+    final now = DateTime.now();
 
-                          await saveDraft(
-                            idCustomer: selectedCustomer!.id,
-                            sales: selectedSales,
-                            discInvoice: newDiscount,
-                            subtotal: subTotal,
-                            grandTotal: grandTotal,
-                            idCabang: idCabang,
-                            dibuatOleh: namaUser,
-                            items: cartItems
-                                .map((item) => {
-                                      "idBahan": item.idTipe,
-                                      "model": item.productName,
-                                      "ukuran": item.size,
-                                      "quantity": item.quantity,
-                                      "unitPrice": item.unitPrice / 12,
-                                      "total": item.total,
-                                      "disc": selectedCustomer!.diskonLusin *
-                                          item.quantity /
-                                          12,
-                                    })
-                                .toList(),
-                            existingIdTransaksi: currentTransactionId,
-                            existingIdInvoice: currentInvoiceId,
-                          );
+    // Simpan dulu ke SQLite
+    for (var item in cartItems) {
+      final draftItem = {
+        'id_transaksi': idTransaksi,
+        'tgl_transaksi': now.toIso8601String(),
+        'id_customer': selectedCustomer!.id,
+        'sales': selectedSales,
+        'id_bahan': item.idTipe,
+        'model': item.productName,
+        'ukuran': item.size,
+        'qty': item.quantity,
+        'uom': 'PCS',
+        'harga': item.unitPrice / 12,
+        'subtotal': item.total,
+        'total': item.total,
+        'disc': selectedCustomer!.diskonLusin * item.quantity / 12,
+        'disc_invoice': newDiscount,
+        'subtotal_invoice': subTotal,
+        'total_invoice': grandTotal,
+        'dibuat_oleh': namaUser,
+        'dibuat_tgl': now.toIso8601String(),
+        'id_cabang': idCabang,
+        'is_synced': 0,
+      };
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text("Berhasil ditambahkan ke keranjang"),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
+      await CartDBHelper.instance.insertOrUpdateCartItem(draftItem);
+    }
 
-                          // Kosongkan cart dan selectedCustomer setelah berhasil
-                          setState(() {
-                            cartItems.clear();
-                            selectedCustomer = null;
-                          });
+    // Sinkronisasi sekali saja setelah simpan semua item
+    await CartDBHelper.instance.syncPendingDrafts();
 
-                          // Tunggu sebentar
-                          await Future.delayed(
-                              const Duration(milliseconds: 100));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Draft disimpan")),
+    );
 
-                          // Kembali ke halaman sebelumnya
-                          Navigator.pop(context);
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("Gagal menyimpan data: $e"),
-                            ),
-                          );
-                        }
-                      },
+    setState(() {
+      cartItems.clear();
+      selectedCustomer = null;
+    });
+
+    Navigator.pop(context);
+  } catch (e) {
+    debugPrint("Save Draft Error: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Gagal menyimpan draft: $e")),
+    );
+  }
+},
+
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,

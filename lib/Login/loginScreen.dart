@@ -20,44 +20,51 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _isLoading = false;
  
-  void _login() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+void _login() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Username dan password wajib diisi.")),
-      );
-      return;
-    }
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Username dan password wajib diisi.")),
+    );
+    return;
+  }
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    final gudangResponse = await GudangApiService.loginUser(email, password);
-
-    if (gudangResponse['status'] == 'success') {
-      await _saveUserPrefs(gudangResponse['user']);
-      setState(() => _isLoading = false);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Dashboardscreen()),
-      );
-      return;
-    }
-
-final response = await PosApiService.loginUser(email, password);
-
-  setState(() => _isLoading = false);
+  // 🔄 Coba login ke POS API terlebih dahulu
+  final response = await PosApiService.loginUser(email, password);
 
   if (response['status'] == 'success') {
     await _saveUserPrefs(response['user']);
+    setState(() => _isLoading = false);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const DashboardScreenPos()),
     );
+    return;
+  }
+
+  // 🔁 Jika POS gagal, coba login ke Gudang API
+  final gudangResponse = await GudangApiService.loginUser(email, password);
+
+  setState(() => _isLoading = false);
+
+  if (gudangResponse['status'] == 'success') {
+    await _saveUserPrefs(gudangResponse['user']);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const Dashboardscreen()),
+    );
   } else {
+    // ❌ Keduanya gagal
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(response['message'] ?? 'Login gagal.')),
+      SnackBar(
+        content: Text(
+          gudangResponse['message'] ?? response['message'] ?? 'Login gagal.',
+        ),
+      ),
     );
   }
 }
@@ -68,7 +75,7 @@ final response = await PosApiService.loginUser(email, password);
     await prefs.setString('nm_user', user['nm_user'] ?? '');
     await prefs.setString('jabatan', user['jabatan'] ?? '');
     await prefs.setString('email_user', user['email_user'] ?? '');
-    await prefs.setString('no_telp', user['no_telp'] ?? '');
+    await prefs.setString('no_telp', user['no_telp'] ?? ''); 
     await prefs.setString('alamat', user['alamat'] ?? '');
     await prefs.setString('karyawan', user['karyawan'] ?? '');
     await prefs.setString('grup', user['grup'] ?? '');
