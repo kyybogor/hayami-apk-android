@@ -666,67 +666,89 @@ TextButton(
         }
       }
 
+      // Hitung total diskon customer (per item berdasarkan diskon per lusin)
+      final double totalDiskonCustomer = cartItems.fold(0.0, (sum, item) {
+        final jumlahDus = item.quantity / 12;
+        final diskonPerDus = selectedCustomer?.diskonLusin ?? 0;
+        return sum + (diskonPerDus * jumlahDus);
+      });
+
+      // Total diskon final (gabungan diskon customer + tambahan jika ada)
+      final double totalDiskonFinal = totalDiskonCustomer + (newDiscount ?? 0);
+
       for (var item in cartItems) {
-  final double harga = item.unitPrice;
-  final double diskon = item.discount ?? 0.0;
-  final double subtotalItem = harga * item.quantity;
-  final double totalItem = subtotalItem - diskon;
-  
+        final double harga = item.unitPrice;
+        final double diskon = item.discount ?? 0.0;
+        final double subtotalItem = harga * item.quantity;
+        final double totalItem = subtotalItem - diskon;
 
-  final data = {
-    'no_id': const Uuid().v4(),
-    'id_transaksi': idTransaksi,
-    'tgl_transaksi': DateTime.now().toIso8601String(),
-    'id_customer': selectedCustomer?.id ?? '',
-    'sales': selectedSales ?? '',
-    'keterangan': '',
-    'id_bahan': item.idTipe,
-    'model': item.productName,
-    'ukuran': item.size,
-    'qty': item.quantity,
-    'uom': 'PCS',
-    'harga': harga,
-    'subtotal': subtotalItem.toInt(),
-    'total': totalItem.toInt(),
-    'disc': selectedCustomer!.diskonLusin * item.quantity / 12,
-    'disc_nilai': diskon,
-    'ppn': 0.0,
-    'status_keluar': 'keluar',
-    'jatuh_tempo': 0,
-    'tgl_jatuh_tempo': '',
-    'by_user_pajak': 1,
-    'non_stock': 0,
-    'id_invoice': idInvoice,
-    'disc_invoice': newDiscount,
-    'cust_invoice': selectedCustomer?.name ?? '',
-    'tgl_invoice': DateTime.now().toIso8601String(),
-    'subtotal_invoice': subTotal,
-    'total_invoice': grandTotal,
-    'sisa_bayar': sisaBayar,
-    'cash': akunType == 'HUTANG' ? 0 : 1,
-    'status': 'baru',
-    'from_cust': 0,
-    'qty_jenis_1': 0,
-    'qty_jenis_2': 0,
-    'hhp_jenis_1': 0,
-    'hhp_jenis_2': 0,
-    'untung': 0,
-    'akun': akunType,
-    'dibuat_oleh': namaUser,
-    'dibuat_tgl': DateTime.now().toIso8601String(),
-    'diubah_oleh': '',
-    'diubah_tgl': '',
-    'id_cabang': idCabang,
-    'sts': 1,
-    'sts_void': 0,
-    'is_synced': 0,
-  };
+        final data = {
+          'no_id': const Uuid().v4(),
+          'id_transaksi': idTransaksi,
+          'tgl_transaksi': DateTime.now().toIso8601String(),
+          'id_customer': selectedCustomer?.id ?? '',
+          'sales': selectedSales ?? '',
+          'keterangan': '',
+          'id_bahan': item.idTipe,
+          'model': item.productName,
+          'ukuran': item.size,
+          'qty': item.quantity,
+          'uom': 'PCS',
+          'harga': harga,
+          'subtotal': subtotalItem.toInt(),
+          'total': totalItem.toInt(),
+          'disc': (selectedCustomer?.diskonLusin ?? 0) * item.quantity / 12,
+          'disc_nilai': diskon,
+          'ppn': 0.0,
+          'status_keluar': 'keluar',
+          'jatuh_tempo': 0,
+          'tgl_jatuh_tempo': '',
+          'by_user_pajak': 1,
+          'non_stock': 0,
+          'id_invoice': idInvoice,
+          'disc_invoice': totalDiskonFinal, // ✅ FIXED HERE
+          'cust_invoice': selectedCustomer?.name ?? '',
+          'tgl_invoice': DateTime.now().toIso8601String(),
+          'subtotal_invoice': subTotal,
+          'total_invoice': grandTotal,
+          'sisa_bayar': sisaBayar,
+          'cash': akunType == 'HUTANG' ? 0 : 1,
+          'status': 'baru',
+          'from_cust': 0,
+          'qty_jenis_1': 0,
+          'qty_jenis_2': 0,
+          'hhp_jenis_1': 0,
+          'hhp_jenis_2': 0,
+          'untung': 0,
+          'akun': akunType,
+          'dibuat_oleh': namaUser,
+          'dibuat_tgl': DateTime.now().toIso8601String(),
+          'diubah_oleh': '',
+          'diubah_tgl': '',
+          'id_cabang': idCabang,
+          'sts': 1,
+          'sts_void': 0,
+          'is_synced': 0,
+        };
 
-  await TransaksiHelper.instance.saveTransaksiToSQLite(data);
-}
+        await TransaksiHelper.instance.saveTransaksiToSQLite(data);
+      }
 
       // Sync jika online
       await TransaksiHelper.instance.trySyncIfOnline();
+
+      // Cetak struk
+      await generateAndPrintStrukPdf(
+        cartItems: cartItems,
+        grandTotal: grandTotal,
+        totalDiskon: totalDiskonCustomer,
+        newDiscount: newDiscount,
+        totalLusin: cartItems.fold(0.0, (sum, item) => sum + (item.quantity / 12)),
+        selectedPaymentAccount: selectedPaymentAccountMap ?? {},
+        splitPayments: splitPayments,
+        collectedBy: namaUser,
+        idTransaksi: idTransaksi,
+      );
 
       Navigator.of(context).pop();
       resetTransaction();
@@ -748,6 +770,7 @@ TextButton(
   ),
   child: const Text('Take Payment'),
 ),
+
                     TextButton(
 onPressed: () async {
   try {
