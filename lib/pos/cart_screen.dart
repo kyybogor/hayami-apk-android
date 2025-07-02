@@ -56,13 +56,13 @@ class _CartScreenState extends State<CartScreen> {
     fetchCartData();
   }
 
-double parseDouble(dynamic val) {
-  if (val == null) return 0.0;
-  if (val is double) return val;
-  if (val is int) return val.toDouble();
-  if (val is String) return double.tryParse(val) ?? 0.0;
-  return 0.0;
-}
+  double parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is double) return val;
+    if (val is int) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
 
 Future<void> fetchCartData() async {
   setState(() => isLoading = true);
@@ -70,9 +70,9 @@ Future<void> fetchCartData() async {
   final connectivityResult = await Connectivity().checkConnectivity();
 
   if (connectivityResult != ConnectivityResult.none) {
-    // Online: fetch from API + update SQLite
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.9/hayami/cart.php'));
+      final response =
+          await http.get(Uri.parse('http://192.168.1.9/hayami/cart.php'));
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         if (jsonResponse['status'] == 'success') {
@@ -80,10 +80,7 @@ Future<void> fetchCartData() async {
           final List<dynamic> data = jsonResponse['data'];
 
           for (var item in data) {
-            // Pastikan semua key ada dan bernilai default jika null
             item['diskon_lusin'] = item.containsKey('diskon_lusin') ? item['diskon_lusin'] : 0.0;
-
-            // Parse semua nilai numerik agar aman tipe datanya
             item['disc'] = parseDouble(item['disc']);
             item['disc_nilai'] = parseDouble(item['disc_nilai']);
             item['disc_invoice'] = parseDouble(item['disc_invoice']);
@@ -96,32 +93,48 @@ Future<void> fetchCartData() async {
       }
     } catch (e) {
       debugPrint('Error syncing from API: $e');
-      // fallback ambil dari SQLite
     }
   }
 
-  // Ambil data dari SQLite, online maupun offline
   final localData = await CartDBHelper.instance.getAllCartData();
 
-  // Map unik berdasarkan id_transaksi
-  final uniqueEntries = <String, Map<String, dynamic>>{};
+  // Kelompokkan data berdasarkan id_transaksi
+  final Map<String, List<Map<String, dynamic>>> groupedData = {};
+
   for (var item in localData) {
     final idTransaksi = item['id_transaksi'] ?? 'unknown';
-    if (!uniqueEntries.containsKey(idTransaksi)) {
-      uniqueEntries[idTransaksi] = item;
-    }
+    groupedData.putIfAbsent(idTransaksi, () => []).add(item);
   }
 
-  final entries = uniqueEntries.entries.map((e) {
-    final item = e.value;
+  final entries = groupedData.entries.map((entry) {
+    final idTransaksi = entry.key;
+    final items = entry.value;
+
+    // Ambil customerName dari salah satu item
+    final customerName = items[0]['id_customer'] ?? 'Unknown';
+
+    // Ambil total_invoice dari salah satu item jika valid
+    double totalInvoice = parseDouble(items[0]['total_invoice']);
+
+    // Jika total_invoice tidak valid atau 0, hitung manual jumlah total item
+    if (totalInvoice == 0) {
+      totalInvoice = items.fold(0.0, (sum, item) => sum + parseDouble(item['total']));
+    }
+
+    // Ambil diskon dan lainnya dari satu item, bisa sesuaikan jika beda-beda
+    final disc = parseDouble(items[0]['disc']);
+    final discPersen = parseDouble(items[0]['disc_nilai']);
+    final discBaru = parseDouble(items[0]['disc_invoice']);
+    final diskonLusin = parseDouble(items[0]['diskon_lusin']);
+
     return CartEntry(
-      customerName: item['id_customer'] ?? 'Unknown',
-      grandTotal: parseDouble(item['total_invoice']),
-      idTransaksi: item['id_transaksi'] ?? '',
-      disc: parseDouble(item['disc']),
-      discPersen: parseDouble(item['disc_nilai']),
-      discBaru: parseDouble(item['disc_invoice']),
-      diskonLusin: parseDouble(item['diskon_lusin']),
+      customerName: customerName,
+      grandTotal: totalInvoice,
+      idTransaksi: idTransaksi,
+      disc: disc,
+      discPersen: discPersen,
+      discBaru: discBaru,
+      diskonLusin: diskonLusin,
     );
   }).toList();
 
@@ -133,7 +146,6 @@ Future<void> fetchCartData() async {
 }
 
 
-
   void addToCart() {
     final entry = CartEntry(
       customerName: widget.customerId,
@@ -142,7 +154,7 @@ Future<void> fetchCartData() async {
       disc: 0.0,
       discPersen: 0.0,
       discBaru: 0.0,
-      diskonLusin: 0.0, 
+      diskonLusin: 0.0,
     );
 
     setState(() {
@@ -194,44 +206,56 @@ Future<void> fetchCartData() async {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.green,
                                       ),
-onPressed: () async {
-  final idTransaksi = entry.idTransaksi;
+                                      onPressed: () async {
+                                        final idTransaksi = entry.idTransaksi;
 
-  try {
-    // Ambil data detail dari SQLite
-    final List<Map<String, dynamic>> localCartDetails =
-        await CartDBHelper.instance.getCartDetailsById(idTransaksi);
+                                        try {
+                                          // Ambil data detail dari SQLite
+                                          final List<Map<String, dynamic>>
+                                              localCartDetails =
+                                              await CartDBHelper.instance
+                                                  .getCartDetailsById(
+                                                      idTransaksi);
 
-    // Ubah hasil query menjadi List<OrderItem>
-    final List<OrderItem> items = localCartDetails.map((item) {
-      return OrderItem(
-        productName: item['model'] ?? '',
-        size: item['ukuran'] ?? '',
-        quantity: double.tryParse(item['qty'].toString()) ?? 0,
-        unitPrice: (double.tryParse(item['harga'].toString()) ?? 0) * 12,
-        idTipe: item['id_bahan'] ?? '',
-      );
-    }).toList();
+                                          // Ubah hasil query menjadi List<OrderItem>
+                                          final List<OrderItem> items =
+                                              localCartDetails.map((item) {
+                                            return OrderItem(
+                                              productName: item['model'] ?? '',
+                                              size: item['ukuran'] ?? '',
+                                              quantity: double.tryParse(
+                                                      item['qty'].toString()) ??
+                                                  0,
+                                              unitPrice: (double.tryParse(
+                                                          item['harga']
+                                                              .toString()) ??
+                                                      0) *
+                                                  12,
+                                              idTipe: item['id_bahan'] ?? '',
+                                            );
+                                          }).toList();
 
-    widget.onSelect(entry);
-    Navigator.pop(context, {
-      'entry': entry,
-      'items': items,
-      'disc': entry.disc,
-      'discPersen': entry.discPersen,
-      'discBaru': entry.discBaru,
-      'idTransaksi': entry.idTransaksi,
-      'diskonLusin': entry.diskonLusin,
-    });
-  } catch (e) {
-    debugPrint('SQLite Error: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Gagal mengambil item dari lokal database'),
-      ),
-    );
-  }
-},
+                                          widget.onSelect(entry);
+                                          Navigator.pop(context, {
+                                            'entry': entry,
+                                            'items': items,
+                                            'disc': entry.disc,
+                                            'discPersen': entry.discPersen,
+                                            'discBaru': entry.discBaru,
+                                            'idTransaksi': entry.idTransaksi,
+                                            'diskonLusin': entry.diskonLusin,
+                                          });
+                                        } catch (e) {
+                                          debugPrint('SQLite Error: $e');
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Gagal mengambil item dari lokal database'),
+                                            ),
+                                          );
+                                        }
+                                      },
                                       child: const Text(
                                         "Select",
                                         style: TextStyle(fontSize: 12),
@@ -242,42 +266,80 @@ onPressed: () async {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.red,
                                       ),
-onPressed: () async {
-  final idTransaksi = entry.idTransaksi;
-  try {
-    final response = await http.post(
-      Uri.parse('http://192.168.1.9/hayami/delete_cart.php'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'id_transaksi': idTransaksi}),
-    );
+                                      onPressed: () async {
+                                        final idTransaksi = entry.idTransaksi;
+                                        print(
+                                            "Attempting to delete cart with idTransaksi: $idTransaksi");
 
-    final responseBody = json.decode(response.body);
+                                        final connectivity =
+                                            await Connectivity()
+                                                .checkConnectivity();
+                                        bool deleteSuccess = false;
 
-    if (response.statusCode == 200 && responseBody['status'] == 'success') {
-      setState(() {
-        cartSummaryList.removeAt(index);
-      });
-      widget.onDelete(entry);
+                                        if (connectivity !=
+                                            ConnectivityResult.none) {
+                                          // Online: delete ke API + update SQLite
+                                          try {
+                                            final response = await http.post(
+                                              Uri.parse(
+                                                  'http://192.168.1.9/hayami/delete_cart.php'),
+                                              headers: {
+                                                'Content-Type':
+                                                    'application/json'
+                                              },
+                                              body: json.encode({
+                                                'id_transaksi': idTransaksi
+                                              }),
+                                            );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Data berhasil dihapus."),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    } else {
-      throw Exception(responseBody['message'] ?? 'Gagal menghapus data');
-    }
-  } catch (e) {
-    debugPrint('Delete Error: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Terjadi kesalahan saat menghapus."),
-        duration: Duration(seconds: 1),
-      ),
-    );
-  }
-},
+                                            final responseBody =
+                                                json.decode(response.body);
+
+                                            if (response.statusCode == 200 &&
+                                                responseBody['status'] ==
+                                                    'success') {
+                                              await CartDBHelper.instance
+                                                  .markCartAsDeleted(
+                                                      idTransaksi,
+                                                      isSynced: true);
+                                              deleteSuccess = true;
+                                            } else {
+                                              throw Exception(
+                                                  responseBody['message'] ??
+                                                      'Gagal menghapus data');
+                                            }
+                                          } catch (e) {
+                                            debugPrint(
+                                                'Delete Error (Online): $e');
+                                            // fallback ke offline delete nanti di bawah
+                                          }
+                                        }
+
+                                        if (!deleteSuccess) {
+                                          // Offline or gagal koneksi → soft delete offline
+                                          await CartDBHelper.instance
+                                              .markCartAsDeleted(idTransaksi,
+                                                  isSynced: false);
+                                          final debugResult = await CartDBHelper
+                                              .instance
+                                              .getCartDetailsById(idTransaksi);
+                                          print(
+                                              "DEBUG - Data ditemukan untuk id_transaksi '$idTransaksi': ${debugResult.length} row(s)");
+                                        }
+
+                                        setState(() {
+                                          cartSummaryList.removeAt(index);
+                                        });
+                                        widget.onDelete(entry);
+
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(deleteSuccess
+                                                  ? "Data berhasil dihapus."
+                                                  : "Cart ditandai untuk dihapus (offline).")),
+                                        );
+                                      },
                                       child: const Text("Delete",
                                           style: TextStyle(fontSize: 12)),
                                     ),
