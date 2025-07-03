@@ -122,6 +122,9 @@ class _PosscreenState extends State<Posscreen> {
     super.initState();
     fetchProducts();
     fetchPaymentAccounts();
+    CartDBHelper.instance.syncPendingDrafts();
+
+
   }
 
   Future<void> _handleTakePayment() async {
@@ -807,9 +810,6 @@ onPressed: () async {
 
       await CartDBHelper.instance.insertOrUpdateCartItem(draftItem);
     }
-
-    // Sinkronisasi sekali saja setelah simpan semua item
-    await CartDBHelper.instance.syncPendingDrafts();
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Draft disimpan")),
@@ -1786,16 +1786,24 @@ Future<void> handleCustomerIdChange(String id) async {
                               ),
                             ),
                             Text(currencyFormatter.format(item.total / 12)),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                setState(() {
-                                  cartItems.removeAt(index);
-                                  isConfirmMode = false;
-                                });
-                              },
-                            ),
-                          ],
+IconButton(
+  icon: Icon(Icons.delete, color: Colors.red),
+  onPressed: () async {
+    final item = cartItems[index];
+    final idTipe = item.idTipe;
+    final productName = item.productName;
+    final size = item.size;
+
+    final idTransaksi = currentTransactionId ?? '';
+
+    // Panggil method hapus dengan tambahan idTransaksi
+    await CartDBHelper.instance.deleteCartItemByDetails(idTransaksi, idTipe, productName, size);
+
+    setState(() {
+      cartItems.removeAt(index);
+    });
+  },
+),                              ],
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1976,6 +1984,23 @@ Future<void> handleCustomerIdChange(String id) async {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+                        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Sinkronisasi Cart',
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Sinkronisasi dimulai...')),
+              );
+              await CartDBHelper.instance.syncPendingDrafts();
+              await TransaksiHelper.instance.trySyncIfOnline();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Sinkronisasi selesai, data lokal diperbarui.')),
+              );
+            },
+          ),
+        ],
+
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())

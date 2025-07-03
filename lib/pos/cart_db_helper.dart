@@ -359,5 +359,20 @@ Future<void> markCartAsDeleted(String idTransaksi, {bool isSynced = false}) asyn
   }
 }
 
+Future<void> deleteCartItemByDetails(
+  String idTransaksi,
+  String idTipe,
+  String productName,
+  String size,
+) async {
+  final db = await database;
+  await db.delete(
+    'tb_barang_keluar',
+    where: 'id_transaksi = ? AND id_bahan = ? AND model = ? AND ukuran = ?',
+    whereArgs: [idTransaksi, idTipe, productName, size],
+  );
+}
+
+
 
 }
