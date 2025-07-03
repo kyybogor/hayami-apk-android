@@ -182,7 +182,7 @@ class TransaksiHelper {
 
       try {
         final response = await http.post(
-          Uri.parse('http://192.168.1.9/hayami/takepayment.php'),
+          Uri.parse('http://192.168.1.5/hayami/takepayment.php'),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(body),
         );

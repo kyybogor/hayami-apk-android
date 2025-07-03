@@ -33,7 +33,7 @@ class StockDBHelper {
     } else {
       print('📦 Database produk sudah ada, tidak disalin ulang.');
     }
-  }
+  } 
 
   static Future<Database> get database async {
     if (_db != null && _db!.isOpen) return _db!;
@@ -46,15 +46,15 @@ class StockDBHelper {
       onOpen: (db) async {
         print('🔍 Mengecek dan memperbarui struktur tb_stock...');
 
-        // Jika tabel belum ada sama sekali, buat
         await db.execute('''
           CREATE TABLE IF NOT EXISTS tb_stock (
             id_stock TEXT PRIMARY KEY,
             id_cabang TEXT,
-            nama_produk TEXT,
-            jumlah INTEGER,
+            id_bahan TEXT,
+            model TEXT,
+            ukuran TEXT,
+            stock REAL,
             lokasi_gudang TEXT
-            -- Tambahkan kolom lain sesuai kebutuhan
           )
         ''');
       },
@@ -78,6 +78,35 @@ class StockDBHelper {
 
     await batch.commit(noResult: true);
     print('🔄 Sinkronisasi stok selesai (${data.length} data).');
+  }
+
+  static Future<void> reduceStockOffline(String idBahan, String ukuran, double qtyToReduce) async {
+    final db = await database;
+
+    // Ambil stok saat ini berdasarkan id_bahan dan ukuran
+    final stockData = await db.query(
+      'tb_stock',
+      columns: ['stock'],
+      where: 'id_bahan = ? AND ukuran = ?',
+      whereArgs: [idBahan, ukuran],
+    );
+
+    if (stockData.isNotEmpty) {
+      double currentStock = double.tryParse(stockData.first['stock'].toString()) ?? 0;
+      double newStock = currentStock - qtyToReduce;
+      if (newStock < 0) newStock = 0;
+
+      await db.update(
+        'tb_stock',
+        {'stock': newStock},
+        where: 'id_bahan = ? AND ukuran = ?',
+        whereArgs: [idBahan, ukuran],
+      );
+
+      print('🛒 Stok lokal dikurangi untuk $idBahan ($ukuran): $currentStock -> $newStock');
+    } else {
+      print('⚠ Tidak ditemukan stok untuk $idBahan dengan ukuran $ukuran');
+    }
   }
 
   static Future<List<Map<String, dynamic>>> fetchStock({String? idCabang, bool isAdmin = false}) async {

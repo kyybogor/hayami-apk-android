@@ -222,7 +222,7 @@ Future<void> syncPendingDrafts() async {
     final idTransaksi = item['id_transaksi'];
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.1.9/hayami/delete_cart.php"),
+        Uri.parse("http://192.168.1.5/hayami/delete_cart.php"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({'id_transaksi': idTransaksi}),
       );
@@ -317,7 +317,7 @@ if (existingSync.isNotEmpty) {
 
   try {
     final response = await http.post(
-      Uri.parse("http://192.168.1.9/hayami/draft.php"),
+      Uri.parse("http://192.168.1.5/hayami/draft.php"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );
