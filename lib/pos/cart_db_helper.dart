@@ -206,9 +206,14 @@ Future<List<Map<String, dynamic>>> getAllCartData() async {
 
 Future<void> syncPendingDrafts() async {
   final connectivity = await Connectivity().checkConnectivity();
-  if (connectivity == ConnectivityResult.none) return;
+  if (connectivity == ConnectivityResult.none) {
+    print("📴 Tidak ada koneksi internet. Sync dibatalkan.");
+    return;
+  }
 
   final db = await database;
+
+  print("📡 Mulai sync draft yang belum terkirim...");
 
   // 1. Sync data yang dihapus (sts_void = 1 dan is_synced = 0)
   final voided = await db.query(
@@ -221,6 +226,7 @@ Future<void> syncPendingDrafts() async {
   for (var item in voided) {
     final idTransaksi = item['id_transaksi'];
     try {
+      print("🗑️ Sync penghapusan transaksi: $idTransaksi");
       final response = await http.post(
         Uri.parse("http://192.168.1.5/hayami/delete_cart.php"),
         headers: {"Content-Type": "application/json"},
@@ -235,20 +241,29 @@ Future<void> syncPendingDrafts() async {
           where: 'id_transaksi = ?',
           whereArgs: [idTransaksi],
         );
+        print("✅ Berhasil sync penghapusan: $idTransaksi");
+      } else {
+        print("❌ Gagal sync penghapusan: $idTransaksi | ${res['message']}");
       }
     } catch (e) {
-      print("Sync delete error for $idTransaksi: $e");
+      print("❌ Error sync penghapusan $idTransaksi: $e");
     }
   }
 
-  // 2. Sync draft cart (is_synced = 0, tidak dihapus)
+  // 2. Sync data yang belum disinkronisasi (is_synced = 0 atau -1)
   final unsynced = await db.query(
     'tb_barang_keluar',
-    where: 'is_synced = 0 AND sts_void = 0',
+    where: 'is_synced IN (0, -1) AND sts_void = 0',
   );
 
-  if (unsynced.isEmpty) return;
+  if (unsynced.isEmpty) {
+    print("📭 Tidak ada data draft yang perlu disinkronkan.");
+    return;
+  }
 
+  print("📦 Ditemukan ${unsynced.length} item draft yang belum sync.");
+
+  // Kelompokkan berdasarkan id_transaksi
   final grouped = <String, List<Map<String, dynamic>>>{};
   for (var row in unsynced) {
     final id = row['id_transaksi']?.toString() ?? 'UNDEFINED';
@@ -259,10 +274,13 @@ Future<void> syncPendingDrafts() async {
     final transaksiId = entry.key;
     final items = entry.value;
 
+    print("🔄 Sync transaksi: $transaksiId (${items.length} item)");
+
+    // Set is_synced = -1 (tandai sedang dikirim)
     await db.update(
       'tb_barang_keluar',
-      {'is_synced': -1}, // sedang dikirim
-      where: 'id_transaksi = ? AND is_synced = 0',
+      {'is_synced': -1},
+      where: 'id_transaksi = ? AND is_synced IN (0, -1)',
       whereArgs: [transaksiId],
     );
 
@@ -306,16 +324,8 @@ Future<void> syncPendingDrafts() async {
       }).toList(),
     };
 
-    final alreadySynced = await db.query(
-      'tb_barang_keluar',
-      where: 'id_transaksi = ? AND is_synced = 1',
-      whereArgs: [transaksiId],
-    );
-
-    if (alreadySynced.isNotEmpty) {
-      print("Lewati sync, transaksi $transaksiId sudah tersinkron.");
-      continue;
-    }
+    print("📤 Mengirim ke server: $transaksiId");
+    print("📝 Payload: ${jsonEncode(body)}");
 
     try {
       final response = await http.post(
@@ -338,9 +348,22 @@ Future<void> syncPendingDrafts() async {
         print("✅ Sync berhasil untuk transaksi: $transaksiId");
       } else {
         print("❌ Gagal sync transaksi: $transaksiId. Respon: ${res['message']}");
+        // Kembalikan status ke 0 agar bisa dicoba lagi nanti
+        await db.update(
+          'tb_barang_keluar',
+          {'is_synced': 0},
+          where: 'id_transaksi = ?',
+          whereArgs: [transaksiId],
+        );
       }
     } catch (e) {
-      print("❌ Sync error untuk transaksi $transaksiId: $e");
+      print("❌ Exception saat sync transaksi $transaksiId: $e");
+      await db.update(
+        'tb_barang_keluar',
+        {'is_synced': 0},
+        where: 'id_transaksi = ?',
+        whereArgs: [transaksiId],
+      );
     }
   }
 }

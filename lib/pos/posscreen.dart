@@ -121,9 +121,9 @@ class _PosscreenState extends State<Posscreen> {
   void initState() {
     super.initState();
     TransaksiHelper.instance.trySyncIfOnline();
+    CartDBHelper.instance.syncPendingDrafts();
     fetchProducts();
     fetchPaymentAccounts();
-    CartDBHelper.instance.syncPendingDrafts();
 
 
   }
@@ -813,6 +813,8 @@ onPressed: () async {
       };
 
       await CartDBHelper.instance.insertOrUpdateCartItem(draftItem);
+      await CartDBHelper.instance.syncPendingDrafts();
+
     }
 
     await CartDBHelper.instance.syncPendingDrafts();
@@ -1726,9 +1728,8 @@ Future<void> handleCustomerIdChange(String id) async {
                               idCabang: '',
                               sts: '',
                             );
-
                             // ✅ Diskon otomatis masuk ke bagian 'Discount:'
-                            totalDiskon = disc;
+                            totalDiskon = calculateAutoDiskon();
 
                             // ✅ Diskon manual masuk ke bagian 'New Discount:'
                             if (discBaru > 0) {
