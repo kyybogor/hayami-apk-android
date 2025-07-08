@@ -210,7 +210,7 @@ Future<void> syncPendingDrafts() async {
 
   final db = await database;
 
-  // 1. Sinkronisasi data yang dihapus (sts_void = 1 dan is_synced = 0)
+  // 1. Sync data yang dihapus (sts_void = 1 dan is_synced = 0)
   final voided = await db.query(
     'tb_barang_keluar',
     where: 'sts_void = 1 AND is_synced = 0',
@@ -229,7 +229,6 @@ Future<void> syncPendingDrafts() async {
 
       final res = jsonDecode(response.body);
       if (response.statusCode == 200 && res['status'] == 'success') {
-        // Tandai sebagai tersinkron
         await db.update(
           'tb_barang_keluar',
           {'is_synced': 1},
@@ -242,7 +241,7 @@ Future<void> syncPendingDrafts() async {
     }
   }
 
-  // 2. Sinkronisasi data cart draft yang belum tersinkron (is_synced = 0, tidak dihapus)
+  // 2. Sync draft cart (is_synced = 0, tidak dihapus)
   final unsynced = await db.query(
     'tb_barang_keluar',
     where: 'is_synced = 0 AND sts_void = 0',
@@ -250,93 +249,100 @@ Future<void> syncPendingDrafts() async {
 
   if (unsynced.isEmpty) return;
 
-  // Kelompokkan berdasarkan id_transaksi
   final grouped = <String, List<Map<String, dynamic>>>{};
   for (var row in unsynced) {
-    final rawId = row['id_transaksi'];
-    final id = (rawId != null && rawId.toString().isNotEmpty)
-        ? rawId.toString()
-        : 'UNDEFINED';
-
+    final id = row['id_transaksi']?.toString() ?? 'UNDEFINED';
     grouped.putIfAbsent(id, () => []).add(row);
   }
 
-for (var entry in grouped.entries) {
-  final transaksiId = entry.key;
-  final items = entry.value;
+  for (var entry in grouped.entries) {
+    final transaksiId = entry.key;
+    final items = entry.value;
 
-  await db.update(
-  'tb_barang_keluar',
-  {'is_synced': -1}, // status "sedang dikirim"
-  where: 'id_transaksi = ? AND is_synced = 0',
-  whereArgs: [transaksiId],
-);
-
-
-  final body = {
-    "existingIdTransaksi": transaksiId,
-    "idCustomer": items.first['id_customer'],
-    "sales": items.first['sales'],
-    "discInvoice": items.first['disc_invoice'] ?? 0,
-    "subtotal": items.map((e) => e['qty'] * e['harga']).fold(0.0, (a, b) => a + b),
-    "grandTotal": items.map((e) => (e['qty'] * e['harga']) - (e['disc'] ?? 0)).fold(0.0, (a, b) => a + b),
-    "idCabang": items.first['id_cabang'],
-    "dibuatOleh": items.first['dibuat_oleh'],
-"items": items.map((e) {
-  final qty = parseDouble(e['qty']);
-  final harga = parseDouble(e['harga']);
-  final disc = parseDouble(e['disc']);
-  final subtotal = qty * harga;
-  final total = subtotal - disc;
-
-  return {
-    "noId": e['no_id'], // ⬅️ Tambahkan ini!
-    "idBahan": e['id_bahan'],
-    "model": e['model'],
-    "ukuran": e['ukuran'],
-    "quantity": qty,
-    "unitPrice": harga,
-    "subtotal": subtotal,
-    "total": total,
-    "disc": disc,
-  };
-}).toList()
-  };
-
-  final existingSync = await db.query(
-  'tb_barang_keluar',
-  where: 'id_transaksi = ? AND is_synced = 1',
-  whereArgs: [transaksiId],
-);
-
-if (existingSync.isNotEmpty) {
-  print('Data $transaksiId sudah pernah disinkron. Lewati.');
-  continue;
-}
-
-
-  try {
-    final response = await http.post(
-      Uri.parse("http://192.168.1.5/hayami/draft.php"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
+    await db.update(
+      'tb_barang_keluar',
+      {'is_synced': -1}, // sedang dikirim
+      where: 'id_transaksi = ? AND is_synced = 0',
+      whereArgs: [transaksiId],
     );
 
-    final res = jsonDecode(response.body);
-    if (response.statusCode == 200 && res['status'] == 'success') {
-      for (var item in items) {
-        await db.update(
-          'tb_barang_keluar',
-          {'is_synced': 1},
-          where: 'no_id = ?',
-          whereArgs: [item['no_id']],
-        );
-      }
+    final subtotal = items.fold(0.0, (sum, e) =>
+        sum + parseDouble(e['qty']) * parseDouble(e['harga']));
+
+    final grandTotal = items.fold(0.0, (sum, e) {
+      final qty = parseDouble(e['qty']);
+      final harga = parseDouble(e['harga']);
+      final disc = parseDouble(e['disc']);
+      return sum + ((qty * harga) - disc);
+    });
+
+    final body = {
+      "existingIdTransaksi": transaksiId,
+      "idCustomer": items.first['id_customer'],
+      "sales": items.first['sales'],
+      "discInvoice": parseDouble(items.first['disc_invoice']),
+      "subtotal": subtotal,
+      "grandTotal": grandTotal,
+      "idCabang": items.first['id_cabang'],
+      "dibuatOleh": items.first['dibuat_oleh'],
+      "items": items.map((e) {
+        final qty = parseDouble(e['qty']);
+        final harga = parseDouble(e['harga']);
+        final disc = parseDouble(e['disc']);
+        final subtotal = qty * harga;
+        final total = subtotal - disc;
+
+        return {
+          "noId": e['no_id'],
+          "idBahan": e['id_bahan'],
+          "model": e['model'],
+          "ukuran": e['ukuran'],
+          "quantity": qty,
+          "unitPrice": harga,
+          "subtotal": subtotal,
+          "total": total,
+          "disc": disc,
+        };
+      }).toList(),
+    };
+
+    final alreadySynced = await db.query(
+      'tb_barang_keluar',
+      where: 'id_transaksi = ? AND is_synced = 1',
+      whereArgs: [transaksiId],
+    );
+
+    if (alreadySynced.isNotEmpty) {
+      print("Lewati sync, transaksi $transaksiId sudah tersinkron.");
+      continue;
     }
-  } catch (e) {
-    print("Sync error for $transaksiId: $e");
+
+    try {
+      final response = await http.post(
+        Uri.parse("http://192.168.1.5/hayami/draft.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
+
+      final res = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && res['status'] == 'success') {
+        for (var item in items) {
+          await db.update(
+            'tb_barang_keluar',
+            {'is_synced': 1},
+            where: 'no_id = ?',
+            whereArgs: [item['no_id']],
+          );
+        }
+        print("✅ Sync berhasil untuk transaksi: $transaksiId");
+      } else {
+        print("❌ Gagal sync transaksi: $transaksiId. Respon: ${res['message']}");
+      }
+    } catch (e) {
+      print("❌ Sync error untuk transaksi $transaksiId: $e");
+    }
   }
-}
 }
 
 

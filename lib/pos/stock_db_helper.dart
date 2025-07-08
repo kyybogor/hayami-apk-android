@@ -22,7 +22,8 @@ class StockDBHelper {
       try {
         await Directory(dirname(path)).create(recursive: true);
         ByteData data = await rootBundle.load('assets/$_dbName');
-        List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+        List<int> bytes =
+            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
         await File(path).writeAsBytes(bytes, flush: true);
         await prefs.setInt(_dbVersionKey, _dbVersion);
 
@@ -33,7 +34,7 @@ class StockDBHelper {
     } else {
       print('📦 Database produk sudah ada, tidak disalin ulang.');
     }
-  } 
+  }
 
   static Future<Database> get database async {
     if (_db != null && _db!.isOpen) return _db!;
@@ -68,10 +69,26 @@ class StockDBHelper {
     await db.delete('tb_stock');
 
     final batch = db.batch();
+
     for (var item in data) {
       batch.insert(
         'tb_stock',
-        item.map((key, value) => MapEntry(key, value.toString())),
+        {
+          'id': item['id'].toString(),
+          'id_transaksi_stock': item['id_transaksi_stock'].toString(),
+          'tgl_masuk': item['tgl_masuk'].toString(),
+          'id_bahan': item['id_bahan'].toString(),
+          'model': item['model'].toString(),
+          'ukuran': item['ukuran'].toString(),
+          'stock': double.tryParse(item['stock'].toString()) ?? 0.0,
+          'stock_retur': int.tryParse(item['stock_retur'].toString()) ?? 0,
+          'uom': item['uom'].toString(),
+          'harga': int.tryParse(item['harga'].toString()) ?? 0,
+          'barcode': item['barcode'].toString(),
+          'image': item['image'].toString(),
+          'id_cabang': item['id_cabang'].toString(),
+          'sts': int.tryParse(item['sts'].toString()) ?? 1,
+        },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -80,40 +97,69 @@ class StockDBHelper {
     print('🔄 Sinkronisasi stok selesai (${data.length} data).');
   }
 
-  static Future<void> reduceStockOffline(String idBahan, String ukuran, double qtyToReduce) async {
+  static Future<void> reduceStockOffline(
+    String idBahan,
+    String model,
+    String ukuran,
+    String idCabang,
+    double qtyToReduce,
+  ) async {
     final db = await database;
 
-    // Ambil stok saat ini berdasarkan id_bahan dan ukuran
+    // Ambil semua baris yang cocok
     final stockData = await db.query(
       'tb_stock',
-      columns: ['stock'],
-      where: 'id_bahan = ? AND ukuran = ?',
-      whereArgs: [idBahan, ukuran],
+      columns: ['id', 'stock'],
+      where: 'id_bahan = ? AND model = ? AND ukuran = ? AND id_cabang = ?',
+      whereArgs: [idBahan, model, ukuran, idCabang],
+      orderBy: 'tgl_masuk ASC', // FIFO logic
     );
 
-    if (stockData.isNotEmpty) {
-      double currentStock = double.tryParse(stockData.first['stock'].toString()) ?? 0;
-      double newStock = currentStock - qtyToReduce;
-      if (newStock < 0) newStock = 0;
+    if (stockData.isEmpty) {
+      print(
+          '⚠ Tidak ditemukan stok untuk: $idBahan - $model - $ukuran - $idCabang');
+      return;
+    }
+
+    double remainingQty = qtyToReduce;
+
+    for (final row in stockData) {
+      final String rowId = row['id'].toString();
+      double currentStock = double.tryParse(row['stock'].toString()) ?? 0;
+
+      if (remainingQty <= 0) break;
+
+      double reduceAmount =
+          currentStock >= remainingQty ? remainingQty : currentStock;
+      double newStock = currentStock - reduceAmount;
+      remainingQty -= reduceAmount;
 
       await db.update(
         'tb_stock',
         {'stock': newStock},
-        where: 'id_bahan = ? AND ukuran = ?',
-        whereArgs: [idBahan, ukuran],
+        where: 'id = ?',
+        whereArgs: [rowId],
       );
 
-      print('🛒 Stok lokal dikurangi untuk $idBahan ($ukuran): $currentStock -> $newStock');
+      print('✅ Kurangi stok ID $rowId: $currentStock → $newStock');
+    }
+
+    if (remainingQty > 0) {
+      print('⚠ Stok tidak cukup! Sisa belum dikurangi: $remainingQty');
     } else {
-      print('⚠ Tidak ditemukan stok untuk $idBahan dengan ukuran $ukuran');
+      print('🛒 Stok lokal berhasil dikurangi total: $qtyToReduce');
     }
   }
 
-  static Future<List<Map<String, dynamic>>> fetchStock({String? idCabang, bool isAdmin = false}) async {
+  static Future<List<Map<String, dynamic>>> fetchStock(
+      {String? idCabang, bool isAdmin = false}) async {
     final db = await database;
 
     if (isAdmin) {
-      return await db.query('tb_stock');
+      return await db.query(
+        'tb_stock',
+        where: 'stock > 0',
+      );
     } else {
       if (idCabang == null || idCabang.isEmpty) {
         throw Exception('ID Cabang tidak tersedia untuk user non-admin.');
@@ -121,7 +167,7 @@ class StockDBHelper {
 
       return await db.query(
         'tb_stock',
-        where: 'id_cabang = ?',
+        where: 'id_cabang = ? AND stock > 0',
         whereArgs: [idCabang],
       );
     }

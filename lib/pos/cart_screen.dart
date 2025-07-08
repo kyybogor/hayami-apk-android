@@ -78,31 +78,31 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     final entries = groupedData.entries.map((entry) {
-      final idTransaksi = entry.key;
-      final items = entry.value;
+  final idTransaksi = entry.key;
+  final items = entry.value;
 
-      final customerName = items[0]['id_customer'] ?? 'Unknown';
-      double totalInvoice = parseDouble(items[0]['total_invoice']);
+  final customerName = items[0]['id_customer'] ?? 'Unknown';
 
-      if (totalInvoice == 0) {
-        totalInvoice = items.fold(0.0, (sum, item) => sum + parseDouble(item['total']));
-      }
+  // Ambil diskon dari kolom
+  final discInvoice = parseDouble(items[0]['disc_invoice']);
+  final diskonLusin = parseDouble(items[0]['diskon_lusin']);
 
-      final disc = parseDouble(items[0]['disc']);
-      final discPersen = parseDouble(items[0]['disc_nilai']);
-      final discBaru = parseDouble(items[0]['disc_invoice']);
-      final diskonLusin = parseDouble(items[0]['diskon_lusin']);
+  // Hitung subtotal_invoice: penjumlahan semua subtotal item
+  final subtotalInvoice = items.fold(0.0, (sum, item) => sum + parseDouble(item['subtotal']));
 
-      return CartEntry(
-        customerName: customerName,
-        grandTotal: totalInvoice,
-        idTransaksi: idTransaksi,
-        disc: disc,
-        discPersen: discPersen,
-        discBaru: discBaru,
-        diskonLusin: diskonLusin,
-      );
-    }).toList();
+  // Hitung total_invoice (grandTotal): subtotal - disc_invoice
+  final totalInvoice = subtotalInvoice - discInvoice;
+
+  return CartEntry(
+    customerName: customerName,
+    grandTotal: totalInvoice, // ini akan sama dengan $total_invoice di PHP
+    idTransaksi: idTransaksi,
+    disc: parseDouble(items[0]['disc']),
+    discPersen: parseDouble(items[0]['disc_nilai']),
+    discBaru: discInvoice,
+    diskonLusin: diskonLusin,
+  );
+}).toList();
 
     setState(() {
       cartSummaryList.clear();
@@ -331,3 +331,4 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
+ 

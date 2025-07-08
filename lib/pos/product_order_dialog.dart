@@ -248,7 +248,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
       if (existingItemIndex != -1) {
         updatedCart[existingItemIndex] = OrderItem(
           idTipe: idTipe,
-          productName: '$idTipe ${widget.representative['model']}',
+          productName: '${widget.representative['model']}',
           size: size,
           quantity: currentQtyInCart + qty,
           unitPrice: finalPrice,
@@ -256,7 +256,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
       } else {
         updatedCart.add(OrderItem(
           idTipe: idTipe,
-          productName: '$idTipe ${widget.representative['model']}',
+          productName: '${widget.representative['model']}',
           size: size,
           quantity: qty,
           unitPrice: finalPrice,

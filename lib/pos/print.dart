@@ -86,13 +86,6 @@ Future<void> generateAndPrintStrukPdf({
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('Order ID', style: pw.TextStyle(fontSize: 9)),
-                pw.Text(idTransaksi ?? 'SO/xxxx/yyyy', style: pw.TextStyle(fontSize: 9)),
-              ],
-            ),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
                 pw.Text('Collected By', style: pw.TextStyle(fontSize: 9)),
                 pw.Text(collectedBy, style: pw.TextStyle(fontSize: 9)),
               ],

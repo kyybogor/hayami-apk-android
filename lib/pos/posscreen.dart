@@ -120,6 +120,7 @@ class _PosscreenState extends State<Posscreen> {
   @override
   void initState() {
     super.initState();
+    TransaksiHelper.instance.trySyncIfOnline();
     fetchProducts();
     fetchPaymentAccounts();
     CartDBHelper.instance.syncPendingDrafts();
@@ -735,7 +736,8 @@ TextButton(
         };
 
         await TransaksiHelper.instance.saveTransaksiToSQLite(data);
-        await StockDBHelper.reduceStockOffline(item.idTipe, item.size, item.quantity.toDouble());
+        await StockDBHelper.reduceStockOffline(item.idTipe, item.productName, item.size, idCabang, item.quantity.toDouble(),);
+
       }
 
       // Sync jika online
@@ -813,6 +815,7 @@ onPressed: () async {
       await CartDBHelper.instance.insertOrUpdateCartItem(draftItem);
     }
 
+    await CartDBHelper.instance.syncPendingDrafts();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Draft disimpan")),
     );
@@ -1782,7 +1785,7 @@ Future<void> handleCustomerIdChange(String id) async {
                           children: [
                             Expanded(
                               child: Text(
-                                '${item.productName} - ${item.size}',
+                                '${item.idTipe} ${item.productName} - ${item.size}',
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold),
                               ),
