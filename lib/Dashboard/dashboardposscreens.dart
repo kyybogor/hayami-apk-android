@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
+import 'package:hayami_app/pos/barangmasuk.dart';
 import 'package:hayami_app/pos/posscreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -158,6 +159,13 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                             ),
                           );
                           break;
+                        case 'Laporan':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Barangmasuk(),
+                            ),
+                        );
                         default:
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

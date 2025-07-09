@@ -60,14 +60,14 @@ Future<void> generateAndPrintStrukPdf({
                 children: [
                   pw.Text('Hayami Indonesia',
                       style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                          fontWeight: pw.FontWeight.bold, fontSize: 12)),
                   pw.Text('Pasar Mester Jatinegara Lt.1 Blok AKS No:144-145.',
-                      style: pw.TextStyle(fontSize: 9)),
+                      style: pw.TextStyle(fontSize: 13)),
                   pw.Text('NPWP: 86.783.673.6-033.000',
-                      style: pw.TextStyle(fontSize: 9)),
+                      style: pw.TextStyle(fontSize: 13)),
                   pw.Text('Jakarta Timur, DKI Jakarta, 13310',
-                      style: pw.TextStyle(fontSize: 9)),
-                  pw.Text('087788155246', style: pw.TextStyle(fontSize: 9)),
+                      style: pw.TextStyle(fontSize: 13)),
+                  pw.Text('087788155246', style: pw.TextStyle(fontSize: 13)),
                 ],
               ),
             ),
@@ -77,26 +77,26 @@ Future<void> generateAndPrintStrukPdf({
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(dateFormatter.format(now),
-                    style: pw.TextStyle(fontSize: 9)),
+                    style: pw.TextStyle(fontSize: 13)),
                 pw.Text(timeFormatter.format(now),
-                    style: pw.TextStyle(fontSize: 9)),
+                    style: pw.TextStyle(fontSize: 13)),
               ],
             ),
             pw.SizedBox(height: 3),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('Collected By', style: pw.TextStyle(fontSize: 9)),
-                pw.Text(collectedBy, style: pw.TextStyle(fontSize: 9)),
+                pw.Text('Collected By', style: pw.TextStyle(fontSize: 13)),
+                pw.Text(collectedBy, style: pw.TextStyle(fontSize: 13)),
               ],
             ),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('Metode Pembayaran', style: pw.TextStyle(fontSize: 9)),
+                pw.Text('Metode Pembayaran', style: pw.TextStyle(fontSize: 13)),
                 pw.Text(paymentMethod,
                     style: pw.TextStyle(
-                        fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                        fontSize: 13, fontWeight: pw.FontWeight.bold)),
               ],
             ),
             if (splitPayments.isNotEmpty) ...[
@@ -114,9 +114,9 @@ Future<void> generateAndPrintStrukPdf({
                 return pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text(metode, style: pw.TextStyle(fontSize: 9)),
+                    pw.Text(metode, style: pw.TextStyle(fontSize: 13)),
                     pw.Text(currencyFormatter.format(nominal),
-                        style: pw.TextStyle(fontSize: 9)),
+                        style: pw.TextStyle(fontSize: 13)),
                   ],
                 );
               }),
@@ -129,31 +129,31 @@ Future<void> generateAndPrintStrukPdf({
                     flex: 5,
                     child: pw.Text('Nama Barang',
                         style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                            fontWeight: pw.FontWeight.bold, fontSize: 13))),
                 pw.Expanded(
                     flex: 2,
                     child: pw.Text('Ukuran',
                         style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                            fontWeight: pw.FontWeight.bold, fontSize: 13))),
                 pw.Expanded(
                     flex: 2,
                     child: pw.Text('Qty',
                         textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                            fontWeight: pw.FontWeight.bold, fontSize: 13))),
                 pw.Expanded(
                     flex: 3,
                     child: pw.Text('Harga',
                         textAlign: pw.TextAlign.right,
                         style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                            fontWeight: pw.FontWeight.bold, fontSize: 13))),
               ],
             ),
             pw.Divider(thickness: 0.3),
             ...cartItems.map((item) {
               final qtyDus = item.quantity / 12;
               final hargaDus = item.total / 12;
-              final name = item.productName;
+              final name =  '${item.idTipe} - ${item.productName}';
               final maxLength = 28;
               String firstLine = name;
               String? secondLine;
@@ -174,28 +174,28 @@ Future<void> generateAndPrintStrukPdf({
                       pw.Expanded(
                           flex: 5,
                           child: pw.Text(firstLine,
-                              style: pw.TextStyle(fontSize: 9))),
+                              style: pw.TextStyle(fontSize: 13))),
                       pw.Expanded(
                           flex: 2,
                           child: pw.Text(item.size,
-                              style: pw.TextStyle(fontSize: 9))),
+                              style: pw.TextStyle(fontSize: 13))),
                       pw.Expanded(
                           flex: 2,
                           child: pw.Text(qtyDus.toStringAsFixed(2),
                               textAlign: pw.TextAlign.center,
-                              style: pw.TextStyle(fontSize: 9))),
+                              style: pw.TextStyle(fontSize: 13))),
                       pw.Expanded(
                           flex: 3,
                           child: pw.Text(currencyFormatter.format(hargaDus),
                               textAlign: pw.TextAlign.right,
-                              style: pw.TextStyle(fontSize: 9))),
+                              style: pw.TextStyle(fontSize: 13))),
                     ],
                   ),
                   if (secondLine != null)
                     pw.Padding(
                       padding: const pw.EdgeInsets.only(top: 2),
                       child:
-                          pw.Text(secondLine, style: pw.TextStyle(fontSize: 9)),
+                          pw.Text(secondLine, style: pw.TextStyle(fontSize: 13)),
                     ),
                   pw.SizedBox(height: 2),
                 ],
@@ -208,10 +208,10 @@ Future<void> generateAndPrintStrukPdf({
               children: [
                 pw.Text('Total Lusin',
                     style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        fontWeight: pw.FontWeight.bold, fontSize: 12)),
                 pw.Text(computedLusin.toStringAsFixed(2),
                     style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        fontWeight: pw.FontWeight.bold, fontSize: 12)),
               ],
             ),
             if (totalDiskonFinal > 0)
@@ -221,12 +221,12 @@ Future<void> generateAndPrintStrukPdf({
                   pw.Text('Total Diskon',
                       style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
-                          fontSize: 11,
+                          fontSize: 13,
                           color: PdfColors.red)),
                   pw.Text(currencyFormatter.format(totalDiskonFinal),
                       style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
-                          fontSize: 11,
+                          fontSize: 13,
                           color: PdfColors.red)),
                 ],
               ),
@@ -236,23 +236,23 @@ Future<void> generateAndPrintStrukPdf({
               children: [
                 pw.Text('Total',
                     style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                        fontWeight: pw.FontWeight.bold, fontSize: 13)),
                 pw.Text(currencyFormatter.format(grandTotal),
                     style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                        fontWeight: pw.FontWeight.bold, fontSize: 13)),
               ],
             ),
             pw.SizedBox(height: 10),
             pw.Text('Notes:',
                 style:
-                    pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                    pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
             pw.Text('Barang yang sudah dibeli tidak dapat dikembalikan.',
-                style: pw.TextStyle(fontSize: 9)),
+                style: pw.TextStyle(fontSize: 13)),
             pw.SizedBox(height: 8),
             pw.Center(
               child: pw.Text('Terima kasih!',
                   style: pw.TextStyle(
-                      fontSize: 9, fontStyle: pw.FontStyle.italic)),
+                      fontSize: 13, fontStyle: pw.FontStyle.italic)),
             ),
           ],
         );
