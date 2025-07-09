@@ -810,6 +810,7 @@ onPressed: () async {
         'dibuat_tgl': now.toIso8601String(),
         'id_cabang': idCabang,
         'is_synced': 0,
+        'diskon_lusin': selectedCustomer!.diskonLusin ?? 0.0,
       };
 
       await CartDBHelper.instance.insertOrUpdateCartItem(draftItem);
@@ -825,8 +826,14 @@ onPressed: () async {
     setState(() {
       cartItems.clear();
       selectedCustomer = null;
+      nominalController.clear();
+      percentController.clear();
+      newDiscount = 0;
+      showDiscountInput = false;
     });
 
+    
+    
     Navigator.pop(context);
   } catch (e) {
     debugPrint("Save Draft Error: $e");
@@ -1948,20 +1955,57 @@ IconButton(
                           borderRadius: BorderRadius.zero, // Sudut kotak
                         ),
                       ),
-                      onPressed: () {
-                        if (selectedCustomer == null || cartItems.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Pilih customer dan minimal 1 produk terlebih dahulu.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
+onPressed: () async {
+  if (selectedCustomer == null || cartItems.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Pilih customer dan minimal 1 produk terlebih dahulu.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
 
-                        showTransactionDialog(context, grandTotal);
-                      },
+  List<String> produkStokKosong = [];
+
+  for (var item in cartItems) {
+    final matchedProduct = allProducts.cast<Map<String, Object?>>().firstWhere(
+      (prod) =>
+          (prod['id_bahan'] as String?)?.toLowerCase() == item.idTipe.toLowerCase() &&
+          (prod['model'] as String?)?.toLowerCase() == item.productName.toLowerCase() &&
+          (prod['ukuran'] as String?)?.toLowerCase() == item.size.toLowerCase(),
+      orElse: () => <String, Object?>{'stock': 0.0},
+    );
+
+    final stock = calculateStock(matchedProduct);
+
+    if (stock < 0.001) {
+      produkStokKosong.add('${item.idTipe} - ${item.productName} - ${item.size}');
+    }
+  }
+
+  if (produkStokKosong.isNotEmpty) {
+    // Tampilkan 1 alert berisi daftar produk bermasalah
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Stok Tidak Tersedia'),
+        content: Text('Maaf, stok untuk produk berikut tidak tersedia:\n\n' +
+            produkStokKosong.join('\n')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
+
+  // Jika semua stok OK
+  showTransactionDialog(context, grandTotal);
+},
                       child: Text(
                         'GRAND TOTAL: ${currencyFormatter.format(grandTotal)}',
                         style: const TextStyle(
