@@ -9,7 +9,6 @@ class Barangmasuk extends StatefulWidget {
   @override
   State<Barangmasuk> createState() => _BarangmasukState();
 }
-
 class _BarangmasukState extends State<Barangmasuk> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> invoices = [];
@@ -39,41 +38,28 @@ class _BarangmasukState extends State<Barangmasuk> {
         final Map<String, dynamic> data = json.decode(response.body);
         final List<dynamic> invoicesData = data['data'];
 
-        final openInvoices = invoicesData
-            .where((item) =>
-                item["status_lunas"] != null &&
-                item["status_lunas"].toString() == '0')
-            .toList();
-
-        invoices = openInvoices.map<Map<String, dynamic>>((item) {
-          String? dibuatTgl = item["tgl_transaksi"];
+        invoices = invoicesData.map<Map<String, dynamic>>((item) {
           return {
             "id": item["id_transaksi"] ?? '-',
-            "name": (item["keterangan"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["keterangan"],
-            "instansi": (item["id_supplier"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["id_supplier"],
-            "date":
-                dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
-            "due": (item["tgl_lunas"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["tgl_lunas"],
-            "alamat": (item["id_cabang"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["id_cabang"],
-            "amount": (item["total"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["total"],
-            "disc": (item["disc"] ?? '0.00').toString(),
-            "ppn": (item["ppn"] ?? '0.00').toString(),
-            "tax": (item["cn"] ?? '0.00').toString(),
-            "status": 'Belum Dibayar',
+            "name": item["keterangan"] ?? '-',
+            "date": item["tgl_transaksi"] ?? '-',
+            "status": item["status"] ?? 'Unknown', // Pastikan status ada
           };
         }).toList();
 
-        // Urutkan dari tanggal terlama ke terbaru
+        // Hapus duplikat berdasarkan id_transaksi (opsional)
+        final seen = <String>{};
+        invoices = invoices.where((invoice) {
+          final id = invoice["id"];
+          if (seen.contains(id)) {
+            return false;
+          } else {
+            seen.add(id);
+            return true;
+          }
+        }).toList();
+
+        // Urutkan tanggal
         invoices.sort((a, b) {
           try {
             final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
@@ -132,64 +118,85 @@ class _BarangmasukState extends State<Barangmasuk> {
     });
   }
 
-void _onSearchChanged() {
-  String keyword = _searchController.text.toLowerCase();
+  void _onSearchChanged() {
+    String keyword = _searchController.text.toLowerCase();
 
-  // Set untuk menyimpan id_transaksi yang sudah diproses
-  Set<String> processedIds = {};
-  
-  setState(() {
-    filteredInvoices = invoices.where((invoice) {
-      final idMatch =
-          invoice["id"].toString().toLowerCase().contains(keyword); // Pencarian berdasarkan id_transaksi
+    // Set untuk menyimpan id_transaksi yang sudah diproses
+    Set<String> processedIds = {};
 
-      try {
-        final dateStr = invoice["date"];
-        if (dateStr == null || dateStr.isEmpty || dateStr == '-')
-          return false;
+    setState(() {
+      filteredInvoices = invoices.where((invoice) {
+        final idMatch =
+            invoice["id"].toString().toLowerCase().contains(keyword); // Pencarian berdasarkan id_transaksi
 
-        final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
-        final matchMonth = selectedMonth == 'Semua' ||
-            invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-        final matchYear = selectedYear == 'Semua' ||
-            invoiceDate.year.toString() == selectedYear;
+        try {
+          final dateStr = invoice["date"];
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-')
+            return false;
 
-        if (idMatch && matchMonth && matchYear) {
-          // Cek apakah id_transaksi sudah diproses
-          if (!processedIds.contains(invoice["id"])) {
-            processedIds.add(invoice["id"]); // Tambahkan id yang sudah diproses
-            return true; // Tampilkan hanya entri pertama dengan id_transaksi yang sama
+          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+          final matchMonth = selectedMonth == 'Semua' ||
+              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
+          final matchYear = selectedYear == 'Semua' ||
+              invoiceDate.year.toString() == selectedYear;
+
+          if (idMatch && matchMonth && matchYear) {
+            // Cek apakah id_transaksi sudah diproses
+            if (!processedIds.contains(invoice["id"])) {
+              processedIds.add(invoice["id"]); // Tambahkan id yang sudah diproses
+              return true; // Tampilkan hanya entri pertama dengan id_transaksi yang sama
+            }
           }
+
+          return false; // Jangan tampilkan jika id sudah diproses
+        } catch (e) {
+          return false;
         }
+      }).toList();
 
-        return false; // Jangan tampilkan jika id sudah diproses
-      } catch (e) {
-        return false;
-      }
-    }).toList();
-
-    // Sort tanggal dari terlama
-    filteredInvoices.sort((a, b) {
-      try {
-        final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
-        final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
-        return dateA.compareTo(dateB);
-      } catch (e) {
-        return 0;
-      }
+      // Sort tanggal dari terlama
+      filteredInvoices.sort((a, b) {
+        try {
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+          return dateA.compareTo(dateB);
+        } catch (e) {
+          return 0;
+        }
+      });
     });
-  });
-}
+  }
 
-  String formatRupiah(String amount) {
+  String formatStatus(String status) {
     try {
-      final double value = double.parse(amount);
-      return NumberFormat.currency(
-              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
-          .format(value);
+      if (status == 'd') {
+        return 'Draft'; // Status "d" menjadi "Draft"
+      } else if (status == 's') {
+        return 'Aprove'; // Status "s" menjadi "Aprove"
+      } else {
+        return status.isEmpty ? 'Unknown' : status; // Jika tidak cocok, tampilkan status asli atau "Unknown"
+      }
     } catch (e) {
-      return amount;
+      return 'Unknown'; // Jika ada error, kembalikan "Unknown"
     }
+  }
+
+  Color getStatusColor(String status) {
+    if (status == 'd') {
+      return Colors.pink; // Teks merah untuk Draft
+    } else if (status == 's') {
+      return Colors.green[800]!; // Teks hijau tua untuk Aprove
+    }
+    return Colors.black; // Default warna hitam
+  }
+
+  Color getBackgroundColor(String status) {
+    if (status == 'd') {
+      return Colors.pink.shade50; // Background merah muda untuk Draft
+    } else if (status == 's') {
+      return Colors.green.shade100; // Background hijau muda untuk Aprove
+    }
+    return Colors.transparent; // Tidak ada background khusus
   }
 
   @override
@@ -208,8 +215,7 @@ void _onSearchChanged() {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title:
-              const Text("Belum Dibayar", style: TextStyle(color: Colors.blue)),
+          title: const Text("Barang Masuk", style: TextStyle(color: Colors.blue)),
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -253,15 +259,14 @@ void _onSearchChanged() {
                                 children: [
                                   Text(invoice["id"] ?? '-'), // id_transaksi
                                   Text(
-        invoice["name"] ?? '-',
-        style: TextStyle(fontSize: 10), // Mengatur ukuran font menjadi lebih kecil
-      ),
+                                    invoice["name"] ?? '-',
+                                    style: TextStyle(fontSize: 10), // Mengatur ukuran font menjadi lebih kecil
+                                  ),
                                 ],
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Dihilangkan `no_id` sesuai permintaan
                                   Text(invoice["date"] ?? '-'),
                                 ],
                               ),
@@ -269,23 +274,21 @@ void _onSearchChanged() {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.pink.shade50,
+                                      color: getBackgroundColor(invoice["status"] ?? ''),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      formatRupiah(invoice["amount"] ?? '0'),
-                                      style: const TextStyle(
-                                        color: Colors.pink,
+                                      formatStatus(invoice["status"] ?? ''), // Panggil formatStatus untuk mendapatkan status
+                                      style: TextStyle(
+                                        color: getStatusColor(invoice["status"] ?? ''),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_ios,
-                                      size: 16, color: Colors.grey),
+                                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                                 ],
                               ),
                               onTap: () async {
