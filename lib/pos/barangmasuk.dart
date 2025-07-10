@@ -31,7 +31,7 @@ class _BarangmasukState extends State<Barangmasuk> {
   Future<void> fetchInvoices() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.5/pos/masuk.php'),
+        Uri.parse('http://192.168.1.14/pos/masuk.php'),
       );
 
       if (response.statusCode == 200) {

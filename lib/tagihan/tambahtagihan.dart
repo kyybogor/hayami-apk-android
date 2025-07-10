@@ -28,7 +28,7 @@ class _TambahInvoiceState extends State<TambahInvoice> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.56/Hiyami/tambah.php'),
+        Uri.parse('http://192.168.1.146/Hiyami/tambah.php'),
         body: {
           'id': _idController.text,
           'name': _nameController.text,
