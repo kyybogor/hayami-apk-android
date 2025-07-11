@@ -59,11 +59,23 @@ class _DetailBarangMasukState extends State<DetailBarangMasuk> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: Text(' ${widget.invoice['id_transaksi']}'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
+  centerTitle: true,
+  title: Text(
+    'Detail Transaksi',
+    style: TextStyle(
+      color: Colors.blue, // Mengubah warna teks id_transaksi menjadi biru
+    ),
+  ),
+  backgroundColor: Colors.white, // Background appbar berwarna putih
+  elevation: 0,
+  leading: IconButton(
+    icon: Icon(Icons.arrow_back, color: Colors.blue), // Mengubah warna ikon kembali menjadi biru
+    onPressed: () {
+      Navigator.pop(context);  // Menutup halaman saat tombol back ditekan
+    },
+  ),
+),
+
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -80,6 +92,16 @@ class _DetailBarangMasukState extends State<DetailBarangMasuk> {
                     Text('Tanggal: ${invoiceDetail["tgl_transaksi"] ?? '-'}'),
                     SizedBox(height: 10),
                     Text('Total: Rp ${formatRupiah(double.tryParse(invoiceDetail["total_invoice"] ?? '0') ?? 0)}'),
+                    SizedBox(height: 10),
+                    Text(
+  'Diskon: ${invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty && invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty 
+    ? formatRupiah((double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) + (double.tryParse(invoiceDetail["disc"]) ?? 0.0)) 
+    : invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty 
+      ? formatRupiah(double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) 
+      : invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty 
+        ? formatRupiah(double.tryParse(invoiceDetail["disc"]) ?? 0.0) 
+        : '-'}'
+),
                     SizedBox(height: 20),
                     ListView.builder(
                       shrinkWrap: true,
@@ -113,7 +135,7 @@ class _DetailBarangMasukState extends State<DetailBarangMasuk> {
                                       SizedBox(height: 4),
                                       Text('Ukuran: ${item["ukuran"] ?? '-'}', style: TextStyle(fontSize: 12)),
                                       SizedBox(height: 4),
-                                      Text('Qty: ${item["qty"] ?? '-'}', style: TextStyle(fontSize: 12)),
+                                      Text('Qty: ${item["qty"] ?? '-'} pcs', style: TextStyle(fontSize: 12)),
                                     ],
                                   ),
                                 ),

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hayami_app/Laporan%20%20Perusahaan/laporanhutangpiutang.dart';
 import 'package:hayami_app/Laporan%20%20Perusahaan/laporanlabarugi.dart';
-import 'package:hayami_app/Laporan%20%20Perusahaan/laporanperubahanmodal.dart';
 import 'package:hayami_app/pos/barangmasuk.dart';
 import 'package:hayami_app/pos/penjualanharian.dart';
 
@@ -18,7 +16,7 @@ class Menu extends StatelessWidget {
         "page": const Barangmasuk(),
       },
       {
-        "label": "Penjualan Hari Ini",
+        "label": "List Penjualan",
         "icon": Icons.account_balance,
         "color": Colors.orange,
         "page": const Penjualanharian(),
@@ -28,18 +26,6 @@ class Menu extends StatelessWidget {
         "icon": Icons.bar_chart,
         "color": Colors.green,
         "page": const Laporanlabarugi(),
-      },
-      {
-        "label": "Hutang Piutang",
-        "icon": Icons.money_off,
-        "color": Colors.red,
-        "page": const Laporanhutangpiutang(),
-      },
-      {
-        "label": "Perubahan Modal",
-        "icon": Icons.swap_horiz,
-        "color": Colors.purple,
-        "page": const Laporanperubahanmodal(),
       },
     ];
 
