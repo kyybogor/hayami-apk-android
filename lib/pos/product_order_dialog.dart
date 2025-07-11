@@ -123,62 +123,53 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                   children: [
                     Expanded(flex: 3, child: Text(size)),
                     Expanded(flex: 2, child: Text('${stock.toInt()} pcs')),
-                    Expanded(
-                      flex: 2,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              setState(() {
-                                final currentQty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
-                                final newQty = (currentQty - 3).clamp(0, stock);
-                                qtyControllers[size]?.text = newQty.toStringAsFixed(0);
-                              });
-                            },
-                          ),
-                          SizedBox(
-                            width: 40,
-                            child: Center(
-                              child: Builder(
-                                builder: (_) {
-                                  final qty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
-                                  if (qty < 12) {
-                                    return Text(
-                                      '${qty.toInt()} pcs',
-                                      style: const TextStyle(fontSize: 11),
-                                      textAlign: TextAlign.center,
-                                    );
-                                  } else {
-                                    final lusinDecimal = (qty / 12).toStringAsFixed(2);
-                                    return Text(
-                                      '$lusinDecimal ls',
-                                      style: const TextStyle(fontSize: 11),
-                                      textAlign: TextAlign.center,
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              setState(() {
-                                final currentQty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
-                                final newQty = (currentQty + 3).clamp(0, stock);
-                                qtyControllers[size]?.text = newQty.toStringAsFixed(0);
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                    FittedBox(
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      IconButton(
+        icon: const Icon(Icons.remove, size: 16),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: () {
+          setState(() {
+            final currentQty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
+            final newQty = (currentQty - 3).clamp(0, stock);
+            qtyControllers[size]?.text = newQty.toStringAsFixed(0);
+          });
+        },
+      ),
+      SizedBox(
+        width: 40,
+        child: Center(
+          child: Builder(
+            builder: (_) {
+              final qty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
+              if (qty < 12) {
+                return Text('${qty.toInt()} pcs', style: const TextStyle(fontSize: 11));
+              } else {
+                final lusinDecimal = (qty / 12).toStringAsFixed(2);
+                return Text('$lusinDecimal ls', style: const TextStyle(fontSize: 11));
+              }
+            },
+          ),
+        ),
+      ),
+      IconButton(
+        icon: const Icon(Icons.add, size: 16),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: () {
+          setState(() {
+            final currentQty = double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0;
+            final newQty = (currentQty + 3).clamp(0, stock);
+            qtyControllers[size]?.text = newQty.toStringAsFixed(0);
+          });
+        },
+      ),
+    ],
+  ),
+),
                     Expanded(flex: 3, child: Center(child: Text(formatCurrency.format(price)))),
                     Expanded(flex: 3, child: Center(child: Text(formatCurrency.format(totalPrice)))),
                   ],

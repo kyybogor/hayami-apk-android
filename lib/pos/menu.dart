@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hayami_app/Laporan%20%20Perusahaan/laporanlabarugi.dart';
 import 'package:hayami_app/pos/barangmasuk.dart';
+import 'package:hayami_app/pos/opname.dart';
 import 'package:hayami_app/pos/penjualanharian.dart';
 
 class Menu extends StatelessWidget {
@@ -22,10 +22,10 @@ class Menu extends StatelessWidget {
         "page": const Penjualanharian(),
       },
       {
-        "label": "Laba Rugi",
+        "label": "Opname",
         "icon": Icons.bar_chart,
         "color": Colors.green,
-        "page": const Laporanlabarugi(),
+        "page": Opname(),
       },
     ];
 

@@ -301,85 +301,89 @@ String generateLocalId() {
                     ),
                     const SizedBox(height: 10),
                     fieldRow(
-                      label: 'Pembayaran',
-                      child: DropdownButtonFormField<String>(
-                        value: selectedPaymentAccount,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: paymentAccounts.map((item) {
-                          String tipe =
-                              item['tipe']?.toString().trim().toUpperCase() ??
-                                  '';
-                          String displayText = (tipe == 'TRANSFER' ||
-                                  tipe == 'DEBET' ||
-                                  tipe == 'EDC')
-                              ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-                              : tipe;
+  label: 'Pembayaran',
+  child: DropdownButtonFormField<String>(
+    value: selectedPaymentAccount,
+    decoration: const InputDecoration(
+      border: OutlineInputBorder(),
+      isDense: true,
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    ),
+    items: paymentAccounts.map((item) {
+      String tipe = (item['tipe']?.toString().trim().toUpperCase()) ?? '';
+      String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
+          ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+          : tipe;
 
-                          return DropdownMenuItem<String>(
-                            value: displayText,
-                            child: Text(displayText),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            selectedPaymentAccount = val;
+      return DropdownMenuItem<String>(
+        value: displayText,
+        child: Text(
+          displayText,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }).toList(),
+    onChanged: (val) {
+      setState(() {
+        selectedPaymentAccount = val;
 
-                            final selectedItem = paymentAccounts.firstWhere(
-                              (item) {
-                                String tipe = item['tipe']
-                                        ?.toString()
-                                        .trim()
-                                        .toUpperCase() ??
-                                    '';
-                                String displayText = (tipe == 'TRANSFER' ||
-                                        tipe == 'DEBET' ||
-                                        tipe == 'EDC')
-                                    ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
-                                    : tipe;
-                                return displayText == val;
-                              },
-                              orElse: () => <String, dynamic>{},
-                            );
+        final selectedItem = paymentAccounts.firstWhere(
+          (item) {
+            String tipe = (item['tipe']?.toString().trim().toUpperCase()) ?? '';
+            String displayText = (tipe == 'TRANSFER' || tipe == 'DEBET' || tipe == 'EDC')
+                ? '$tipe - ${item['bank'] ?? ''} - ${item['no_akun'] ?? ''}'
+                : tipe;
+            return displayText == val;
+          },
+          orElse: () => <String, dynamic>{},
+        );
 
-                            // Pastikan Map tidak kosong
-                            if (selectedItem.isNotEmpty) {
-                              selectedPaymentAccountMap = selectedItem;
-                            } else {
-                              selectedPaymentAccountMap = null;
-                            }
+        if (selectedItem.isNotEmpty) {
+          selectedPaymentAccountMap = selectedItem;
 
-                            if (selectedItem['no_akun'] != null &&
-                                selectedItem['no_akun'].toString().isNotEmpty) {
-                              cashController.text = formatRupiah(grandTotal);
-                            } else {
-                              cashController.clear();
-                            }
+          if (selectedItem['no_akun'] != null &&
+              selectedItem['no_akun'].toString().isNotEmpty) {
+            cashController.text = formatRupiah(grandTotal);
+          } else {
+            cashController.clear();
+          }
+        } else {
+          selectedPaymentAccountMap = null;
+          cashController.clear();
+        }
 
-                            setDialogState(() {});
-                          });
-                        },
-                      ),
-                    ),
+        setDialogState(() {});
+      });
+    },
+  ),
+),
+
                     const SizedBox(height: 10),
-                    fieldRow(
-                      label: 'Sales',
-                      child: DropdownButtonFormField<String>(
-                        value: selectedSales,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: ['Sales 1', 'Sales 2', 'Sales 3']
-                            .map((e) =>
-                                DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (val) =>
-                            setState(() => selectedSales = val!),
-                      ),
-                    ),
+fieldRow(
+  label: 'Sales',
+  child: DropdownButtonFormField<String>(
+    value: selectedSales,
+    decoration: const InputDecoration(
+      border: OutlineInputBorder(),
+      isDense: true,
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    ),
+    items: ['Sales 1', 'Sales 2', 'Sales 3'].map(
+      (sales) {
+        return DropdownMenuItem<String>(
+          value: sales,
+          child: Text(sales),
+        );
+      },
+    ).toList(),
+    onChanged: (val) {
+      setState(() {
+        selectedSales = val!;
+      });
+    },
+  ),
+),
+
                     const SizedBox(height: 10),
                     fieldRow(
                       label: 'Cash',
