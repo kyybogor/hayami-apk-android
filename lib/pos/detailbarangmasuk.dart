@@ -1,8 +1,9 @@
   import 'dart:convert';
   import 'package:flutter/material.dart';
+  import 'package:hayami_app/pos/barangmasuk.dart';
   import 'package:intl/intl.dart';
   import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+  import 'package:shared_preferences/shared_preferences.dart';
 
   class Detailbarangmasuk extends StatefulWidget {
     final Map<String, dynamic> invoice;
@@ -94,11 +95,11 @@ import 'package:shared_preferences/shared_preferences.dart';
     bool isConfirming = false;
 
 Future<void> handleApprove() async {
-final idTransaksi = widget.invoice['id']?.toString() ?? '';
-final prefs = await SharedPreferences.getInstance();
-final idCabang = prefs.getString('id_cabang') ?? '';
+  final idTransaksi = widget.invoice['id']?.toString() ?? '';
+  final prefs = await SharedPreferences.getInstance();
+  final idCabang = prefs.getString('id_cabang') ?? '';
 
-final url = Uri.parse('http://192.168.1.14/pos/inbond.php?id_transaksi=$idTransaksi&id_cabang=$idCabang');
+  final url = Uri.parse('http://192.168.1.14/pos/inbond.php?id_transaksi=$idTransaksi&id_cabang=$idCabang');
 
   showDialog(
     context: context,
@@ -113,12 +114,24 @@ final url = Uri.parse('http://192.168.1.14/pos/inbond.php?id_transaksi=$idTransa
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(); // Close dialog first
               try {
                 final response = await http.get(url);
                 if (response.statusCode == 200) {
                   final data = json.decode(response.body);
                   if (data['status'] == 'success') {
+                    // Mengubah status transaksi di widget sebelum melanjutkan
+                    setState(() {
+                      widget.invoice['status'] = 's'; // Update status menjadi 'approve'
+                    });
+
+                    // Kembali ke halaman Barangmasuk tanpa perlu klik tombol back
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Barangmasuk(), // Pindah langsung ke Barangmasuk
+                      ),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Barang berhasil di-approve")),
                     );
@@ -145,6 +158,7 @@ final url = Uri.parse('http://192.168.1.14/pos/inbond.php?id_transaksi=$idTransa
     },
   );
 }
+
 
     @override
     Widget build(BuildContext context) {

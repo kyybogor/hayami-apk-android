@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
 import 'package:hayami_app/pos/barangmasuk.dart';
+import 'package:hayami_app/pos/menu.dart';
 import 'package:hayami_app/pos/posscreen.dart';
+import 'package:hayami_app/webview/webview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreenPos extends StatefulWidget {
@@ -55,7 +57,7 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
     },
     {
       'icon': Icons.bar_chart,
-      'label': 'Laporan',
+      'label': 'Menu',
       'color': Colors.purple,
     },
   ];
@@ -159,11 +161,11 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                             ),
                           );
                           break;
-                        case 'Laporan':
+                        case 'Menu':
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const Barangmasuk(),
+                              builder: (_) => const Menu(),
                             ),
                         );
                         default:

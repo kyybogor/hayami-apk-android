@@ -6,9 +6,11 @@ import 'package:intl/intl.dart';
 
 class Barangmasuk extends StatefulWidget {
   const Barangmasuk({super.key});
+
   @override
   State<Barangmasuk> createState() => _BarangmasukState();
 }
+
 class _BarangmasukState extends State<Barangmasuk> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> invoices = [];
@@ -26,6 +28,18 @@ class _BarangmasukState extends State<Barangmasuk> {
     selectedMonth = DateFormat('MM').format(DateTime.now());
     selectedYear = DateFormat('yyyy').format(DateTime.now());
     fetchInvoices();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Cek jika dataChanged bernilai true (berarti status telah diperbarui)
+    final bool? statusUpdated = ModalRoute.of(context)?.settings.arguments as bool?;
+    if (statusUpdated == true) {
+      // Refresh data setelah status diperbarui
+      fetchInvoices(); // Memanggil fetchInvoices untuk mendapatkan data terbaru dari server
+    }
   }
 
   Future<void> fetchInvoices() async {
@@ -295,13 +309,21 @@ class _BarangmasukState extends State<Barangmasuk> {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        Detailbarangmasuk(invoice: invoice),
+                                    builder: (context) => Detailbarangmasuk(invoice: invoice),
                                   ),
                                 );
+
+                                // Mengecek apakah hasilnya true, yang berarti status transaksi telah berubah
                                 if (result == true) {
-                                  fetchInvoices();
-                                  dataChanged = true;
+                                  // Jika ada perubahan status, update status pada filteredInvoices
+                                  setState(() {
+                                    int index = filteredInvoices.indexWhere((inv) => inv['id'] == invoice['id']);
+                                    if (index != -1) {
+                                      filteredInvoices[index]['status'] = 's'; // Update status jadi 'approve'
+                                    }
+                                  });
+                                  // Mengirimkan informasi bahwa data telah berubah
+                                  Navigator.of(context).pop(true); // Mengirimkan true untuk memberi tahu halaman sebelumnya bahwa status telah berubah
                                 }
                               },
                             );
