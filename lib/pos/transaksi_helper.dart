@@ -245,7 +245,7 @@ class TransaksiHelper {
             await db.update(
               'tb_barang_keluar',
               {'is_synced': 1},
-              where: 'id_transaksi = ?',
+              where: 'id_invoice = ?',
               whereArgs: [invoiceId],
             );
             print("✅ Sync berhasil: $invoiceId");

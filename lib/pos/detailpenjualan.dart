@@ -25,14 +25,14 @@ class _DetailBarangMasukState extends State<DetailBarangMasuk> {
     final idTransaksi = widget.invoice['id_transaksi'];
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.14/pos/barang_keluar.php?id_transaksi=$idTransaksi'),
+        Uri.parse('http://192.168.1.14/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         if (data['status'] == 'success') {
           setState(() {
-            invoiceDetail = data['data'][0]; // Ambil data pertama sesuai id_transaksi
+            invoiceDetail = data['data'][0];
             isLoading = false;
           });
         } else {
