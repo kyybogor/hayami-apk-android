@@ -626,8 +626,8 @@ TextButton(
     double totalSplit = 0;
     for (var item in splitPayments) {
       final jumlah = double.tryParse(
-        item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')
-      ) ?? 0;
+          item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
+          0;
       totalSplit += jumlah;
     }
 
@@ -636,7 +636,8 @@ TextButton(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text("Peringatan"),
-          content: Text("Total split harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})"),
+          content: Text(
+              "Total split harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -653,9 +654,9 @@ TextButton(
       final String namaUser = prefs.getString('nm_user') ?? "admin";
       final String idCabang = prefs.getString('id_cabang') ?? "C1";
 
-      final uuid = const Uuid().v4();
-      final String idTransaksi = uuid;
-      final String idInvoice = uuid;
+      // Ganti generate ID transaksi dan invoice pake helper yang sinkron server/offline
+      final String idTransaksi = await TransaksiHelper.instance.generateIDTransaksi();
+      final String idInvoice = await TransaksiHelper.instance.generateIDInvoice();
 
       String? akunType;
       double sisaBayar = 0;
@@ -670,15 +671,13 @@ TextButton(
         }
       }
 
-      // Hitung total diskon customer (per item berdasarkan diskon per lusin)
       final double totalDiskonCustomer = cartItems.fold(0.0, (sum, item) {
         final jumlahDus = item.quantity / 12;
         final diskonPerDus = selectedCustomer?.diskonLusin ?? 0;
         return sum + (diskonPerDus * jumlahDus);
       });
 
-      // Total diskon final (gabungan diskon customer + tambahan jika ada)
-      final double totalDiskonFinal = totalDiskonCustomer + (newDiscount ?? 0);
+      final double totalDiskonFinal = newDiscount ?? 0;
 
       for (var item in cartItems) {
         final double harga = item.unitPrice;
@@ -736,8 +735,14 @@ TextButton(
         };
 
         await TransaksiHelper.instance.saveTransaksiToSQLite(data);
-        await StockDBHelper.reduceStockOffline(item.idTipe, item.productName, item.size, idCabang, item.quantity.toDouble(),);
 
+        await StockDBHelper.reduceStockOffline(
+          item.idTipe,
+          item.productName,
+          item.size,
+          idCabang,
+          item.quantity.toDouble(),
+        );
       }
 
       // Sync jika online
@@ -755,6 +760,7 @@ TextButton(
         collectedBy: namaUser,
         idTransaksi: idTransaksi,
       );
+
       await fetchProducts();
 
       Navigator.of(context).pop();

@@ -2,6 +2,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class TransaksiHelper {
@@ -9,6 +11,8 @@ class TransaksiHelper {
   static Database? _database;
 
   TransaksiHelper._internal();
+
+  static const String _prefsKeyCounterTransaksi = 'last_server_counter_transaksi';
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -75,24 +79,73 @@ class TransaksiHelper {
           );
         ''');
 
-        // Tambah index untuk mempercepat query
         await db.execute('CREATE INDEX IF NOT EXISTS idx_is_synced ON tb_barang_keluar(is_synced);');
         await db.execute('CREATE INDEX IF NOT EXISTS idx_id_invoice ON tb_barang_keluar(id_invoice);');
       },
-      // Contoh onUpgrade jika nanti versi database bertambah
-      onUpgrade: (db, oldVersion, newVersion) async {
-        // Contoh migrasi data / schema upgrade
-        if (oldVersion < newVersion) {
-          // Implement schema changes here
-        }
-      },
     );
+  }
+
+  /// 🔁 Ambil counter dari server
+  Future<int> _fetchLastCountTransaksiFromServer() async {
+    final response = await http.get(Uri.parse('http://192.168.1.14/hayami/last_id.php'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['status'] == 'success') {
+        int count = data['lastCount'];
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(_prefsKeyCounterTransaksi, count);
+        return count;
+      }
+    }
+    throw Exception('Gagal ambil count transaksi dari server');
+  }
+
+  Future<int> _getLocalCounterTransaksi() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_prefsKeyCounterTransaksi) ?? 0;
+  }
+
+  Future<void> _incrementLocalCounterTransaksi() async {
+    final prefs = await SharedPreferences.getInstance();
+    int current = prefs.getInt(_prefsKeyCounterTransaksi) ?? 0;
+    await prefs.setInt(_prefsKeyCounterTransaksi, current + 1);
+  }
+
+  /// ✅ Generate ID Transaksi (SO/yyMM/0001)
+  Future<String> generateIDTransaksi() async {
+    int count;
+    try {
+      count = await _fetchLastCountTransaksiFromServer();
+    } catch (_) {
+      count = await _getLocalCounterTransaksi();
+    }
+    count++;
+    await _incrementLocalCounterTransaksi();
+
+    final now = DateTime.now();
+    final year = DateFormat('yy').format(now);
+    final month = DateFormat('MM').format(now);
+    final counter = count.toString().padLeft(4, '0');
+
+    return 'SO/$year$month/$counter';
+  }
+
+  /// ✅ Generate ID Invoice lokal (INV-yyyy-MM-00001)
+  Future<String> generateIDInvoice() async {
+    final now = DateTime.now();
+    final year = DateFormat('yyyy').format(now);
+    final month = DateFormat('MM').format(now);
+    final prefs = await SharedPreferences.getInstance();
+    int counter = (prefs.getInt('local_invoice_counter') ?? 0) + 1;
+    await prefs.setInt('local_invoice_counter', counter);
+
+    final padded = counter.toString().padLeft(5, '0');
+    return 'INV-$year-$month-$padded';
   }
 
   Future<void> saveTransaksiToSQLite(Map<String, dynamic> data) async {
     final db = await database;
 
-    // Validasi minimal no_id dan id_invoice
     if (data['no_id'] == null || data['id_invoice'] == null) {
       throw Exception('Data transaksi harus memiliki no_id dan id_invoice');
     }
@@ -136,7 +189,7 @@ class TransaksiHelper {
     final Map<String, List<Map<String, dynamic>>> groupedByInvoice = {};
     for (final row in unsynced) {
       final invoiceId = row['id_invoice'];
-      if (invoiceId == null) continue; // skip data tanpa id_invoice
+      if (invoiceId == null) continue;
       if (!groupedByInvoice.containsKey(invoiceId)) {
         groupedByInvoice[invoiceId] = [];
       }
@@ -149,18 +202,17 @@ class TransaksiHelper {
       final trx = transaksiList.first;
 
       final items = transaksiList.map((item) {
-  return {
-    "idBahan": item['id_bahan'],
-    "model": item['model'],
-    "ukuran": item['ukuran'],
-    "quantity": item['qty'],
-    "unitPrice": item['harga'],
-    "disc": item['disc'],
-    "total": item['total'],
-  };
-}).toList();
+        return {
+          "idBahan": item['id_bahan'],
+          "model": item['model'],
+          "ukuran": item['ukuran'],
+          "quantity": item['qty'],
+          "unitPrice": item['harga'],
+          "disc": item['disc'],
+          "total": item['total'],
+        };
+      }).toList();
 
-      // Validasi data utama sebelum dikirim
       if (trx['id_customer'] == null || items.isEmpty) {
         print("❗ Lewati $invoiceId karena data tidak lengkap.");
         continue;
@@ -193,7 +245,7 @@ class TransaksiHelper {
             await db.update(
               'tb_barang_keluar',
               {'is_synced': 1},
-              where: 'id_invoice = ?',
+              where: 'id_transaksi = ?',
               whereArgs: [invoiceId],
             );
             print("✅ Sync berhasil: $invoiceId");
