@@ -87,7 +87,7 @@ class TransaksiHelper {
 
   /// 🔁 Ambil counter dari server
   Future<int> _fetchLastCountTransaksiFromServer() async {
-    final response = await http.get(Uri.parse('http://192.168.1.14/hayami/last_id.php'));
+    final response = await http.get(Uri.parse('http://192.168.1.4/hayami/last_id.php'));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data['status'] == 'success') {
@@ -234,7 +234,7 @@ class TransaksiHelper {
 
       try {
         final response = await http.post(
-          Uri.parse('http://192.168.1.14/hayami/takepayment.php'),
+          Uri.parse('http://192.168.1.4/hayami/takepayment.php'),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(body),
         );

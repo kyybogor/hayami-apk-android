@@ -32,7 +32,7 @@
       final idTransaksi = widget.invoice['id']?.toString() ?? '';
 
       final url = Uri.parse(
-          "http://192.168.1.14/pos/masuk_detail.php?id_transaksi=$idTransaksi");
+          "http://192.168.1.4/pos/masuk_detail.php?id_transaksi=$idTransaksi");
 
       try {
         final response = await http.get(url);
@@ -99,7 +99,7 @@ Future<void> handleApprove() async {
   final prefs = await SharedPreferences.getInstance();
   final idCabang = prefs.getString('id_cabang') ?? '';
 
-  final url = Uri.parse('http://192.168.1.14/pos/inbond.php?id_transaksi=$idTransaksi&id_cabang=$idCabang');
+  final url = Uri.parse('http://192.168.1.4/pos/inbond.php?id_transaksi=$idTransaksi&id_cabang=$idCabang');
 
   showDialog(
     context: context,
