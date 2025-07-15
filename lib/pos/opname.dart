@@ -108,7 +108,6 @@ class _OpnameState extends State<Opname> {
     if (response.statusCode == 200) {
       _showDialog("Berhasil: ${response.body}");
 
-      // Reset semua field dan state
       setState(() {
         _selectedNamaBarang = null;
         _selectedModel = null;
@@ -119,8 +118,6 @@ class _OpnameState extends State<Opname> {
         _ukuranController.clear();
         _uomController.clear();
       });
-
-      // 🔁 Muat ulang data ke tabel
       _opnameListKey.currentState?.reloadData();
     } else {
       _showDialog("Gagal menyimpan: ${response.statusCode}");
@@ -364,9 +361,7 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
   List<Map<String, dynamic>> _opnameData = [];
   bool _loading = true;
   String? _idUser;
-  String? _invInId; // Simpan inv_in_id di sini
-
-  // Map untuk simpan controller tiap row index
+  String? _invInId;
   final Map<int, TextEditingController> _controllers = {};
 
   @override
@@ -418,22 +413,23 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
           final List<dynamic> data = jsonResponse['data'];
 
           String? invInIdFromApi;
-          if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
-            invInIdFromApi = data[0]['inv_in_id'];
-            // Simpan ke SharedPreferences
-            SharedPreferences prefs = await SharedPreferences.getInstance();
-            await prefs.setString('inv_in_id', invInIdFromApi!);
-          }
+if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
+  invInIdFromApi = data[0]['inv_in_id'];
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setString('inv_in_id', invInIdFromApi!);
+
+  setState(() {
+    _invInId = invInIdFromApi; // ⬅️ tambahkan baris ini
+  });
+}
 
           setState(() {
             _opnameData = data.map((e) {
               final map = Map<String, dynamic>.from(e);
-              map['qty_asli'] = 0.0;
-              map['inv_in_id'] =
-                  invInIdFromApi;
+              map['qty_asli'] =
+                  double.tryParse('${map['stock_change']}') ?? 0.0;
               return map;
             }).toList();
-            _invInId = invInIdFromApi;
             _loading = false;
             _controllers.clear();
           });
@@ -475,21 +471,20 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
   }
 
   Future<bool> _deleteFromServer(String invInId) async {
-  final url = Uri.parse('http://192.168.1.2/pos/delete_opname.php');
-  try {
-    final response = await http.post(url, body: {'inv_in_id': invInId});
-    if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      return jsonResponse['status'] == 'success';
-    } else {
+    final url = Uri.parse('http://192.168.1.2/pos/delete_opname.php');
+    try {
+      final response = await http.post(url, body: {'inv_in_id': invInId});
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return jsonResponse['status'] == 'success';
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print('Error deleteFromServer: $e');
       return false;
     }
-  } catch (e) {
-    print('Error deleteFromServer: $e');
-    return false;
   }
-}
-
 
   void _updateQtyAsli(int index, String val) {
     final parsed = double.tryParse(val);
@@ -500,108 +495,128 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
     }
   }
 
-Future<void> _simpanDanOtorisasi() async {
-  if (_invInId == null) {
-    _showDialog('inv_in_id belum tersedia.');
-    return;
-  }
+  Future<void> _updateQtyAsliToServer(String invInId, double qtyAsli) async {
+    final url = Uri.parse('http://192.168.1.2/pos/update_opname.php');
 
-  final url = Uri.parse('http://192.168.1.2/pos/opname.php');
+    try {
+      final response = await http.post(url, body: {
+        'inv_in_id': invInId,
+        'stock_change': qtyAsli.toString(),
+      });
 
-  final payload = {
-    'inv_in_id': _invInId,
-    'data': _opnameData.map((e) => {
-      'id_product': e['id_product'],
-      'model': e['model'],
-      'ukuran': e['ukuran'],
-      'uom': e['uom'],
-      'stock_awal': double.tryParse('${e['stock_awal']}') ?? 0.0,
-      'qty_asli': e['qty_asli'],
-      'id_cabang': e['id_cabang'],
-    }).toList(),
-  };
-
-  try {
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(payload),
-    );
-
-    if (response.statusCode == 200) {
-      final res = json.decode(response.body);
-      if (res['status'] == 'success') {
-        _showDialog('Data berhasil disimpan dan diotorisasi.');
-        // opsional: reload data setelah simpan
+      if (response.statusCode == 200) {
+        print('Update berhasil: ${response.body}');
         reloadData();
       } else {
-        _showDialog('Gagal simpan data: ${res['message']}');
+        print('Gagal update: ${response.statusCode}');
       }
-    } else {
-      _showDialog('Error server: ${response.statusCode}');
+    } catch (e) {
+      print('Error saat update qty_asli ke server: $e');
     }
-  } catch (e) {
-    _showDialog('Error: $e');
-  }
-}
-
-
-void _removeRow(int index) async {
-  final invInId = _opnameData[index]['inv_in_id'];
-  if (invInId == null) {
-    _showDialog('inv_in_id tidak ditemukan, gagal menghapus data.');
-    return;
   }
 
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: Text('Konfirmasi'),
-      content: Text('Apakah Anda yakin ingin menghapus data ini?'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Batal')),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Hapus')),
-      ],
-    ),
-  );
+  Future<void> _simpanDanOtorisasi() async {
+    if (_invInId == null) {
+      _showDialog('inv_in_id belum tersedia.');
+      return;
+    }
 
-  if (confirmed != true) return;
+    final url = Uri.parse('http://192.168.1.2/pos/opname.php');
 
-  setState(() {
-    _loading = true;
-  });
+final payload = {
+  'data': _opnameData.map((e) => {
+        'inv_in_id': e['inv_in_id'], // ⬅️ Tambahkan ini
+        'id_product': e['id_product'],
+        'model': e['model'],
+        'ukuran': e['ukuran'],
+        'uom': e['uom'],
+        'stock_awal': double.tryParse('${e['stock_awal']}') ?? 0.0,
+        'qty_asli': e['qty_asli'],
+        'id_cabang': e['id_cabang'],
+      }).toList(),
+};
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
 
-  final success = await _deleteFromServer(invInId);
-
-  setState(() {
-    _loading = false;
-  });
-
-  if (success) {
-    setState(() {
-      _opnameData.removeAt(index);
-      _controllers.remove(index);
-      final newControllers = <int, TextEditingController>{};
-      for (int i = 0; i < _opnameData.length; i++) {
-        if (_controllers.containsKey(i)) {
-          newControllers[i] = _controllers[i]!;
+      if (response.statusCode == 200) {
+        final res = json.decode(response.body);
+        if (res['status'] == 'success') {
+          _showDialog('Data berhasil disimpan dan diotorisasi.');
+          reloadData();
         } else {
-          newControllers[i] = TextEditingController(
-              text:
-                  (_opnameData[i]['qty_asli'] as double?)?.toStringAsFixed(2) ??
-                      '0.00');
+          _showDialog('Gagal simpan data: ${res['message']}');
         }
+      } else {
+        _showDialog('Error server: ${response.statusCode}');
       }
-      _controllers
-        ..clear()
-        ..addAll(newControllers);
-    });
-    _showDialog('Data berhasil dihapus');
-  } else {
-    _showDialog('Gagal menghapus data di server.');
+    } catch (e) {
+      _showDialog('Error: $e');
+    }
   }
-}
 
+  void _removeRow(int index) async {
+    final invInId = _opnameData[index]['inv_in_id'];
+    if (invInId == null) {
+      _showDialog('inv_in_id tidak ditemukan, gagal menghapus data.');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Konfirmasi'),
+        content: Text('Apakah Anda yakin ingin menghapus data ini?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Batal')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('Hapus')),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _loading = true;
+    });
+
+    final success = await _deleteFromServer(invInId);
+
+    setState(() {
+      _loading = false;
+    });
+
+    if (success) {
+      setState(() {
+        _opnameData.removeAt(index);
+        _controllers.remove(index);
+        final newControllers = <int, TextEditingController>{};
+        for (int i = 0; i < _opnameData.length; i++) {
+          if (_controllers.containsKey(i)) {
+            newControllers[i] = _controllers[i]!;
+          } else {
+            newControllers[i] = TextEditingController(
+                text: (_opnameData[i]['qty_asli'] as double?)
+                        ?.toStringAsFixed(2) ??
+                    '0.00');
+          }
+        }
+        _controllers
+          ..clear()
+          ..addAll(newControllers);
+      });
+      _showDialog('Data berhasil dihapus');
+    } else {
+      _showDialog('Gagal menghapus data di server.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -643,7 +658,7 @@ void _removeRow(int index) async {
         final item = _opnameData[i];
         final stockAwal = double.tryParse(item['stock_awal'] ?? '0') ?? 0;
         final qtyAsli = item['qty_asli'] as double? ?? 0.0;
-        final qtyOpname = qtyAsli - stockAwal;
+        final qtyOpname = double.tryParse(item['stock_opname'] ?? '0') ?? 0;
 
         if (!_controllers.containsKey(i)) {
           _controllers[i] =
@@ -655,6 +670,9 @@ void _removeRow(int index) async {
               setState(() {
                 _opnameData[i]['qty_asli'] = parsed;
               });
+
+              final invInId = _opnameData[i]['inv_in_id'];
+              if (invInId != null) {}
             }
           });
         } else {
@@ -679,7 +697,6 @@ void _removeRow(int index) async {
 
       return Column(
         children: [
-          // Table dibungkus scroll supaya bisa scroll
           SingleChildScrollView(
             scrollDirection: Axis.vertical,
             child: Table(
@@ -698,9 +715,7 @@ void _removeRow(int index) async {
               children: [header, ...rows],
             ),
           ),
-
           SizedBox(height: 20),
-
           Align(
             alignment: Alignment.centerLeft,
             child: ElevatedButton.icon(
@@ -753,6 +768,20 @@ void _removeRow(int index) async {
           border: OutlineInputBorder(),
           isDense: true,
         ),
+        onFieldSubmitted: (val) {
+          final parsed = double.tryParse(val);
+          if (parsed != null) {
+            setState(() {
+              _opnameData[index]['qty_asli'] = parsed;
+            });
+
+            final invInId = _opnameData[index]['inv_in_id'];
+            if (invInId != null) {
+              _updateQtyAsliToServer(
+                  invInId, parsed); // ⬅️ kirim ke server saat ENTER ditekan
+            }
+          }
+        },
       ),
     );
   }
