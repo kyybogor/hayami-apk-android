@@ -33,7 +33,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
   Future<void> fetchInvoices() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.4/pos/barang_keluar.php'),
+        Uri.parse('http://192.168.1.2/pos/barang_keluar.php'),
       );
 
       if (response.statusCode == 200) {

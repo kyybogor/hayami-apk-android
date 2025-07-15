@@ -46,7 +46,7 @@ Future<void> fetchInvoiceDetail() async {
   final idTransaksi = widget.invoice['id_transaksi'];
   try {
     final response = await http.get(
-      Uri.parse('http://192.168.1.4/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
+      Uri.parse('http://192.168.1.2/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
     );
 
     if (response.statusCode == 200) {
