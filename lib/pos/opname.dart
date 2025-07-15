@@ -156,12 +156,15 @@ class _OpnameState extends State<Opname> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Update Stock"),
+        title: Text("Update Stock", style: TextStyle(color: Colors.blue)),
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+         iconTheme: IconThemeData(
+    color: Colors.blue,  // Menetapkan warna untuk ikon pada AppBar
+  ),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -198,21 +201,46 @@ class _OpnameState extends State<Opname> {
                     composing: TextRange.empty,
                   );
                   return TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                        labelText: "Nama Barang", border: InputBorder.none),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedNamaBarang = val;
-                        _selectedModel = null;
-                        _modelController.clear();
-                        _selectedUkuran = null;
-                        _ukuranController.clear();
-                        _uomController.clear();
-                      });
-                    },
-                  );
+  controller: textEditingController,
+  focusNode: focusNode,
+  decoration: InputDecoration(
+    labelText: "Nama Barang",  // Label yang lebih informatif
+    labelStyle: TextStyle(
+      color: Colors.grey, // Warna label sesuai focus
+      fontSize: 16,  // Ukuran font
+    ),
+    hintText: "Masukkan nama barang",  // Hint text yang memberikan informasi
+    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
+    prefixIcon: Icon(Icons.shopping_cart, color: Colors.blue.shade800),  // Ikon pada prefix
+    filled: true,  // Memberikan warna background
+    fillColor: Colors.grey.shade200,  // Warna background
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),  // Membuat border lebih melengkung
+      borderSide: BorderSide(
+        color: focusNode.hasFocus ? Colors.blue.shade800 : Colors.grey,  // Warna border sesuai focus
+        width: 2,  // Ketebalan border
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.grey, width: 1),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),
+    ),
+  ),
+  onChanged: (val) {
+    setState(() {
+      _selectedNamaBarang = val;
+      _selectedModel = null;
+      _modelController.clear();
+      _selectedUkuran = null;
+      _ukuranController.clear();
+      _uomController.clear();
+    });
+  },
+);
                 },
               ),
             ),
@@ -254,19 +282,44 @@ class _OpnameState extends State<Opname> {
                     composing: TextRange.empty,
                   );
                   return TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                        labelText: "Model", border: InputBorder.none),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedModel = val;
-                        _selectedUkuran = null;
-                        _ukuranController.clear();
-                        _uomController.clear();
-                      });
-                    },
-                  );
+  controller: textEditingController,
+  focusNode: focusNode,
+  decoration: InputDecoration(
+    labelText: "Model",  // Label untuk input
+    labelStyle: TextStyle(
+      color: Colors.grey,  // Warna label sesuai focus
+      fontSize: 16,  // Ukuran font label
+    ),
+    hintText: "Masukkan model barang",  // Hint text
+    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
+    prefixIcon: Icon(Icons.device_hub, color: Colors.blue.shade800),  // Ikon prefix (ganti sesuai kebutuhan)
+    filled: true,  // Menambahkan background fill
+    fillColor: Colors.grey.shade200,  // Warna background
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),  // Membuat border lebih melengkung
+      borderSide: BorderSide(
+        color: focusNode.hasFocus ? Colors.blue.shade800 : Colors.grey,  // Warna border sesuai focus
+        width: 2,  // Ketebalan border
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.grey, width: 1),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),
+    ),
+  ),
+  onChanged: (val) {
+    setState(() {
+      _selectedModel = val;
+      _selectedUkuran = null;
+      _ukuranController.clear();
+      _uomController.clear();
+    });
+  },
+);
                 },
               ),
             ),
@@ -313,26 +366,76 @@ class _OpnameState extends State<Opname> {
                     composing: TextRange.empty,
                   );
                   return TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                        labelText: "Ukuran", border: InputBorder.none),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedUkuran = val;
-                      });
-                    },
-                  );
+  controller: textEditingController,
+  focusNode: focusNode,
+  decoration: InputDecoration(
+    labelText: "Ukuran",  // Label untuk input
+    labelStyle: TextStyle(
+      color: Colors.grey,  // Warna label sesuai focus
+      fontSize: 16,  // Ukuran font label
+    ),
+    hintText: "Masukkan ukuran barang",  // Hint text untuk memberikan petunjuk
+    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
+    prefixIcon: Icon(Icons.aspect_ratio, color: Colors.blue.shade800),  // Ikon prefix (sesuaikan dengan konteks)
+    filled: true,  // Memberikan background pada field
+    fillColor: Colors.grey.shade200,  // Warna latar belakang
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),  // Membuat border melengkung
+      borderSide: BorderSide(
+        color: focusNode.hasFocus ? Colors.blue.shade800 : Colors.grey,  // Warna border sesuai focus
+        width: 2,  // Ketebalan border
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.grey, width: 1),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),
+    ),
+  ),
+  onChanged: (val) {
+    setState(() {
+      _selectedUkuran = val;
+    });
+  },
+);
                 },
               ),
             ),
             _buildCardInput(
               child: TextField(
-                controller: _uomController,
-                readOnly: true,
-                decoration:
-                    InputDecoration(labelText: "UOM", border: InputBorder.none),
-              ),
+  controller: _uomController,
+  readOnly: true,  // Menandakan field ini hanya untuk tampilkan data
+  decoration: InputDecoration(
+    labelText: "UOM",  // Label untuk input
+    labelStyle: TextStyle(
+      color: Colors.grey,  // Warna label saat tidak fokus
+      fontSize: 16,  // Ukuran font label
+    ),
+    hintText: "Unit of Measure",  // Hint text untuk memberikan petunjuk tambahan
+    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
+    prefixIcon: Icon(Icons.all_inclusive, color: Colors.blue.shade800),  // Ikon prefix (sesuaikan dengan konteks)
+    filled: true,  // Memberikan background pada field
+    fillColor: Colors.grey.shade200,  // Warna latar belakang
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),  // Membuat border melengkung
+      borderSide: BorderSide(
+        color: Colors.grey,  // Warna border saat tidak fokus
+        width: 1,  // Ketebalan border
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),  // Warna border saat fokus
+    ),
+  ),
+),
             ),
             SizedBox(height: 20),
             Align(
@@ -619,172 +722,181 @@ final payload = {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_loading) return Center(child: CircularProgressIndicator());
+Widget build(BuildContext context) {
+  if (_loading) return Center(child: CircularProgressIndicator());
 
-    if (_opnameData.isEmpty)
-      return Center(child: Text('Belum ada data opname.'));
+  if (_opnameData.isEmpty)
+    return Center(child: Text('Belum ada data opname.'));
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final totalWidth = constraints.maxWidth;
+  return LayoutBuilder(builder: (context, constraints) {
+    final totalWidth = constraints.maxWidth;
 
-      final widths = [
-        totalWidth * 0.13,
-        totalWidth * 0.27,
-        totalWidth * 0.10,
-        totalWidth * 0.10,
-        totalWidth * 0.10,
-        totalWidth * 0.10,
-        totalWidth * 0.10,
-        totalWidth * 0.10,
-      ];
+    final widths = [
+      totalWidth * 0.13,
+      totalWidth * 0.27,
+      totalWidth * 0.10,
+      totalWidth * 0.10,
+      totalWidth * 0.10,
+      totalWidth * 0.10,
+      totalWidth * 0.10,
+      totalWidth * 0.10,
+    ];
 
-      TableRow header = TableRow(
-        decoration: BoxDecoration(color: Colors.grey[300]),
-        children: [
-          _buildCell('Id Product', widths[0], isHeader: true),
-          _buildCell('Nama Product', widths[1], isHeader: true),
-          _buildCell('Ukuran', widths[2], isHeader: true),
-          _buildCell('Qty Awal', widths[3], isHeader: true),
-          _buildCell('Qty Asli', widths[4], isHeader: true),
-          _buildCell('Qty Opname', widths[5], isHeader: true),
-          _buildCell('UOM', widths[6], isHeader: true),
-          _buildCell('Hapus', widths[7], isHeader: true),
-        ],
-      );
+    TableRow header = TableRow(
+      decoration: BoxDecoration(color: Colors.blue.shade800), // Ganti warna header jadi biru tua
+      children: [
+        _buildCell('Id Product', widths[0], isHeader: true),
+        _buildCell('Nama Product', widths[1], isHeader: true),
+        _buildCell('Ukuran', widths[2], isHeader: true),
+        _buildCell('Qty Awal', widths[3], isHeader: true),
+        _buildCell('Qty Asli', widths[4], isHeader: true),
+        _buildCell('Qty Opname', widths[5], isHeader: true),
+        _buildCell('UOM', widths[6], isHeader: true),
+        _buildCell('Hapus', widths[7], isHeader: true),
+      ],
+    );
 
-      List<TableRow> rows = [];
-      for (int i = 0; i < _opnameData.length; i++) {
-        final item = _opnameData[i];
-        final stockAwal = double.tryParse(item['stock_awal'] ?? '0') ?? 0;
-        final qtyAsli = item['qty_asli'] as double? ?? 0.0;
-        final qtyOpname = double.tryParse(item['stock_opname'] ?? '0') ?? 0;
+    List<TableRow> rows = [];
+    for (int i = 0; i < _opnameData.length; i++) {
+      final item = _opnameData[i];
+      final stockAwal = double.tryParse(item['stock_awal'] ?? '0') ?? 0;
+      final qtyAsli = item['qty_asli'] as double? ?? 0.0;
+      final qtyOpname = double.tryParse(item['stock_opname'] ?? '0') ?? 0;
 
-        if (!_controllers.containsKey(i)) {
-          _controllers[i] =
-              TextEditingController(text: qtyAsli.toStringAsFixed(2));
-          _controllers[i]!.addListener(() {
-            final val = _controllers[i]!.text;
-            final parsed = double.tryParse(val);
-            if (parsed != null && _opnameData[i]['qty_asli'] != parsed) {
-              setState(() {
-                _opnameData[i]['qty_asli'] = parsed;
-              });
-
-              final invInId = _opnameData[i]['inv_in_id'];
-              if (invInId != null) {}
-            }
-          });
-        } else {
-          if (_controllers[i]!.text != qtyAsli.toStringAsFixed(2)) {
-            _controllers[i]!.text = qtyAsli.toStringAsFixed(2);
+      if (!_controllers.containsKey(i)) {
+        _controllers[i] = TextEditingController(text: qtyAsli.toStringAsFixed(2));
+        _controllers[i]!.addListener(() {
+          final val = _controllers[i]!.text;
+          final parsed = double.tryParse(val);
+          if (parsed != null && _opnameData[i]['qty_asli'] != parsed) {
+            setState(() {
+              _opnameData[i]['qty_asli'] = parsed;
+            });
+            final invInId = _opnameData[i]['inv_in_id'];
+            if (invInId != null) {}
           }
+        });
+      } else {
+        if (_controllers[i]!.text != qtyAsli.toStringAsFixed(2)) {
+          _controllers[i]!.text = qtyAsli.toStringAsFixed(2);
         }
-
-        rows.add(TableRow(
-          children: [
-            _buildCell(item['id_bahan'] ?? '', widths[0]),
-            _buildCell('${item['id_product']} - ${item['model']}', widths[1]),
-            _buildCell(item['ukuran'] ?? '', widths[2]),
-            _buildCell(stockAwal.toStringAsFixed(2), widths[3]),
-            _buildInputCell(i, widths[4]),
-            _buildCell(qtyOpname.toStringAsFixed(2), widths[5]),
-            _buildCell(item['uom'] ?? '', widths[6]),
-            _buildDeleteCell(i, widths[7]),
-          ],
-        ));
       }
 
-      return Column(
+      rows.add(TableRow(
+        decoration: BoxDecoration(
+          color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white, // Lighter row color
+        ),
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.vertical,
+          _buildCell(item['id_bahan'] ?? '', widths[0]),
+          _buildCell('${item['id_product']} - ${item['model']}', widths[1]),
+          _buildCell(item['ukuran'] ?? '', widths[2]),
+          _buildCell(stockAwal.toStringAsFixed(2), widths[3]),
+          _buildInputCell(i, widths[4]),
+          _buildCell(qtyOpname.toStringAsFixed(2), widths[5]),
+          _buildCell(item['uom'] ?? '', widths[6]),
+          _buildDeleteCell(i, widths[7]),
+        ],
+      ));
+    }
+
+    return Column(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Container(
+            margin: EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300), // Lighter border
+              borderRadius: BorderRadius.circular(12), // Rounded corners for the table
+            ),
             child: Table(
-              border: TableBorder.all(color: Colors.grey),
+              border: TableBorder.symmetric(
+                inside: BorderSide(color: Colors.grey.shade200),
+              ),
               columnWidths: {
-                0: FixedColumnWidth(widths[0]),
-                1: FixedColumnWidth(widths[1]),
-                2: FixedColumnWidth(widths[2]),
-                3: FixedColumnWidth(widths[3]),
-                4: FixedColumnWidth(widths[4]),
-                5: FixedColumnWidth(widths[5]),
-                6: FixedColumnWidth(widths[6]),
-                7: FixedColumnWidth(widths[7]),
+                for (int i = 0; i < widths.length; i++) i: FixedColumnWidth(widths[i]),
               },
               defaultVerticalAlignment: TableCellVerticalAlignment.middle,
               children: [header, ...rows],
             ),
           ),
-          SizedBox(height: 20),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                _simpanDanOtorisasi();
-              },
-              icon: Icon(Icons.save, color: Colors.black),
-              label: Text("Simpan & Otorisasi",
-                  style: TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                textStyle: TextStyle(fontSize: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    });
-  }
+        ),
+        SizedBox(height: 20),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ElevatedButton.icon(
+  onPressed: () {
+    _simpanDanOtorisasi();
+  },
+  icon: Icon(Icons.save, color: Colors.white),
+  label: Text(
+    "Simpan & Otorisasi",
+    style: TextStyle(color: Colors.white), // Menambahkan warna putih pada teks
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.blue.shade800, // Tombol jadi biru tua
+    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    textStyle: TextStyle(fontSize: 16), // Ukuran font tetap di sini
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    ),
+  ),
+),
+        ),
+      ],
+    );
+  });
+}
 
-  Widget _buildCell(String text, double width, {bool isHeader = false}) {
-    return Container(
-      width: width,
-      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-      child: Text(
-        text,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-          fontSize: 14,
+Widget _buildCell(String text, double width, {bool isHeader = false}) {
+  return Container(
+    width: width,
+    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+    alignment: Alignment.centerLeft,
+    child: Text(
+      text,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+        fontSize: 14,
+        color: isHeader ? Colors.white : Colors.black87, // Header text jadi putih
+      ),
+    ),
+  );
+}
+
+Widget _buildInputCell(int index, double width) {
+  return Container(
+    width: width,
+    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+    child: TextFormField(
+      controller: _controllers[index],
+      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      style: TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8), // More rounded input field
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
       ),
-    );
-  }
-
-  Widget _buildInputCell(int index, double width) {
-    return Container(
-      width: width,
-      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-      child: TextFormField(
-        controller: _controllers[index],
-        keyboardType: TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-          border: OutlineInputBorder(),
-          isDense: true,
-        ),
-        onFieldSubmitted: (val) {
-          final parsed = double.tryParse(val);
-          if (parsed != null) {
-            setState(() {
-              _opnameData[index]['qty_asli'] = parsed;
-            });
-
-            final invInId = _opnameData[index]['inv_in_id'];
-            if (invInId != null) {
-              _updateQtyAsliToServer(
-                  invInId, parsed); // ⬅️ kirim ke server saat ENTER ditekan
-            }
+      onFieldSubmitted: (val) {
+        final parsed = double.tryParse(val);
+        if (parsed != null) {
+          setState(() {
+            _opnameData[index]['qty_asli'] = parsed;
+          });
+          final invInId = _opnameData[index]['inv_in_id'];
+          if (invInId != null) {
+            _updateQtyAsliToServer(invInId, parsed);
           }
-        },
-      ),
-    );
-  }
+        }
+      },
+    ),
+  );
+}
 
   Widget _buildDeleteCell(int index, double width) {
     return Container(

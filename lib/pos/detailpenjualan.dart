@@ -410,30 +410,6 @@ pw.SizedBox(height: 10),
                         );
                       },
                     ),
-                    SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Implement aksi retur di sini (tapi tidak perlu fungsi)
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Retur',
-                            style: TextStyle(fontSize: 16, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Adding the Print button
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: SizedBox(
