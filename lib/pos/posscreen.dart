@@ -749,12 +749,7 @@ TextButton(
         );
       }
        Navigator.of(context).pop();
-       resetTransaction();
-      // Sync jika online
-      await TransaksiHelper.instance.trySyncIfOnline();
-
-      // Cetak struk
-      await generateAndPrintStrukPdf(
+await generateAndPrintStrukPdf(
         cartItems: cartItems,
         grandTotal: grandTotal,
         totalDiskon: totalDiskonCustomer,
@@ -765,6 +760,12 @@ TextButton(
         collectedBy: namaUser,
         idTransaksi: idTransaksi,
       );
+       resetTransaction();
+      // Sync jika online
+      await TransaksiHelper.instance.trySyncIfOnline();
+
+      // Cetak struk
+      
 
       await fetchProducts();
       resetTransaction();
@@ -2035,32 +2036,37 @@ onPressed: () async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('POS Screen'),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-                        actions: [
-          IconButton(
-            icon: const Icon(Icons.sync),
-            tooltip: 'Sinkronisasi Cart',
-            onPressed: () async {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sinkronisasi dimulai...')),
-              );
-              await CartDBHelper.instance.syncPendingDrafts();
-              await TransaksiHelper.instance.trySyncIfOnline();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sinkronisasi selesai, data lokal diperbarui.')),
-              );
-            },
-          ),
-        ],
-
-      ),
+  title: const Text(
+    'POS HAYAMI',
+    style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+  ),
+  elevation: 0,
+  backgroundColor: Colors.white,
+  foregroundColor: Colors.blue, // Menetapkan warna biru untuk ikon dan teks
+  leading: IconButton(
+    icon: const Icon(
+      Icons.arrow_back,
+      color: Colors.blue, // Mengubah warna ikon back menjadi biru
+    ),
+    onPressed: () => Navigator.pop(context),
+  ),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.sync, color: Colors.blue), // Mengubah warna ikon sync menjadi biru
+      tooltip: 'Sinkronisasi Cart',
+      onPressed: () async {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sinkronisasi dimulai...')),
+        );
+        await CartDBHelper.instance.syncPendingDrafts();
+        await TransaksiHelper.instance.trySyncIfOnline();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sinkronisasi selesai, data lokal diperbarui.')),
+        );
+      },
+    ),
+  ],
+),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(

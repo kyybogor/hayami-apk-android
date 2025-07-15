@@ -158,57 +158,53 @@ Future<void> generateAndPrintStrukPdf({
             ),
             pw.Divider(thickness: 0.3),
             ...cartItems.map((item) {
-              final qtyDus = item.quantity / 12;
-              final hargaDus = item.total / 12;
-              final name =  '${item.idTipe} - ${item.productName}';
-              final maxLength = 28;
-              String firstLine = name;
-              String? secondLine;
+  final qtyDus = item.quantity / 12;
+  final hargaDus = item.total / 12;
+  final name = '${item.idTipe} - ${item.productName}';
 
-              if (name.length > maxLength) {
-                final idx = name.substring(0, maxLength).lastIndexOf(' ');
-                if (idx != -1) {
-                  firstLine = name.substring(0, idx);
-                  secondLine = name.substring(idx).trim();
-                }
-              }
+  return pw.Column(
+    children: [
+      pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(
+            flex: 5,
+            child: pw.Text(name,
+                style: const pw.TextStyle(fontSize: 14)),
+          ),
+          pw.Expanded(
+            flex: 2,
+            child: pw.Padding(
+              padding: const pw.EdgeInsets.only(left: 8),
+              child: pw.Text(item.size,
+                  style: const pw.TextStyle(fontSize: 14)),
+            ),
+          ),
+          pw.Expanded(
+            flex: 2,
+            child: pw.Padding(
+              padding: const pw.EdgeInsets.only(left: 6),
+              child: pw.Text(qtyDus.toStringAsFixed(2),
+                  textAlign: pw.TextAlign.center,
+                  style: const pw.TextStyle(fontSize: 14)),
+            ),
+          ),
+          pw.Expanded(
+            flex: 3,
+            child: pw.Padding(
+              padding: const pw.EdgeInsets.only(left: 6),
+              child: pw.Text(currencyFormatter.format(hargaDus),
+                  textAlign: pw.TextAlign.right,
+                  style: const pw.TextStyle(fontSize: 14)),
+            ),
+          ),
+        ],
+      ),
+      pw.Divider(thickness: 0.3),
+    ],
+  );
+}),
 
-              return pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Row(
-                    children: [
-                      pw.Expanded(
-                          flex: 5,
-                          child: pw.Text(firstLine,
-                              style: pw.TextStyle(fontSize: 15))),
-                      pw.Expanded(
-                          flex: 2,
-                          child: pw.Text(item.size,
-                              style: pw.TextStyle(fontSize: 15))),
-                      pw.Expanded(
-                          flex: 2,
-                          child: pw.Text(qtyDus.toStringAsFixed(2),
-                              textAlign: pw.TextAlign.center,
-                              style: pw.TextStyle(fontSize: 15))),
-                      pw.Expanded(
-                          flex: 3,
-                          child: pw.Text(currencyFormatter.format(hargaDus),
-                              textAlign: pw.TextAlign.right,
-                              style: pw.TextStyle(fontSize: 15))),
-                    ],
-                  ),
-                  if (secondLine != null)
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.only(top: 2),
-                      child:
-                          pw.Text(secondLine, style: pw.TextStyle(fontSize: 15)),
-                    ),
-                  pw.SizedBox(height: 2),
-                ],
-              );
-            }),
-            pw.Divider(thickness: 0.5),
             pw.SizedBox(height: 4),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,

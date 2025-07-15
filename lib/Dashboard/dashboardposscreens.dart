@@ -127,7 +127,7 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Yu  mudahkan keuangan bisnis dengan Hayami',
+                    'Yuk, mudahkan keuangan bisnis dengan Hayami',
                     style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],

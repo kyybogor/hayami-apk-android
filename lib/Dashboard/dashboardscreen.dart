@@ -202,7 +202,7 @@ class _DashboardscreenState extends State<Dashboardscreen> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white)),
                   const SizedBox(height: 6),
-                  const Text('Yuk mudahkan keuangan bisnis dengan Hayami',
+                  const Text('Yuk, mudahkan keuangan bisnis dengan Hayami',
                       style: TextStyle(color: Colors.white70, fontSize: 14)),
                 ],
               ),
