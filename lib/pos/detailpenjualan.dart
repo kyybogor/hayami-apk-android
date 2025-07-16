@@ -24,15 +24,15 @@ class OrderItem {
   });
 }
 
-class DetailBarangMasuk extends StatefulWidget {
+class Detailpenjualan extends StatefulWidget {
   final Map<String, dynamic> invoice;
-  const DetailBarangMasuk({super.key, required this.invoice});
+  const Detailpenjualan({super.key, required this.invoice});
 
   @override
-  State<DetailBarangMasuk> createState() => _DetailBarangMasukState();
+  State<Detailpenjualan> createState() => _DetailpenjualanState();
 }
 
-class _DetailBarangMasukState extends State<DetailBarangMasuk> {
+class _DetailpenjualanState extends State<Detailpenjualan> {
   bool isLoading = true;
   Map<String, dynamic> invoiceDetail = {};
 
@@ -42,34 +42,35 @@ class _DetailBarangMasukState extends State<DetailBarangMasuk> {
     fetchInvoiceDetail();
   }
 
-Future<void> fetchInvoiceDetail() async {
-  final idTransaksi = widget.invoice['id_transaksi'];
-  try {
-    final response = await http.get(
-      Uri.parse('http://192.168.1.2/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
-    );
+  Future<void> fetchInvoiceDetail() async {
+    final idTransaksi = widget.invoice['id_transaksi'];
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'http://192.168.1.2/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
+      );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      if (data['status'] == 'success') {
-        setState(() {
-          invoiceDetail = data['data'][0];
-          isLoading = false;
-        });
-        print("Data retrieved: ${invoiceDetail}");  // Debugging data
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          setState(() {
+            invoiceDetail = data['data'][0];
+            isLoading = false;
+          });
+          print("Data retrieved: ${invoiceDetail}"); // Debugging data
+        } else {
+          throw Exception('Data tidak ditemukan');
+        }
       } else {
-        throw Exception('Data tidak ditemukan');
+        throw Exception('Gagal mengambil data');
       }
-    } else {
-      throw Exception('Gagal mengambil data');
+    } catch (e) {
+      print("Error: $e");
+      setState(() {
+        isLoading = false;
+      });
     }
-  } catch (e) {
-    print("Error: $e");
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
   // Function to format number into Indonesian currency with thousands separators
   String formatRupiah(double number) {
@@ -77,233 +78,244 @@ Future<void> fetchInvoiceDetail() async {
     return formatter.format(number);
   }
 
-Future<void> generateAndPrintStrukPdf({
-  required List<OrderItem> cartItems,
-  required double grandTotal,
-  double? totalDiskon,
-  double? newDiscount,
-  required double totalLusin,
-  required dynamic selectedPaymentAccount,
-  required List<Map<String, dynamic>> splitPayments,
-  required String collectedBy,
-  String? idTransaksi,
-}) async {
-  final double diskonCustomer = totalDiskon ?? 0;
-  final double diskonTambahan = newDiscount ?? 0;
-  final double totalDiskonFinal = diskonCustomer + diskonTambahan;
+  Future<void> generateAndPrintStrukPdf({
+    required List<OrderItem> cartItems,
+    required double grandTotal,
+    double? totalDiskon,
+    double? newDiscount,
+    required double totalLusin,
+    required dynamic selectedPaymentAccount,
+    required List<Map<String, dynamic>> splitPayments,
+    required String collectedBy,
+    String? idTransaksi,
+  }) async {
+    final double diskonCustomer = totalDiskon ?? 0;
+    final double diskonTambahan = newDiscount ?? 0;
+    final double totalDiskonFinal = diskonCustomer + diskonTambahan;
 
-  final pdf = pw.Document();
-  final tglTransaksi = invoiceDetail['tgl_transaksi'] ?? '0000-00-00 00:00:00';
-final dateTime = DateTime.tryParse(tglTransaksi);
-  final dateFormatter = DateFormat('dd MMM yyyy');
-  final timeFormatter = DateFormat('HH:mm');
-  final currencyFormatter =
-      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+    final pdf = pw.Document();
+    final tglTransaksi =
+        invoiceDetail['tgl_transaksi'] ?? '0000-00-00 00:00:00';
+    final dateTime = DateTime.tryParse(tglTransaksi);
+    final dateFormatter = DateFormat('dd MMM yyyy');
+    final timeFormatter = DateFormat('HH:mm');
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
-  final ByteData logoBytes = await rootBundle.load('assets/image/hayamilogo.png');
-  final Uint8List logoImage = logoBytes.buffer.asUint8List();
+    final ByteData logoBytes =
+        await rootBundle.load('assets/image/hayamilogo.png');
+    final Uint8List logoImage = logoBytes.buffer.asUint8List();
 
-  // Get payment method from invoice detail
-  final akunPembayaran = invoiceDetail['akun']?.toString().toUpperCase().trim() ?? '';
-  String paymentMethod = akunPembayaran;
+    // Get payment method from invoice detail
+    final akunPembayaran =
+        invoiceDetail['akun']?.toString().toUpperCase().trim() ?? '';
+    String paymentMethod = akunPembayaran;
 
-  // Handle the "SPLIT" payment method case
-  if (akunPembayaran == "SPLIT" && splitPayments.isNotEmpty) {
-    paymentMethod += ' (Split Payments)';
-  }
+    // Handle the "SPLIT" payment method case
+    if (akunPembayaran == "SPLIT" && splitPayments.isNotEmpty) {
+      paymentMethod += ' (Split Payments)';
+    }
 
-  final double computedLusin =
-      cartItems.fold(0.0, (sum, item) => sum + (item.quantity / 12));
+    final double computedLusin =
+        cartItems.fold(0.0, (sum, item) => sum + (item.quantity / 12));
 
-  pdf.addPage(
-    pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.all(20),
-      build: (context) {
-        return pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Center(child: pw.Image(pw.MemoryImage(logoImage), height: 50)),
-            pw.SizedBox(height: 6),
-            pw.Center(
-              child: pw.Column(
-                children: [
-                  pw.Text('Hayami Indonesia',
-                      style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                  pw.Text('Pasar Mester Jatinegara Lt.1 Blok AKS No:144-145.',
-                      style: pw.TextStyle(fontSize: 15)),
-                  pw.Text('NPWP: 86.783.673.6-033.000',
-                      style: pw.TextStyle(fontSize: 15)),
-                  pw.Text('Jakarta Timur, DKI Jakarta, 13310',
-                      style: pw.TextStyle(fontSize: 15)),
-                  pw.Text('087788155246', style: pw.TextStyle(fontSize: 15)),
-                ],
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Center(child: pw.Image(pw.MemoryImage(logoImage), height: 50)),
+              pw.SizedBox(height: 6),
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('Hayami Indonesia',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                    pw.Text('Pasar Mester Jatinegara Lt.1 Blok AKS No:144-145.',
+                        style: pw.TextStyle(fontSize: 15)),
+                    pw.Text('NPWP: 86.783.673.6-033.000',
+                        style: pw.TextStyle(fontSize: 15)),
+                    pw.Text('Jakarta Timur, DKI Jakarta, 13310',
+                        style: pw.TextStyle(fontSize: 15)),
+                    pw.Text('087788155246', style: pw.TextStyle(fontSize: 15)),
+                  ],
+                ),
               ),
-            ),
-            pw.SizedBox(height: 6),
-            pw.Divider(thickness: 0.5),
-            pw.Row(
-  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-  children: [
-    pw.Text(dateFormatter.format(dateTime!),
-        style: pw.TextStyle(fontSize: 15)),
-    pw.Text(timeFormatter.format(dateTime!),
-        style: pw.TextStyle(fontSize: 15)),
-  ],
-),
-
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text('Order ID', style: pw.TextStyle(fontSize: 15)),
-                pw.Text(idTransaksi ?? 'SO/xxxx/yyyy', style: pw.TextStyle(fontSize: 15)),
-              ],
-            ),
-            pw.SizedBox(height: 3),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text('Collected By', style: pw.TextStyle(fontSize: 15)),
-                pw.Text(invoiceDetail['dibuat_oleh'] ?? 'Unknown', style: pw.TextStyle(fontSize: 15)),
-              ],
-            ),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text('Metode Pembayaran', style: pw.TextStyle(fontSize: 15)),
-                pw.Text(paymentMethod,
-                    style: pw.TextStyle(
-                        fontSize: 15, fontWeight: pw.FontWeight.bold)),
-              ],
-            ),
-            pw.SizedBox(height: 6),
-            pw.Divider(thickness: 0.5),
-            pw.Row(
-              children: [
-                pw.Expanded(
-                    flex: 5,
-                    child: pw.Text('Nama Barang',
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 15))),
-                pw.Expanded(
-  flex: 2,
-  child: pw.Padding(
-    padding: const pw.EdgeInsets.only(left: 6), // sama dengan isi
-    child: pw.Text('Ukuran',
-        style: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold, fontSize: 15)),
-  ),
-),
-
-                pw.Expanded(
-                    flex: 2,
-                    child: pw.Text('Qty',
-                        textAlign: pw.TextAlign.center,
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 15))),
-                pw.Expanded(
-                    flex: 3,
-                    child: pw.Text('Harga',
-                        textAlign: pw.TextAlign.right,
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 15))),
-              ],
-            ),
-            pw.Divider(thickness: 0.3),
-            // Menambahkan Divider untuk pemisah antara item barang
-...cartItems.map((item) {
-  return pw.Column(
-    children: [
-      pw.Row(
-        children: [
-          pw.Expanded(
-            flex: 5,
-            child: pw.Text('${item.idTipe} - ${item.productName}', style: pw.TextStyle(fontSize: 15))
-          ),
-          pw.Expanded(
-  flex: 2,
-  child: pw.Padding(
-    padding: const pw.EdgeInsets.only(left: 12), // atau coba 8
-    child: pw.Text(item.size, style: pw.TextStyle(fontSize: 15)),
-  ),
-),
-          pw.Expanded(
-            flex: 2,
-            child: pw.Text(item.quantity.toStringAsFixed(2), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 15))
-          ),
-          pw.Expanded(
-            flex: 3,
-            child: pw.Text(currencyFormatter.format(item.total), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 15))
-          ),
-        ],
-      ),
-      // Tambahkan Divider setelah tiap item
-      pw.Divider(thickness: 0.3),
-    ],
-  );
-}),
-            pw.SizedBox(height: 4),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text('Total Lusin',
-                    style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                pw.Text(computedLusin.toStringAsFixed(2),
-                    style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold, fontSize: 12)),
-              ],
-            ),
-            if (totalDiskonFinal > 0)
+              pw.SizedBox(height: 6),
+              pw.Divider(thickness: 0.5),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Total Diskon',
-                      style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 15,
-                          color: PdfColors.red)),
-                  pw.Text(currencyFormatter.format(totalDiskonFinal),
-                      style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 15,
-                          color: PdfColors.red)),
+                  pw.Text(dateFormatter.format(dateTime!),
+                      style: pw.TextStyle(fontSize: 15)),
+                  pw.Text(timeFormatter.format(dateTime!),
+                      style: pw.TextStyle(fontSize: 15)),
+                ],
+              ),
+
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Order ID', style: pw.TextStyle(fontSize: 15)),
+                  pw.Text(idTransaksi ?? 'SO/xxxx/yyyy',
+                      style: pw.TextStyle(fontSize: 15)),
+                ],
+              ),
+              pw.SizedBox(height: 3),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Collected By', style: pw.TextStyle(fontSize: 15)),
+                  pw.Text(invoiceDetail['dibuat_oleh'] ?? 'Unknown',
+                      style: pw.TextStyle(fontSize: 15)),
                 ],
               ),
               pw.Row(
-  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-  children: [
-    pw.Text('Grand Total',
-        style: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold, fontSize: 16)),
-    pw.Text(currencyFormatter.format(grandTotal),
-        style: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold, fontSize: 16)),
-  ],
-),
-pw.SizedBox(height: 10),
-            pw.Text('Notes:',
-                style:
-                    pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
-            pw.Text('Barang yang sudah dibeli tidak dapat dikembalikan.',
-                style: pw.TextStyle(fontSize: 15)),
-            pw.SizedBox(height: 8),
-            pw.Center(
-              child: pw.Text('Terima kasih!',
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Metode Pembayaran',
+                      style: pw.TextStyle(fontSize: 15)),
+                  pw.Text(paymentMethod,
+                      style: pw.TextStyle(
+                          fontSize: 15, fontWeight: pw.FontWeight.bold)),
+                ],
+              ),
+              pw.SizedBox(height: 6),
+              pw.Divider(thickness: 0.5),
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                      flex: 5,
+                      child: pw.Text('Nama Barang',
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 15))),
+                  pw.Expanded(
+                    flex: 2,
+                    child: pw.Padding(
+                      padding:
+                          const pw.EdgeInsets.only(left: 6), // sama dengan isi
+                      child: pw.Text('Ukuran',
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 15)),
+                    ),
+                  ),
+                  pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Qty',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 15))),
+                  pw.Expanded(
+                      flex: 3,
+                      child: pw.Text('Harga',
+                          textAlign: pw.TextAlign.right,
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 15))),
+                ],
+              ),
+              pw.Divider(thickness: 0.3),
+              // Menambahkan Divider untuk pemisah antara item barang
+              ...cartItems.map((item) {
+                return pw.Column(
+                  children: [
+                    pw.Row(
+                      children: [
+                        pw.Expanded(
+                            flex: 5,
+                            child: pw.Text(
+                                '${item.idTipe} - ${item.productName}',
+                                style: pw.TextStyle(fontSize: 15))),
+                        pw.Expanded(
+                          flex: 2,
+                          child: pw.Padding(
+                            padding: const pw.EdgeInsets.only(
+                                left: 12), // atau coba 8
+                            child: pw.Text(item.size,
+                                style: pw.TextStyle(fontSize: 15)),
+                          ),
+                        ),
+                        pw.Expanded(
+                            flex: 2,
+                            child: pw.Text(item.quantity.toStringAsFixed(2),
+                                textAlign: pw.TextAlign.center,
+                                style: pw.TextStyle(fontSize: 15))),
+                        pw.Expanded(
+                            flex: 3,
+                            child: pw.Text(currencyFormatter.format(item.total),
+                                textAlign: pw.TextAlign.right,
+                                style: pw.TextStyle(fontSize: 15))),
+                      ],
+                    ),
+                    // Tambahkan Divider setelah tiap item
+                    pw.Divider(thickness: 0.3),
+                  ],
+                );
+              }),
+              pw.SizedBox(height: 4),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Total Lusin',
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                  pw.Text(computedLusin.toStringAsFixed(2),
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                ],
+              ),
+              if (totalDiskonFinal > 0)
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Total Diskon',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 15,
+                            color: PdfColors.red)),
+                    pw.Text(currencyFormatter.format(totalDiskonFinal),
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 15,
+                            color: PdfColors.red)),
+                  ],
+                ),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Grand Total',
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                  pw.Text(currencyFormatter.format(grandTotal),
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+              pw.SizedBox(height: 10),
+              pw.Text('Notes:',
                   style: pw.TextStyle(
-                      fontSize: 15, fontStyle: pw.FontStyle.italic)),
-            ),
-          ],
-        );
-      },
-    ),
-  );
+                      fontSize: 15, fontWeight: pw.FontWeight.bold)),
+              pw.Text('Barang yang sudah dibeli tidak dapat dikembalikan.',
+                  style: pw.TextStyle(fontSize: 15)),
+              pw.SizedBox(height: 8),
+              pw.Center(
+                child: pw.Text('Terima kasih!',
+                    style: pw.TextStyle(
+                        fontSize: 15, fontStyle: pw.FontStyle.italic)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
 
-  // Print PDF
-  await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save());
-}
+    // Print PDF
+    await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -319,9 +331,10 @@ pw.SizedBox(height: 10),
         backgroundColor: Colors.white, // Background appbar berwarna putih
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.blue), // Mengubah warna ikon kembali menjadi biru
+          icon: Icon(Icons.arrow_back,
+              color: Colors.blue), // Mengubah warna ikon kembali menjadi biru
           onPressed: () {
-            Navigator.pop(context);  // Menutup halaman saat tombol back ditekan
+            Navigator.pop(context); // Menutup halaman saat tombol back ditekan
           },
         ),
       ),
@@ -335,22 +348,17 @@ pw.SizedBox(height: 10),
                   children: [
                     Text(
                       'ID Transaksi: ${invoiceDetail["id_transaksi"] ?? '-'}',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     SizedBox(height: 10),
                     Text('Tanggal: ${invoiceDetail["tgl_transaksi"] ?? '-'}'),
                     SizedBox(height: 10),
-                    Text('Total: Rp ${formatRupiah(double.tryParse(invoiceDetail["total_invoice"] ?? '0') ?? 0)}'),
+                    Text(
+                        'Total: Rp ${formatRupiah(double.tryParse(invoiceDetail["total_invoice"] ?? '0') ?? 0)}'),
                     SizedBox(height: 10),
                     Text(
-                      'Diskon: ${invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty && invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty 
-    ? formatRupiah((double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) + (double.tryParse(invoiceDetail["disc"]) ?? 0.0)) 
-    : invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty 
-      ? formatRupiah(double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) 
-      : invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty 
-        ? formatRupiah(double.tryParse(invoiceDetail["disc"]) ?? 0.0) 
-        : '-'}'
-),
+                        'Diskon: ${invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty && invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty ? formatRupiah((double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) + (double.tryParse(invoiceDetail["disc"]) ?? 0.0)) : invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty ? formatRupiah(double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) : invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty ? formatRupiah(double.tryParse(invoiceDetail["disc"]) ?? 0.0) : '-'}'),
                     SizedBox(height: 20),
                     ListView.builder(
                       shrinkWrap: true,
@@ -364,8 +372,8 @@ pw.SizedBox(height: 10),
                           ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12.0,  // Reduce horizontal padding
-                              vertical: 8.0,    // Reduce vertical padding
+                              horizontal: 12.0, // Reduce horizontal padding
+                              vertical: 8.0, // Reduce vertical padding
                             ),
                             title: Row(
                               children: [
@@ -373,18 +381,24 @@ pw.SizedBox(height: 10),
                                 Expanded(
                                   flex: 2,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '${item["id_bahan"] ?? '-'}',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14), // Make id_bahan bold
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14), // Make id_bahan bold
                                       ),
                                       SizedBox(height: 4),
-                                      Text('Model: ${item["model"] ?? '-'}', style: TextStyle(fontSize: 12)),
+                                      Text('Model: ${item["model"] ?? '-'}',
+                                          style: TextStyle(fontSize: 12)),
                                       SizedBox(height: 4),
-                                      Text('Ukuran: ${item["ukuran"] ?? '-'}', style: TextStyle(fontSize: 12)),
+                                      Text('Ukuran: ${item["ukuran"] ?? '-'}',
+                                          style: TextStyle(fontSize: 12)),
                                       SizedBox(height: 4),
-                                      Text('Qty: ${item["qty"] ?? '-'} pcs', style: TextStyle(fontSize: 12)),
+                                      Text('Qty: ${item["qty"] ?? '-'} pcs',
+                                          style: TextStyle(fontSize: 12)),
                                     ],
                                   ),
                                 ),
@@ -397,7 +411,8 @@ pw.SizedBox(height: 10),
                                       Text(
                                         'Rp ${formatRupiah(double.tryParse(item["total"] ?? '0') ?? 0)}',
                                         style: TextStyle(
-                                          fontSize: 12, // Smaller font size for total
+                                          fontSize:
+                                              12, // Smaller font size for total
                                           color: Colors.black87,
                                         ),
                                       ),
@@ -417,19 +432,31 @@ pw.SizedBox(height: 10),
                         child: ElevatedButton(
                           onPressed: () async {
                             // Siapkan data untuk dicetak
-                            List<OrderItem> cartItems = invoiceDetail["items"]?.map<OrderItem>((item) {
-  return OrderItem(
-    idTipe: item["id_bahan"] ?? '-',
-    productName: item["model"] ?? '-',
-    size: item["ukuran"] ?? '-',
-    quantity: double.tryParse(item["qty"]?.toString() ?? '0') ?? 0,
-    total: double.tryParse(item["total"]?.toString() ?? '0') ?? 0,
-  );
-}).toList() ?? [];
+                            List<OrderItem> cartItems = invoiceDetail["items"]
+                                    ?.map<OrderItem>((item) {
+                                  return OrderItem(
+                                    idTipe: item["id_bahan"] ?? '-',
+                                    productName: item["model"] ?? '-',
+                                    size: item["ukuran"] ?? '-',
+                                    quantity: double.tryParse(
+                                            item["qty"]?.toString() ?? '0') ??
+                                        0,
+                                    total: double.tryParse(
+                                            item["total"]?.toString() ?? '0') ??
+                                        0,
+                                  );
+                                }).toList() ??
+                                [];
 
-                            double grandTotal = double.tryParse(invoiceDetail["total_invoice"] ?? '0') ?? 0;
-                            double totalDiskon = double.tryParse(invoiceDetail["disc_invoice"] ?? '0') ?? 0;
-                            double newDiscount = double.tryParse(invoiceDetail["disc"] ?? '0') ?? 0;
+                            double grandTotal = double.tryParse(
+                                    invoiceDetail["total_invoice"] ?? '0') ??
+                                0;
+                            double totalDiskon = double.tryParse(
+                                    invoiceDetail["disc_invoice"] ?? '0') ??
+                                0;
+                            double newDiscount =
+                                double.tryParse(invoiceDetail["disc"] ?? '0') ??
+                                    0;
 
                             // Menghubungkan tombol print dengan fungsi pencetakan
                             await generateAndPrintStrukPdf(
@@ -440,14 +467,16 @@ pw.SizedBox(height: 10),
                               totalLusin: 0, // Bisa disesuaikan
                               selectedPaymentAccount: {}, // Jika perlu
                               splitPayments: [], // Jika perlu
-                              collectedBy: 'Admin', // Sesuaikan dengan siapa yang mengumpulkan
+                              collectedBy:
+                                  'Admin', // Sesuaikan dengan siapa yang mengumpulkan
                               idTransaksi: invoiceDetail["id_transaksi"],
                             );
 
                             print("Print Button Pressed");
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.greenAccent, // Different color for print button
+                            backgroundColor: Colors
+                                .greenAccent, // Different color for print button
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),

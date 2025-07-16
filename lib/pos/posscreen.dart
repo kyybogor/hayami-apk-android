@@ -116,6 +116,8 @@ class _PosscreenState extends State<Posscreen> {
   List<Map<String, dynamic>> splitPayments = [];
   String? selectedSplitMethod;
   final TextEditingController splitAmountController = TextEditingController();
+  final TextEditingController barcodeController = TextEditingController();
+  final FocusNode barcodeFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -124,9 +126,90 @@ class _PosscreenState extends State<Posscreen> {
     CartDBHelper.instance.syncPendingDrafts();
     fetchProducts();
     fetchPaymentAccounts();
-
-
   }
+void _handleBarcodeSubmit(String barcodeInput) {
+  if (barcodeInput.length < 9) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Barcode harus terdiri dari 9 digit (7 barcode + 2 qty)'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  final productBarcode = barcodeInput.substring(0, 7);
+  final qtyPcs = int.tryParse(barcodeInput.substring(7, 9)) ?? 0;
+
+  final matchedProduct = allProducts.cast<Map<String, Object?>>().firstWhere(
+    (prod) => prod['barcode'].toString() == productBarcode,
+    orElse: () => <String, Object?>{},
+  );
+
+  if (matchedProduct.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Produk tidak ditemukan dari barcode'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  final double stokTersedia = double.tryParse(matchedProduct['stock'].toString()) ?? 0;
+
+  // Cari produk yang sama di cart
+  final existingItemIndex = cartItems.indexWhere((item) =>
+    item.idTipe == matchedProduct['id_bahan'].toString() &&
+    item.productName == matchedProduct['model'].toString() &&
+    item.size == matchedProduct['ukuran'].toString()
+  );
+
+  double existingQtyPcs = 0;
+  if (existingItemIndex != -1) {
+    existingQtyPcs = cartItems[existingItemIndex].quantity; // sekarang quantity = PCS
+  }
+
+  if ((existingQtyPcs + qtyPcs) > stokTersedia) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Stok tidak cukup. Tersedia hanya ${stokTersedia.toInt()} pcs'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  final unitPrice = double.tryParse(matchedProduct['harga'].toString()) ?? 0;
+
+  setState(() {
+    if (existingItemIndex != -1) {
+      // Tambah qty jika sudah ada
+      final existingItem = cartItems[existingItemIndex];
+      final updatedItem = OrderItem(
+        idTipe: existingItem.idTipe,
+        productName: existingItem.productName,
+        size: existingItem.size,
+        quantity: existingItem.quantity + qtyPcs,
+        unitPrice: existingItem.unitPrice,
+      );
+      cartItems[existingItemIndex] = updatedItem;
+    } else {
+      // Tambahkan baru
+      final newItem = OrderItem(
+        idTipe: matchedProduct['id_bahan'].toString(),
+        productName: matchedProduct['model'].toString(),
+        size: matchedProduct['ukuran'].toString(),
+        quantity: qtyPcs.toDouble(),
+        unitPrice: unitPrice,
+      );
+      cartItems.add(newItem);
+    }
+
+    barcodeController.clear();
+    FocusScope.of(context).requestFocus(barcodeFocusNode);
+  });
+}
 
   Future<void> _handleTakePayment() async {
   double totalDiskon = 0;
@@ -1380,7 +1463,6 @@ Future<void> handleCustomerIdChange(String id) async {
                                     setState(() {
                                       selectedCustomer = customerData!;
                                       currentTransactionId = null;
-                                      cartItems.clear();
                                     });
                                     Navigator.pop(context);
                                   }
@@ -1597,7 +1679,7 @@ Future<void> handleCustomerIdChange(String id) async {
 
     return subTotal - autoDisc - manualDisc;
   }
-
+ 
   Widget cartSection() {
     final double calculatedGrandTotal = calculateGrandTotal(
       items: cartItems,
@@ -2023,6 +2105,68 @@ onPressed: () async {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+Row(
+  children: [
+    Expanded(
+      child: TextField(
+        controller: barcodeController,
+        focusNode: barcodeFocusNode,
+        decoration: InputDecoration(
+          labelText: "Input Barcode",
+          labelStyle: const TextStyle(
+            color: Colors.grey,
+            fontSize: 16,
+          ),
+          hintText: "Masukkan barcode produk",
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: Icon(Icons.qr_code_scanner, color: Colors.blue.shade800),
+          filled: true,
+          fillColor: Colors.grey.shade200,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: barcodeFocusNode.hasFocus
+                  ? Colors.blue.shade800
+                  : Colors.grey,
+              width: 2,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Colors.grey, width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:
+                BorderSide(color: Colors.blue.shade800, width: 2),
+          ),
+        ),
+        onChanged: (val) {
+          // Logic jika ingin realtime input
+        },
+      ),
+    ),
+    const SizedBox(width: 8),
+    ElevatedButton(
+  onPressed: () {
+    final barcode = barcodeController.text.trim();
+    if (barcode.isNotEmpty) {
+      _handleBarcodeSubmit(barcode);
+    }
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    ),
+  ),
+  child: const Text('Kirim', style: TextStyle(color: Colors.white)),
+),
+  ],
+),
+
                 ],
               ),
             ),
