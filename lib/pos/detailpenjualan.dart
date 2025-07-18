@@ -3,10 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart'; // Import intl for formatting
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OrderItem {
   final String idTipe;
@@ -22,6 +23,29 @@ class OrderItem {
     required this.quantity,
     required this.total,
   });
+}
+
+class PaymentMethod {
+  final String idAkun;
+  final String tipe;
+  final String bank;
+  final String noAkun;
+
+  PaymentMethod({
+    required this.idAkun,
+    required this.tipe,
+    required this.bank,
+    required this.noAkun,
+  });
+
+  factory PaymentMethod.fromJson(Map<String, dynamic> json) {
+    return PaymentMethod(
+      idAkun: json['id_akun'] ?? '',
+      tipe: json['tipe'] ?? '',
+      bank: json['bank'] ?? '',
+      noAkun: json['no_akun'] ?? '',
+    );
+  }
 }
 
 class Detailpenjualan extends StatefulWidget {
@@ -57,7 +81,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
             invoiceDetail = data['data'][0];
             isLoading = false;
           });
-          print("Data retrieved: ${invoiceDetail}"); // Debugging data
+          print("Data retrieved: ${invoiceDetail}");
         } else {
           throw Exception('Data tidak ditemukan');
         }
@@ -72,7 +96,295 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     }
   }
 
-  // Function to format number into Indonesian currency with thousands separators
+  Future<List<PaymentMethod>> fetchPaymentMethods() async {
+    final url = Uri.parse('http://192.168.1.2/hayami/akun.php');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      if (jsonData['status'] == 'success') {
+        List data = jsonData['data'];
+        return data
+            .map((e) => PaymentMethod.fromJson(e))
+            .where((pm) =>
+                pm.tipe.toUpperCase() != 'HUTANG' &&
+                pm.tipe.toUpperCase() != 'SPLIT')
+            .toList();
+      } else {
+        throw Exception('API gagal: status bukan success');
+      }
+    } else {
+      throw Exception('Gagal load data dari server: ${response.statusCode}');
+    }
+  }
+
+  Future<bool> submitPembayaran({
+    required String idTransaksi,
+    required String jumlahBayar,
+    required String keterangan,
+    required String idAkun,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? idUser = prefs.getString('id_user') ?? 'system';
+    String idCabang = prefs.getString('id_cabang') ?? 'default_cabang';
+
+    final url = Uri.parse('http://192.168.1.2/pos/bayar.php');
+
+    String jumlahBayarPlain = jumlahBayar.replaceAll('.', '');
+
+    final body = jsonEncode({
+      'id_transaksi': idTransaksi,
+      'jumlah_bayar': jumlahBayarPlain,
+      'keterangan': keterangan,
+      'id_akun': idAkun,
+      'dibuat_oleh': idUser,
+      'id_cabang': idCabang,
+    });
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+
+    print('Response status code: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final res = jsonDecode(response.body);
+      if (res['status'] == 'success') {
+        return true;
+      } else {
+        throw Exception(res['message']);
+      }
+    } else {
+      throw Exception('Gagal menghubungi server: ${response.statusCode}');
+    }
+  }
+
+  void showBayarHutangDialog(BuildContext context) {
+    final TextEditingController jumlahBayarController = TextEditingController();
+    final TextEditingController keteranganController = TextEditingController();
+    String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    final selectedPaymentMethodNotifier = ValueNotifier<PaymentMethod?>(null);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Bayar Hutang',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: FutureBuilder<List<PaymentMethod>>(
+          future: fetchPaymentMethods(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                  height: 100,
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Text('Gagal memuat metode pembayaran');
+            } else {
+              final paymentMethods = snapshot.data!;
+              if (selectedPaymentMethodNotifier.value == null &&
+                  paymentMethods.isNotEmpty) {
+                selectedPaymentMethodNotifier.value = paymentMethods[0];
+              }
+
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'ID Transaksi',
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      controller: TextEditingController(
+                        text: invoiceDetail['id_transaksi'] ?? '-',
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    TextField(
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Tgl Bayar',
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      controller: TextEditingController(text: today),
+                    ),
+                    SizedBox(height: 12),
+                    ValueListenableBuilder<PaymentMethod?>(
+                      valueListenable: selectedPaymentMethodNotifier,
+                      builder: (context, selected, _) {
+                        return DropdownButtonFormField<PaymentMethod>(
+                          decoration: InputDecoration(
+                            labelText: 'Metode Pembayaran',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          value: selected,
+                          items: paymentMethods
+                              .map(
+                                (pm) => DropdownMenuItem(
+                                  value: pm,
+                                  child: Text(pm.noAkun.isNotEmpty
+                                      ? '${pm.bank} - ${pm.noAkun}'
+                                      : pm.bank),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (pm) {
+                            if (pm != null) {
+                              selectedPaymentMethodNotifier.value = pm;
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    SizedBox(height: 12),
+                    TextField(
+                      controller: jumlahBayarController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Jumlah Bayar',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onChanged: (value) {
+                        String digitsOnly = value.replaceAll('.', '');
+
+                        if (digitsOnly.isEmpty) {
+                          jumlahBayarController.value = TextEditingValue(
+                            text: '',
+                            selection: TextSelection.collapsed(offset: 0),
+                          );
+                          return;
+                        }
+
+                        final buffer = StringBuffer();
+                        int count = 0;
+                        for (int i = digitsOnly.length - 1; i >= 0; i--) {
+                          buffer.write(digitsOnly[i]);
+                          count++;
+                          if (count % 3 == 0 && i != 0) {
+                            buffer.write('.');
+                          }
+                        }
+                        String formatted =
+                            buffer.toString().split('').reversed.join('');
+
+                        jumlahBayarController.value = TextEditingValue(
+                          text: formatted,
+                          selection:
+                              TextSelection.collapsed(offset: formatted.length),
+                        );
+                      },
+                    ),
+                    SizedBox(height: 12),
+                    TextField(
+                      controller: keteranganController,
+                      decoration: InputDecoration(
+                        labelText: 'Keterangan',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              );
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              String jumlahBayar = jumlahBayarController.text.trim();
+              String keterangan = keteranganController.text.trim();
+              final selected = selectedPaymentMethodNotifier.value;
+
+              if (jumlahBayar.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Jumlah bayar tidak boleh kosong')),
+                );
+                return;
+              }
+
+              if (selected == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Pilih metode pembayaran')),
+                );
+                return;
+              }
+
+              try {
+                // Tampilkan loading dulu
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => Center(child: CircularProgressIndicator()),
+                );
+
+                bool success = await submitPembayaran(
+                  idTransaksi: invoiceDetail['id_transaksi'] ?? '',
+                  jumlahBayar: jumlahBayar,
+                  keterangan: keterangan,
+                  idAkun: selected.idAkun,
+                );
+
+                Navigator.pop(context);
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Pembayaran berhasil disimpan:\nRp $jumlahBayar - ${selected.tipe} (${selected.bank} - ${selected.noAkun})',
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  fetchInvoiceDetail();
+                }
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Gagal simpan pembayaran: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Text('Simpan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String formatRupiah(double number) {
     final formatter = NumberFormat("#,###", "id_ID");
     return formatter.format(number);
@@ -106,12 +418,10 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
         await rootBundle.load('assets/image/hayamilogo.png');
     final Uint8List logoImage = logoBytes.buffer.asUint8List();
 
-    // Get payment method from invoice detail
     final akunPembayaran =
         invoiceDetail['akun']?.toString().toUpperCase().trim() ?? '';
     String paymentMethod = akunPembayaran;
 
-    // Handle the "SPLIT" payment method case
     if (akunPembayaran == "SPLIT" && splitPayments.isNotEmpty) {
       paymentMethod += ' (Split Payments)';
     }
@@ -156,7 +466,6 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                       style: pw.TextStyle(fontSize: 15)),
                 ],
               ),
-
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -196,8 +505,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                   pw.Expanded(
                     flex: 2,
                     child: pw.Padding(
-                      padding:
-                          const pw.EdgeInsets.only(left: 6), // sama dengan isi
+                      padding: const pw.EdgeInsets.only(left: 6),
                       child: pw.Text('Ukuran',
                           style: pw.TextStyle(
                               fontWeight: pw.FontWeight.bold, fontSize: 15)),
@@ -218,7 +526,6 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                 ],
               ),
               pw.Divider(thickness: 0.3),
-              // Menambahkan Divider untuk pemisah antara item barang
               ...cartItems.map((item) {
                 return pw.Column(
                   children: [
@@ -232,8 +539,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                         pw.Expanded(
                           flex: 2,
                           child: pw.Padding(
-                            padding: const pw.EdgeInsets.only(
-                                left: 12), // atau coba 8
+                            padding: const pw.EdgeInsets.only(left: 12),
                             child: pw.Text(item.size,
                                 style: pw.TextStyle(fontSize: 15)),
                           ),
@@ -250,7 +556,6 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                                 style: pw.TextStyle(fontSize: 15))),
                       ],
                     ),
-                    // Tambahkan Divider setelah tiap item
                     pw.Divider(thickness: 0.3),
                   ],
                 );
@@ -312,7 +617,6 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
       ),
     );
 
-    // Print PDF
     await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdf.save());
   }
@@ -325,16 +629,15 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
         title: Text(
           'Detail Transaksi',
           style: TextStyle(
-            color: Colors.blue, // Mengubah warna teks id_transaksi menjadi biru
+            color: Colors.blue,
           ),
         ),
-        backgroundColor: Colors.white, // Background appbar berwarna putih
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: Colors.blue), // Mengubah warna ikon kembali menjadi biru
+          icon: Icon(Icons.arrow_back, color: Colors.blue),
           onPressed: () {
-            Navigator.pop(context); // Menutup halaman saat tombol back ditekan
+            Navigator.pop(context);
           },
         ),
       ),
@@ -360,133 +663,164 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                     Text(
                         'Diskon: ${invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty && invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty ? formatRupiah((double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) + (double.tryParse(invoiceDetail["disc"]) ?? 0.0)) : invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty ? formatRupiah(double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) : invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty ? formatRupiah(double.tryParse(invoiceDetail["disc"]) ?? 0.0) : '-'}'),
                     SizedBox(height: 20),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: invoiceDetail["items"]?.length ?? 0,
-                      itemBuilder: (context, index) {
-                        final item = invoiceDetail["items"][index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    ...List.generate(invoiceDetail["items"]?.length ?? 0,
+                        (index) {
+                      final item = invoiceDetail["items"][index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12.0,
+                            vertical: 8.0,
                           ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12.0, // Reduce horizontal padding
-                              vertical: 8.0, // Reduce vertical padding
-                            ),
-                            title: Row(
-                              children: [
-                                // Left side with item info
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${item["id_bahan"] ?? '-'}',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14), // Make id_bahan bold
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text('Model: ${item["model"] ?? '-'}',
-                                          style: TextStyle(fontSize: 12)),
-                                      SizedBox(height: 4),
-                                      Text('Ukuran: ${item["ukuran"] ?? '-'}',
-                                          style: TextStyle(fontSize: 12)),
-                                      SizedBox(height: 4),
-                                      Text('Qty: ${item["qty"] ?? '-'} pcs',
-                                          style: TextStyle(fontSize: 12)),
-                                    ],
-                                  ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${item["id_bahan"] ?? '-'}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text('Model: ${item["model"] ?? '-'}',
+                                        style: TextStyle(fontSize: 12)),
+                                    SizedBox(height: 4),
+                                    Text('Ukuran: ${item["ukuran"] ?? '-'}',
+                                        style: TextStyle(fontSize: 12)),
+                                    SizedBox(height: 4),
+                                    Text('Qty: ${item["qty"] ?? '-'} pcs',
+                                        style: TextStyle(fontSize: 12)),
+                                  ],
                                 ),
-                                // Right side with total price
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        'Rp ${formatRupiah(double.tryParse(item["total"] ?? '0') ?? 0)}',
-                                        style: TextStyle(
-                                          fontSize:
-                                              12, // Smaller font size for total
-                                          color: Colors.black87,
-                                        ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Rp ${formatRupiah(double.tryParse(item["total"] ?? '0') ?? 0)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black87,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            // Siapkan data untuk dicetak
-                            List<OrderItem> cartItems = invoiceDetail["items"]
-                                    ?.map<OrderItem>((item) {
-                                  return OrderItem(
-                                    idTipe: item["id_bahan"] ?? '-',
-                                    productName: item["model"] ?? '-',
-                                    size: item["ukuran"] ?? '-',
-                                    quantity: double.tryParse(
-                                            item["qty"]?.toString() ?? '0') ??
-                                        0,
-                                    total: double.tryParse(
-                                            item["total"]?.toString() ?? '0') ??
-                                        0,
-                                  );
-                                }).toList() ??
-                                [];
-
-                            double grandTotal = double.tryParse(
-                                    invoiceDetail["total_invoice"] ?? '0') ??
-                                0;
-                            double totalDiskon = double.tryParse(
-                                    invoiceDetail["disc_invoice"] ?? '0') ??
-                                0;
-                            double newDiscount =
-                                double.tryParse(invoiceDetail["disc"] ?? '0') ??
-                                    0;
-
-                            // Menghubungkan tombol print dengan fungsi pencetakan
-                            await generateAndPrintStrukPdf(
-                              cartItems: cartItems,
-                              grandTotal: grandTotal,
-                              totalDiskon: totalDiskon,
-                              newDiscount: newDiscount,
-                              totalLusin: 0, // Bisa disesuaikan
-                              selectedPaymentAccount: {}, // Jika perlu
-                              splitPayments: [], // Jika perlu
-                              collectedBy:
-                                  'Admin', // Sesuaikan dengan siapa yang mengumpulkan
-                              idTransaksi: invoiceDetail["id_transaksi"],
-                            );
-
-                            print("Print Button Pressed");
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors
-                                .greenAccent, // Different color for print button
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Print',
-                            style: TextStyle(fontSize: 16, color: Colors.white),
+                              ),
+                            ],
                           ),
                         ),
+                      );
+                    }),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                List<OrderItem> cartItems =
+                                    invoiceDetail["items"]
+                                            ?.map<OrderItem>((item) {
+                                          return OrderItem(
+                                            idTipe: item["id_bahan"] ?? '-',
+                                            productName: item["model"] ?? '-',
+                                            size: item["ukuran"] ?? '-',
+                                            quantity: double.tryParse(
+                                                    item["qty"]?.toString() ??
+                                                        '0') ??
+                                                0,
+                                            total: double.tryParse(
+                                                    item["total"]?.toString() ??
+                                                        '0') ??
+                                                0,
+                                          );
+                                        }).toList() ??
+                                        [];
+
+                                double grandTotal = double.tryParse(
+                                        invoiceDetail["total_invoice"] ??
+                                            '0') ??
+                                    0;
+                                double totalDiskon = double.tryParse(
+                                        invoiceDetail["disc_invoice"] ?? '0') ??
+                                    0;
+                                double newDiscount = double.tryParse(
+                                        invoiceDetail["disc"] ?? '0') ??
+                                    0;
+                                await generateAndPrintStrukPdf(
+                                  cartItems: cartItems,
+                                  grandTotal: grandTotal,
+                                  totalDiskon: totalDiskon,
+                                  newDiscount: newDiscount,
+                                  totalLusin: 0,
+                                  selectedPaymentAccount: {},
+                                  splitPayments: [],
+                                  collectedBy: 'Admin',
+                                  idTransaksi: invoiceDetail["id_transaksi"],
+                                );
+
+                                print("Print Button Pressed");
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.greenAccent,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'Print',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                          if ((invoiceDetail['akun']
+                                      ?.toString()
+                                      .toUpperCase() ==
+                                  'HUTANG') &&
+                              (double.tryParse(
+                                          invoiceDetail['sisa_bayar'] ?? '0') ??
+                                      0) >
+                                  0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12.0),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    // Panggil fungsi dialog
+                                    showBayarHutangDialog(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Bayar',
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ],
