@@ -24,7 +24,7 @@ class _StockCardState extends State<StockCard> {
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
-    final response = await http.get(Uri.parse('http://192.168.1.2/pos/stock.php'));
+    final response = await http.get(Uri.parse('http://192.168.1.11/pos/stock.php'));
 
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body);
