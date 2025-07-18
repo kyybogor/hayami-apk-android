@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
 import 'package:hayami_app/pos/barangmasuk.dart';
+import 'package:hayami_app/pos/laporanpos.dart';
 import 'package:hayami_app/pos/menu.dart';
 import 'package:hayami_app/pos/posscreen.dart';
 import 'package:hayami_app/webview/webview.dart';
@@ -59,6 +60,11 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
       'icon': Icons.bar_chart,
       'label': 'Menu',
       'color': Colors.purple,
+    },
+    {
+      'icon': Icons.assignment,
+      'label': 'Laporan',
+      'color': Colors.blue,
     },
   ];
 
@@ -167,7 +173,16 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                             MaterialPageRoute(
                               builder: (_) => const Menu(),
                             ),
-                        );
+                          );
+                          break;
+                        case 'Laporan':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Laporanpos(), // Halaman Laporan
+                            ),
+                          );
+                          break;
                         default:
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -220,3 +235,4 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
     );
   }
 }
+
