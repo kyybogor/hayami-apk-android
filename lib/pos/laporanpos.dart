@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hayami_app/pos/barangmasuk.dart';
 import 'package:hayami_app/pos/laporanpembelian.dart';
-import 'package:hayami_app/pos/opname.dart';
-import 'package:hayami_app/pos/penjualanharian.dart';
-import 'package:hayami_app/pos/returbarang.dart';
 import 'package:hayami_app/pos/stockcard.dart';
+import 'package:hayami_app/pos/stockdetail.dart';
 
 class Laporanpos extends StatelessWidget {
   const Laporanpos ({super.key});
@@ -25,16 +22,10 @@ class Laporanpos extends StatelessWidget {
         "page": const StockCard(),
       },
       {
-        "label": "Opname",
+        "label": "Laporan Penjualan",
         "icon": Icons.assignment, // Better icon for stock check/stocktaking
         "color": Colors.green,
-        "page": Opname(),
-      },
-      {
-        "label": "Retur Barang",
-        "icon": Icons.restore_from_trash, // Icon for return or undo
-        "color": Colors.purple,
-        "page": const Returbarang(),
+        "page": const Stockdetail(),
       }
     ];
 

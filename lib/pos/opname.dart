@@ -204,31 +204,8 @@ class _OpnameState extends State<Opname> {
   controller: textEditingController,
   focusNode: focusNode,
   decoration: InputDecoration(
-    labelText: "Nama Barang",  // Label yang lebih informatif
-    labelStyle: TextStyle(
-      color: Colors.grey, // Warna label sesuai focus
-      fontSize: 16,  // Ukuran font
-    ),
-    hintText: "Masukkan nama barang",  // Hint text yang memberikan informasi
-    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
-    prefixIcon: Icon(Icons.shopping_cart, color: Colors.blue.shade800),  // Ikon pada prefix
-    filled: true,  // Memberikan warna background
-    fillColor: Colors.grey.shade200,  // Warna background
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),  // Membuat border lebih melengkung
-      borderSide: BorderSide(
-        color: focusNode.hasFocus ? Colors.blue.shade800 : Colors.grey,  // Warna border sesuai focus
-        width: 2,  // Ketebalan border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.grey, width: 1),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),
-    ),
+    labelText: "Nama Barang",  // Label tetap ada
+    border: OutlineInputBorder(),  // Border sederhana
   ),
   onChanged: (val) {
     setState(() {
@@ -285,31 +262,8 @@ class _OpnameState extends State<Opname> {
   controller: textEditingController,
   focusNode: focusNode,
   decoration: InputDecoration(
-    labelText: "Model",  // Label untuk input
-    labelStyle: TextStyle(
-      color: Colors.grey,  // Warna label sesuai focus
-      fontSize: 16,  // Ukuran font label
-    ),
-    hintText: "Masukkan model barang",  // Hint text
-    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
-    prefixIcon: Icon(Icons.device_hub, color: Colors.blue.shade800),  // Ikon prefix (ganti sesuai kebutuhan)
-    filled: true,  // Menambahkan background fill
-    fillColor: Colors.grey.shade200,  // Warna background
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),  // Membuat border lebih melengkung
-      borderSide: BorderSide(
-        color: focusNode.hasFocus ? Colors.blue.shade800 : Colors.grey,  // Warna border sesuai focus
-        width: 2,  // Ketebalan border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.grey, width: 1),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),
-    ),
+    labelText: "Model",  // Label tetap ada
+    border: OutlineInputBorder(),  // Border sederhana
   ),
   onChanged: (val) {
     setState(() {
@@ -369,31 +323,8 @@ class _OpnameState extends State<Opname> {
   controller: textEditingController,
   focusNode: focusNode,
   decoration: InputDecoration(
-    labelText: "Ukuran",  // Label untuk input
-    labelStyle: TextStyle(
-      color: Colors.grey,  // Warna label sesuai focus
-      fontSize: 16,  // Ukuran font label
-    ),
-    hintText: "Masukkan ukuran barang",  // Hint text untuk memberikan petunjuk
-    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
-    prefixIcon: Icon(Icons.aspect_ratio, color: Colors.blue.shade800),  // Ikon prefix (sesuaikan dengan konteks)
-    filled: true,  // Memberikan background pada field
-    fillColor: Colors.grey.shade200,  // Warna latar belakang
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),  // Membuat border melengkung
-      borderSide: BorderSide(
-        color: focusNode.hasFocus ? Colors.blue.shade800 : Colors.grey,  // Warna border sesuai focus
-        width: 2,  // Ketebalan border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.grey, width: 1),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),
-    ),
+    labelText: "Ukuran",  // Label tetap ada
+    border: OutlineInputBorder(),  // Border sederhana
   ),
   onChanged: (val) {
     setState(() {
@@ -409,31 +340,8 @@ class _OpnameState extends State<Opname> {
   controller: _uomController,
   readOnly: true,  // Menandakan field ini hanya untuk tampilkan data
   decoration: InputDecoration(
-    labelText: "UOM",  // Label untuk input
-    labelStyle: TextStyle(
-      color: Colors.grey,  // Warna label saat tidak fokus
-      fontSize: 16,  // Ukuran font label
-    ),
-    hintText: "Unit of Measure",  // Hint text untuk memberikan petunjuk tambahan
-    hintStyle: TextStyle(color: Colors.grey.shade400),  // Gaya hint text
-    prefixIcon: Icon(Icons.all_inclusive, color: Colors.blue.shade800),  // Ikon prefix (sesuaikan dengan konteks)
-    filled: true,  // Memberikan background pada field
-    fillColor: Colors.grey.shade200,  // Warna latar belakang
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),  // Membuat border melengkung
-      borderSide: BorderSide(
-        color: Colors.grey,  // Warna border saat tidak fokus
-        width: 1,  // Ketebalan border
-      ),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.blue.shade800, width: 2),  // Warna border saat fokus
-    ),
+    labelText: "UOM",  // Label tetap ada
+    border: OutlineInputBorder(),  // Border sederhana
   ),
 ),
             ),
