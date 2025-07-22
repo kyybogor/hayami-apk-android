@@ -21,6 +21,7 @@ class _ReturbarangState extends State<Returbarang> {
   String? selectedCustomerId;
   bool isCustomerLoading = false;
   TextEditingController _customerController = TextEditingController();
+  List<String> transaksiIds = [];
 
   Future<void> fetchItems(String idTransaksi) async {
     setState(() {
@@ -84,6 +85,19 @@ class _ReturbarangState extends State<Returbarang> {
       });
     }
   }
+
+  Future<List<String>> fetchTransaksiIds() async {
+  final response = await http.get(Uri.parse('http://192.168.1.11/pos/barang_keluar.php'));
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    final transaksiList = data['data'] as List;
+
+    return transaksiList.map<String>((item) => item['id_transaksi'].toString()).toList();
+  } else {
+    throw Exception('Gagal memuat data transaksi');
+  }
+}
 
   Future<void> fetchCustomers() async {
     setState(() {
@@ -619,11 +633,19 @@ class _ReturbarangState extends State<Returbarang> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    fetchReturList();
-    fetchCustomers();
-  }
+void initState() {
+  super.initState();
+
+  fetchReturList();
+  fetchCustomers();
+
+  fetchTransaksiIds().then((ids) {
+    setState(() {
+      transaksiIds = ids;
+    });
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -635,61 +657,66 @@ class _ReturbarangState extends State<Returbarang> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'ID Transaksi',
-                border: OutlineInputBorder(),
-suffixIcon: IconButton(
-  icon: const Icon(Icons.search),
-  onPressed: () {
-    final id = _searchController.text.trim().toUpperCase();
-    if (id.isNotEmpty) {
-      setState(() {
-        isPoTransaksi = id.startsWith('PO');
-      });
-
-      if (id.startsWith('PO')) {
-        // Reset flag soCustomerSet karena sekarang PO
-        soCustomerSet = false;
-
-        final hayamiCustomer = customers.firstWhere(
-          (c) => c.idCustomer.toUpperCase().contains('HAYAMI'),
-          orElse: () => Customer(idCustomer: 'HAYAMI', namaCustomer: 'HAYAMI'),
-        );
-
-        selectedCustomerId = hayamiCustomer.idCustomer;
-        _customerController.text =
-            '${hayamiCustomer.idCustomer} | ${hayamiCustomer.namaCustomer}';
-
-      } else if (id.startsWith('SO')) {
-        // Kalau customer SO belum pernah diset, set ke CASH
-        if (!soCustomerSet) {
-          final cashCustomer = customers.firstWhere(
-            (c) => c.idCustomer.toUpperCase() == 'CASH',
-            orElse: () => Customer(idCustomer: 'CASH', namaCustomer: 'CASH'),
-          );
-
-          selectedCustomerId = cashCustomer.idCustomer;
-          _customerController.text =
-              '${cashCustomer.idCustomer} | ${cashCustomer.namaCustomer}';
-
-          soCustomerSet = true; // tandai sudah set customer SO
-        }
-        // kalau sudah diset sebelumnya, customer gak diubah
-      } else {
-        // Reset flag kalau bukan PO atau SO
-        soCustomerSet = false;
-
-        selectedCustomerId = null;
-        _customerController.clear();
-      }
-
-      fetchItems(id);
+            Autocomplete<String>(
+  optionsBuilder: (TextEditingValue textEditingValue) {
+    if (textEditingValue.text.isEmpty) {
+      return const Iterable<String>.empty();
     }
+    return transaksiIds.where((id) => id.toLowerCase().contains(textEditingValue.text.toLowerCase()));
   },
-),              ),
-            ),
+  onSelected: (String selection) {
+    _searchController.text = selection;
+  },
+  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+  return TextField(
+    controller: controller,
+    focusNode: focusNode,
+    decoration: InputDecoration(
+      labelText: 'ID Transaksi',
+      border: OutlineInputBorder(),
+      suffixIcon: IconButton(
+        icon: const Icon(Icons.search),
+        onPressed: () {
+          final id = controller.text.trim().toUpperCase(); // pakai controller langsung
+          if (id.isNotEmpty) {
+            setState(() {
+              isPoTransaksi = id.startsWith('PO');
+            });
+
+            if (id.startsWith('PO')) {
+              soCustomerSet = false;
+              final hayamiCustomer = customers.firstWhere(
+                (c) => c.idCustomer.toUpperCase().contains('HAYAMI'),
+                orElse: () => Customer(idCustomer: 'HAYAMI', namaCustomer: 'HAYAMI'),
+              );
+              selectedCustomerId = hayamiCustomer.idCustomer;
+              _customerController.text = '${hayamiCustomer.idCustomer} | ${hayamiCustomer.namaCustomer}';
+            } else if (id.startsWith('SO')) {
+              if (!soCustomerSet) {
+                final cashCustomer = customers.firstWhere(
+                  (c) => c.idCustomer.toUpperCase() == 'CASH',
+                  orElse: () => Customer(idCustomer: 'CASH', namaCustomer: 'CASH'),
+                );
+                selectedCustomerId = cashCustomer.idCustomer;
+                _customerController.text = '${cashCustomer.idCustomer} | ${cashCustomer.namaCustomer}';
+                soCustomerSet = true;
+              }
+            } else {
+              soCustomerSet = false;
+              selectedCustomerId = null;
+              _customerController.clear();
+            }
+
+            fetchItems(id);
+          }
+        },
+      ),
+    ),
+  );
+},
+
+),
+
             const SizedBox(height: 12),
 Autocomplete<Customer>(
   optionsBuilder: (TextEditingValue textEditingValue) {

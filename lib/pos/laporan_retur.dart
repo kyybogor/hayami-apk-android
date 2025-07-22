@@ -178,16 +178,16 @@ class _LaporanReturState extends State<LaporanRetur> {
       },
       children: [
         TableRow(
-          decoration: BoxDecoration(color: Colors.indigo.shade200),
+          decoration: const BoxDecoration(color: Colors.indigo),
           children: const [
-            Padding(padding: EdgeInsets.all(8), child: Text("Tanggal")),
-            Padding(padding: EdgeInsets.all(8), child: Text("ID Transaksi")),
-            Padding(padding: EdgeInsets.all(8), child: Text("Nama Barang")),
-            Padding(padding: EdgeInsets.all(8), child: Text("Ukuran")),
-            Padding(padding: EdgeInsets.all(8), child: Text("Qty")),
-            Padding(padding: EdgeInsets.all(8), child: Text("UOM")),
-            Padding(padding: EdgeInsets.all(8), child: Text("Price")),
-            Padding(padding: EdgeInsets.all(8), child: Text("Total")),
+            Padding(padding: EdgeInsets.all(8), child: Text("Tanggal", style: TextStyle(color: Colors.white))),
+            Padding(padding: EdgeInsets.all(8), child: Text("ID Transaksi", style: TextStyle(color: Colors.white))),
+            Padding(padding: EdgeInsets.all(8), child: Text("Nama Barang", style: TextStyle(color: Colors.white))),
+            Padding(padding: EdgeInsets.all(8), child: Text("Ukuran", style: TextStyle(color: Colors.white))),
+            Padding(padding: EdgeInsets.all(8), child: Text("Qty", style: TextStyle(color: Colors.white))),
+            Padding(padding: EdgeInsets.all(8), child: Text("UOM", style: TextStyle(color: Colors.white))),
+            Padding(padding: EdgeInsets.all(8), child: Text("Price", style: TextStyle(color: Colors.white))),
+            Padding(padding: EdgeInsets.all(8), child: Text("Total", style: TextStyle(color: Colors.white))),
           ],
         ),
         ...details.map((item) {
@@ -290,6 +290,7 @@ class _LaporanReturState extends State<LaporanRetur> {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title:
             const Text('Laporan Retur', style: TextStyle(color: Colors.blue)),
         backgroundColor: Colors.white,
@@ -524,12 +525,12 @@ class _LaporanReturState extends State<LaporanRetur> {
                           Container(
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.all(12),
-                            color: Colors.indigo,
+                            color: Colors.indigo.shade200,
                             child: Text(
-                              'Total Rp ${currencyFormat.format(item['total'])}',
+                              'Total: Rp ${currencyFormat.format(item['total'])}',
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
+                                  color: Colors.black
+                                  ),
                             ),
                           ),
                         ],

@@ -308,7 +308,7 @@ String generateLocalId() {
 
   Future<void> playSuccessSound() async {
   final player = AudioPlayer();
-  await player.play(AssetSource('image/sound.mp3')); // tanpa 'assets/'
+  await player.play(AssetSource('image/sound.mp3'));
 }
 
   Future<void> showTransactionDialog(

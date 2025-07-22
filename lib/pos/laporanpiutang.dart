@@ -602,88 +602,160 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                             color: Colors.grey, width: 1), // border luar penuh
                       ),
                       child: DataTable(
-                        columnSpacing: 10,
-                        headingRowColor:
-                            MaterialStateProperty.all(Colors.indigo.shade200),
-                        border: TableBorder(
-                          horizontalInside:
-                              BorderSide(width: 1, color: Colors.grey),
-                          verticalInside:
-                              BorderSide(width: 1, color: Colors.grey),
-                        ),
-                        columns: const [
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Tanggal',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Tagihan',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('No.Transaksi',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Customer',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Lusin',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Total',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Terbayar',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Outstanding',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                          DataColumn(
-                            label: Expanded(
-                                child: Text('Status',
-                                    overflow: TextOverflow.ellipsis)),
-                          ),
-                        ],
-                        rows: hasilData.map((data) {
-                          return DataRow(cells: [
-                            DataCell(Text(data['tanggal'])),
-                            DataCell(Text(data['tagihan'])),
-                            DataCell(Text(data['noTransaksi'])),
-                            DataCell(Text(data['customer'])),
-                            DataCell(Text(data['lusin'].toString())),
-                            DataCell(Text(NumberFormat.currency(
-                                    locale: 'id',
-                                    symbol: 'Rp ',
-                                    decimalDigits: 0)
-                                .format(data['total']))),
-                            DataCell(Text(NumberFormat.currency(
-                                    locale: 'id',
-                                    symbol: 'Rp ',
-                                    decimalDigits: 0)
-                                .format(data['terbayar']))),
-                            DataCell(Text(NumberFormat.currency(
-                                    locale: 'id',
-                                    symbol: 'Rp ',
-                                    decimalDigits: 0)
-                                .format(data['outstanding']))),
-                            DataCell(Text(data['status'])),
-                          ]);
-                        }).toList(),
-                      ),
+  columnSpacing: 10,
+  headingRowColor: MaterialStateProperty.all(Colors.indigo),
+  border: TableBorder(
+    horizontalInside: BorderSide(width: 1, color: Colors.grey),
+    verticalInside: BorderSide(width: 1, color: Colors.grey),
+  ),
+  columns: [
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Tanggal',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Tagihan',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'No.Transaksi',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Customer',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Lusin',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Total',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Terbayar',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Outstanding',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+    DataColumn(
+      label: Expanded(
+        child: Center(
+          child: Text(
+            'Status',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white, // Menetapkan warna teks menjadi putih
+            ),
+          ),
+        ),
+      ),
+    ),
+  ],
+  rows: hasilData.map((data) {
+    return DataRow(cells: [
+      DataCell(Center(child: Text(data['tanggal']))),
+      DataCell(Center(child: Text(data['tagihan']))),
+      DataCell(Center(child: Text(data['noTransaksi']))),
+      DataCell(Center(child: Text(data['customer']))),
+      DataCell(Center(child: Text(data['lusin'].toString()))),
+      DataCell(Center(
+          child: Text(NumberFormat.currency(
+                  locale: 'id',
+                  symbol: 'Rp ',
+                  decimalDigits: 0)
+              .format(data['total'])))),
+      DataCell(Center(
+          child: Text(NumberFormat.currency(
+                  locale: 'id',
+                  symbol: 'Rp ',
+                  decimalDigits: 0)
+              .format(data['terbayar'])))),
+      DataCell(Center(
+          child: Text(NumberFormat.currency(
+                  locale: 'id',
+                  symbol: 'Rp ',
+                  decimalDigits: 0)
+              .format(data['outstanding'])))),
+      DataCell(Center(child: Text(data['status']))),
+    ]);
+  }).toList(),
+),
                     );
                   },
                 ),
