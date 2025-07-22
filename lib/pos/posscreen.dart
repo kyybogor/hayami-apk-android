@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/cart_db_helper.dart';
@@ -262,7 +263,10 @@ setState(() {
 });
 
 }
-
+Future<void> playSuccessSound() async {
+  final player = AudioPlayer();
+  await player.play(AssetSource('image/sound.mp3'));
+}
 
   void resetTransaction() {
     setState(() {
@@ -832,6 +836,7 @@ TextButton(
         );
       }
        Navigator.of(context).pop();
+       await playSuccessSound(); //
 await generateAndPrintStrukPdf(
         cartItems: cartItems,
         grandTotal: grandTotal,
@@ -2180,6 +2185,7 @@ Row(
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
   title: const Text(
     'POS HAYAMI',
     style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
