@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/pos/laporan_rekapitulasi.dart';
+import 'package:hayami_app/pos/laporan_retur.dart';
 import 'package:hayami_app/pos/laporanpembelian.dart';
+import 'package:hayami_app/pos/laporanpiutang.dart';
 import 'package:hayami_app/pos/stockcard.dart';
 import 'package:hayami_app/pos/stockdetail.dart';
 
@@ -10,23 +13,41 @@ class Laporanpos extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> menuItems = [
       {
-        "label": "Laporan Pembelian",
-        "icon": Icons.inventory, // Better icon for stock/inventory
-        "color": Colors.blue,
-        "page": const Laporanpembelian(),
-      },
-      {
-        "label": "Stock Card",
-        "icon": Icons.shopping_cart, // Better icon for sales list
-        "color": Colors.orange,
-        "page": const StockCard(),
-      },
-      {
-        "label": "Laporan Penjualan",
-        "icon": Icons.assignment, // Better icon for stock check/stocktaking
-        "color": Colors.green,
-        "page": const Stockdetail(),
-      }
+    "label": "Laporan Pembelian",
+    "icon": Icons.receipt, // Icon for purchase report
+    "color": Colors.blue,
+    "page": const Laporanpembelian(),
+  },
+  {
+    "label": "Stock Card",
+    "icon": Icons.inventory, // Icon for inventory card
+    "color": Colors.orange,
+    "page": const StockCard(),
+  },
+  {
+    "label": "Stock Detail",
+    "icon": Icons.list_alt, // Icon for stock details
+    "color": Colors.green,
+    "page": const Stockdetail(),
+  },
+  {
+    "label": "Laporan Piutang",
+    "icon": Icons.account_balance_wallet, // Icon for receivables
+    "color": Colors.purple,
+    "page": const RekapHutangPage(),
+  },
+  {
+    "label": "Laporan Retur",
+    "icon": Icons.undo, // Icon for returns
+    "color": Colors.purple,
+    "page": const LaporanRetur(),
+  },
+  {
+    "label": "Rekapitulasi Penjualan",
+    "icon": Icons.bar_chart, // Icon for sales recap
+    "color": Colors.purple,
+    "page": const RekapitulasiPage(),
+  }
     ];
 
     return Scaffold(

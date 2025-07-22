@@ -105,7 +105,7 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text("Barang Masuk", style: TextStyle(color: Colors.blue)),
+          title: const Text("Laporan Barang Masuk", style: TextStyle(color: Colors.blue)),
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(

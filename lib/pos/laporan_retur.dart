@@ -178,7 +178,7 @@ class _LaporanReturState extends State<LaporanRetur> {
       },
       children: [
         TableRow(
-          decoration: const BoxDecoration(color: Color(0xFFe0e0e0)),
+          decoration: BoxDecoration(color: Colors.indigo.shade200),
           children: const [
             Padding(padding: EdgeInsets.all(8), child: Text("Tanggal")),
             Padding(padding: EdgeInsets.all(8), child: Text("ID Transaksi")),

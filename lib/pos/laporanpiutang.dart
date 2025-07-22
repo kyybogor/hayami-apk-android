@@ -536,7 +536,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                   ElevatedButton(
                     onPressed: cariData,
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo),
+                        backgroundColor: Colors.indigo, foregroundColor: Colors.white),
                     child: const Text('Cari'),
                   ),
                   const SizedBox(width: 16),
@@ -552,7 +552,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                       printPdf();
                     },
                     style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        ElevatedButton.styleFrom(backgroundColor: Colors.indigo.shade200, foregroundColor: Colors.white),
                     child: const Row(
                       children: [
                         Icon(Icons.print),
@@ -575,7 +575,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                           totalOutstanding);
                     },
                     style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                     child: const Row(
                       children: [
                         Icon(Icons.file_download),
@@ -597,7 +597,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                     return DataTable(
                       columnSpacing: 10,
                       headingRowColor:
-                          MaterialStateProperty.all(Colors.indigo.shade50),
+                          MaterialStateProperty.all(Colors.indigo.shade200),
                       columns: const [
                         DataColumn(
                           label: Expanded(
