@@ -806,7 +806,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                                 print("Print Button Pressed");
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.greenAccent,
+                                backgroundColor: Colors.indigo,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(

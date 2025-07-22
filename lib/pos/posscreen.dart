@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/cart_db_helper.dart';
@@ -304,6 +305,11 @@ String generateLocalId() {
     final formatter = NumberFormat.decimalPattern('id');
     return formatter.format(number);
   }
+
+  Future<void> playSuccessSound() async {
+  final player = AudioPlayer();
+  await player.play(AssetSource('image/sound.mp3')); // tanpa 'assets/'
+}
 
   Future<void> showTransactionDialog(
       BuildContext context, double grandTotal) async {
@@ -832,7 +838,8 @@ TextButton(
         );
       }
        Navigator.of(context).pop();
-await generateAndPrintStrukPdf(
+        await playSuccessSound();
+        await generateAndPrintStrukPdf(
         cartItems: cartItems,
         grandTotal: grandTotal,
         totalDiskon: totalDiskonCustomer,
@@ -2179,6 +2186,7 @@ Row(
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
   title: const Text(
     'POS HAYAMI',
     style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
