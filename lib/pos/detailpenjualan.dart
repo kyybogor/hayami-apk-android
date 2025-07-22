@@ -316,11 +316,11 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
           ),
           ElevatedButton(
             onPressed: () async {
-              String jumlahBayar = jumlahBayarController.text.trim();
+              String jumlahBayarStr = jumlahBayarController.text.trim();
               String keterangan = keteranganController.text.trim();
               final selected = selectedPaymentMethodNotifier.value;
 
-              if (jumlahBayar.isEmpty) {
+              if (jumlahBayarStr.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Jumlah bayar tidak boleh kosong')),
                 );
@@ -334,8 +334,34 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                 return;
               }
 
+              // Parsing jumlah bayar ke double, hilangkan tanda titik ribuan dulu
+              double jumlahBayar =
+                  double.tryParse(jumlahBayarStr.replaceAll('.', '')) ?? 0;
+
+              // Ambil sisa bayar dari invoiceDetail, parse juga ke double
+              double sisaBayar = double.tryParse(
+                      invoiceDetail['sisa_bayar']?.toString() ?? '0') ??
+                  0;
+
+              if (jumlahBayar > sisaBayar) {
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: Text('Nominal melebihi outstanding'),
+                    content: Text(
+                        'Nominal tidak boleh melebihi outstanding yang tersisa.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
+
               try {
-                // Tampilkan loading dulu
                 showDialog(
                   context: context,
                   barrierDismissible: false,
@@ -344,18 +370,18 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
 
                 bool success = await submitPembayaran(
                   idTransaksi: invoiceDetail['id_transaksi'] ?? '',
-                  jumlahBayar: jumlahBayar,
+                  jumlahBayar: jumlahBayarStr,
                   keterangan: keterangan,
                   idAkun: selected.idAkun,
                 );
 
-                Navigator.pop(context);
-                Navigator.pop(context);
+                Navigator.pop(context); // tutup loading
+                Navigator.pop(context); // tutup dialog bayar hutang
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Pembayaran berhasil disimpan:\nRp $jumlahBayar - ${selected.tipe} (${selected.bank} - ${selected.noAkun})',
+                        'Pembayaran berhasil disimpan:\nRp $jumlahBayarStr - ${selected.tipe} (${selected.bank} - ${selected.noAkun})',
                       ),
                       backgroundColor: Colors.green,
                     ),
@@ -363,7 +389,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                   fetchInvoiceDetail();
                 }
               } catch (e) {
-                Navigator.pop(context);
+                Navigator.pop(context); // tutup loading
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Gagal simpan pembayaran: $e'),
@@ -662,6 +688,13 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                     SizedBox(height: 10),
                     Text(
                         'Diskon: ${invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty && invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty ? formatRupiah((double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) + (double.tryParse(invoiceDetail["disc"]) ?? 0.0)) : invoiceDetail["disc_invoice"] != null && invoiceDetail["disc_invoice"].isNotEmpty ? formatRupiah(double.tryParse(invoiceDetail["disc_invoice"]) ?? 0.0) : invoiceDetail["disc"] != null && invoiceDetail["disc"].isNotEmpty ? formatRupiah(double.tryParse(invoiceDetail["disc"]) ?? 0.0) : '-'}'),
+                    SizedBox(height: 10),
+                    if ((invoiceDetail['akun']?.toString().toUpperCase() ??
+                            '') ==
+                        'HUTANG')
+                      Text(
+                        'Outstanding: Rp ${formatRupiah(double.tryParse(invoiceDetail["sisa_bayar"] ?? '0') ?? 0)}',
+                      ),
                     SizedBox(height: 20),
                     ...List.generate(invoiceDetail["items"]?.length ?? 0,
                         (index) {
