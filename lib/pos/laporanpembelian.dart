@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/detaillaporanpembelian.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Laporanpembelian extends StatefulWidget {
   const Laporanpembelian({super.key});
@@ -31,9 +32,12 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
 
   @override
   Future<void> fetchInvoices() async {
+        final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
+
   try {
     final response = await http.get(
-      Uri.parse('http://192.168.1.11/pos/masuk.php'),
+      Uri.parse('http://192.168.1.11/pos/masuk.php?id_cabang=$idCabang'),
     );
 
     if (response.statusCode == 200) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/detailbarangmasuk.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Barangmasuk extends StatefulWidget {
   const Barangmasuk({super.key});
@@ -27,25 +28,65 @@ class _BarangmasukState extends State<Barangmasuk> {
     _searchController.addListener(_onSearchChanged);
     selectedMonth = DateFormat('MM').format(DateTime.now());
     selectedYear = DateFormat('yyyy').format(DateTime.now());
-    fetchInvoices();
+
+    _initAsync();
+  }
+
+  Future<void> _initAsync() async {
+    await checkProsesBarangMasuk();
+    await fetchInvoices();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Cek jika dataChanged bernilai true (berarti status telah diperbarui)
-    final bool? statusUpdated = ModalRoute.of(context)?.settings.arguments as bool?;
+    final bool? statusUpdated =
+        ModalRoute.of(context)?.settings.arguments as bool?;
     if (statusUpdated == true) {
-      // Refresh data setelah status diperbarui
-      fetchInvoices(); // Memanggil fetchInvoices untuk mendapatkan data terbaru dari server
+      fetchInvoices();
+    }
+  }
+
+  Future<void> checkProsesBarangMasuk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
+
+    if (idCabang.isEmpty) {
+      print("id_cabang belum disimpan di SharedPreferences");
+      return;
+    }
+
+    final url = Uri.parse(
+        'http://192.168.1.11/pos/proses_barang_masuk.php?idCabang=$idCabang');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+
+        if (data['status'] == 'error') {
+          print("API Error: ${data['message'] ?? 'Terjadi kesalahan'}");
+        } else {
+          print("API Success: ${data['message'] ?? 'Berhasil'}");
+          // Jika perlu, proses data['processed'] di sini
+        }
+      } else {
+        throw Exception('Gagal memuat data proses_barang_masuk.php');
+      }
+    } catch (e) {
+      print("Error saat cek proses_barang_masuk: $e");
     }
   }
 
   Future<void> fetchInvoices() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
+
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.11/pos/masuk.php'),
+        Uri.parse('http://192.168.1.11/pos/masuk.php?id_cabang=$idCabang'),
       );
 
       if (response.statusCode == 200) {
@@ -140,8 +181,10 @@ class _BarangmasukState extends State<Barangmasuk> {
 
     setState(() {
       filteredInvoices = invoices.where((invoice) {
-        final idMatch =
-            invoice["id"].toString().toLowerCase().contains(keyword); // Pencarian berdasarkan id_transaksi
+        final idMatch = invoice["id"]
+            .toString()
+            .toLowerCase()
+            .contains(keyword); // Pencarian berdasarkan id_transaksi
 
         try {
           final dateStr = invoice["date"];
@@ -157,7 +200,8 @@ class _BarangmasukState extends State<Barangmasuk> {
           if (idMatch && matchMonth && matchYear) {
             // Cek apakah id_transaksi sudah diproses
             if (!processedIds.contains(invoice["id"])) {
-              processedIds.add(invoice["id"]); // Tambahkan id yang sudah diproses
+              processedIds
+                  .add(invoice["id"]); // Tambahkan id yang sudah diproses
               return true; // Tampilkan hanya entri pertama dengan id_transaksi yang sama
             }
           }
@@ -188,7 +232,9 @@ class _BarangmasukState extends State<Barangmasuk> {
       } else if (status == 's') {
         return 'Aprove'; // Status "s" menjadi "Aprove"
       } else {
-        return status.isEmpty ? 'Unknown' : status; // Jika tidak cocok, tampilkan status asli atau "Unknown"
+        return status.isEmpty
+            ? 'Unknown'
+            : status; // Jika tidak cocok, tampilkan status asli atau "Unknown"
       }
     } catch (e) {
       return 'Unknown'; // Jika ada error, kembalikan "Unknown"
@@ -229,7 +275,8 @@ class _BarangmasukState extends State<Barangmasuk> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text("Barang Masuk", style: TextStyle(color: Colors.blue)),
+          title:
+              const Text("Barang Masuk", style: TextStyle(color: Colors.blue)),
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -274,7 +321,9 @@ class _BarangmasukState extends State<Barangmasuk> {
                                   Text(invoice["id"] ?? '-'), // id_transaksi
                                   Text(
                                     invoice["name"] ?? '-',
-                                    style: TextStyle(fontSize: 10), // Mengatur ukuran font menjadi lebih kecil
+                                    style: TextStyle(
+                                        fontSize:
+                                            10), // Mengatur ukuran font menjadi lebih kecil
                                   ),
                                 ],
                               ),
@@ -288,28 +337,34 @@ class _BarangmasukState extends State<Barangmasuk> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: getBackgroundColor(invoice["status"] ?? ''),
+                                      color: getBackgroundColor(
+                                          invoice["status"] ?? ''),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      formatStatus(invoice["status"] ?? ''), // Panggil formatStatus untuk mendapatkan status
+                                      formatStatus(invoice["status"] ??
+                                          ''), // Panggil formatStatus untuk mendapatkan status
                                       style: TextStyle(
-                                        color: getStatusColor(invoice["status"] ?? ''),
+                                        color: getStatusColor(
+                                            invoice["status"] ?? ''),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                  const Icon(Icons.arrow_forward_ios,
+                                      size: 16, color: Colors.grey),
                                 ],
                               ),
                               onTap: () async {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => Detailbarangmasuk(invoice: invoice),
+                                    builder: (context) =>
+                                        Detailbarangmasuk(invoice: invoice),
                                   ),
                                 );
 
@@ -317,13 +372,16 @@ class _BarangmasukState extends State<Barangmasuk> {
                                 if (result == true) {
                                   // Jika ada perubahan status, update status pada filteredInvoices
                                   setState(() {
-                                    int index = filteredInvoices.indexWhere((inv) => inv['id'] == invoice['id']);
+                                    int index = filteredInvoices.indexWhere(
+                                        (inv) => inv['id'] == invoice['id']);
                                     if (index != -1) {
-                                      filteredInvoices[index]['status'] = 's'; // Update status jadi 'approve'
+                                      filteredInvoices[index]['status'] =
+                                          's'; // Update status jadi 'approve'
                                     }
                                   });
                                   // Mengirimkan informasi bahwa data telah berubah
-                                  Navigator.of(context).pop(true); // Mengirimkan true untuk memberi tahu halaman sebelumnya bahwa status telah berubah
+                                  Navigator.of(context).pop(
+                                      true); // Mengirimkan true untuk memberi tahu halaman sebelumnya bahwa status telah berubah
                                 }
                               },
                             );

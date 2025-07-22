@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 void main() => runApp(const MaterialApp(home: LaporanRetur()));
 
@@ -126,9 +128,10 @@ class _LaporanReturState extends State<LaporanRetur> {
   Future<void> fetchLaporanRetur() async {
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
-
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
     String url =
-        'http://192.168.1.11/pos/laporan_retur.php?start_date=$from&end_date=$to';
+        'http://192.168.1.11/pos/laporan_retur.php?start_date=$from&end_date=$to&id_cabang=$idCabang';
     if (selectedBahan != null && selectedBahan!.isNotEmpty) {
       url += '&id_bahan=${Uri.encodeComponent(selectedBahan!)}';
     }

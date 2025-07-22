@@ -10,6 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 void main() => runApp(const MaterialApp(home: RekapitulasiPage()));
 
 class RekapitulasiPage extends StatefulWidget {
@@ -84,9 +86,11 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
   }
 
   Future<void> fetchRekapitulasiData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
-    String url = 'http://192.168.1.11/pos/rekapitulasi.php?start=$from&end=$to';
+    String url = 'http://192.168.1.11/pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
 
     if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
       url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';
@@ -449,7 +453,7 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
                 ElevatedButton(
                   onPressed: rekapList.isEmpty ? null : printPdf,
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo.shade200,
+                      backgroundColor: Colors.green,
                       foregroundColor: Colors.white),
                   child: const Row(
                     children: [
@@ -517,145 +521,120 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
   }
 
   DataCell buildCell(String text, double width, double fontSize,
-    {bool isBold = false}) {
-  return DataCell(
-    Container(
-      width: width,
-      decoration: BoxDecoration(
-        border: Border(
-          right: BorderSide(color: Colors.grey.shade300, width: 1), // Garis kolom
+      {bool isBold = false}) {
+    return DataCell(
+      SizedBox(
+        width: width,
+        child: Text(
+          text,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: fontSize,
-          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget buildTable() {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      double tableWidth = constraints.maxWidth;
-      double colWidth = tableWidth / 9;
-      double fontSize;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double tableWidth = constraints.maxWidth;
+        double colWidth = tableWidth / 9;
+        double fontSize;
 
-      if (tableWidth < 320) {
-        fontSize = 10;
-      } else if (tableWidth < 400) {
-        fontSize = 11;
-      } else {
-        fontSize = 12;
-      }
+        if (tableWidth < 320) {
+          fontSize = 10;
+        } else if (tableWidth < 400) {
+          fontSize = 11;
+        } else {
+          fontSize = 12;
+        }
 
-      return Table(
-        border: TableBorder.all(color: Colors.grey.shade400, width: 1),
-        columnWidths: {
-          for (int i = 0; i < 9; i++) i: FixedColumnWidth(colWidth),
-        },
-        children: [
-          // Header row
-          TableRow(
-            decoration: BoxDecoration(color: Colors.indigo),
-            children: [
-              for (var title in [
-                'Tanggal',
-                'Jatuh Tempo',
-                'Transaksi',
-                'Customer',
-                'Lusin',
-                'Subtotal',
-                'Diskon',
-                'Total',
-                'Status'
-              ])
-                Padding(
-                  padding: const EdgeInsets.all(6.0),
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-            ],
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(4),
           ),
-
-          // Data rows
-          ...rekapList.map((item) {
-            return TableRow(
-              children: [
-                buildCellText(
-                    item['tgl_transaksi'].split(' ')[0], fontSize),
-                buildCellText(
+          child: DataTable(
+            headingRowColor: MaterialStateColor.resolveWith(
+                (states) => Colors.grey.shade200),
+            columnSpacing: 0,
+            columns: const [
+              DataColumn(label: Text('Tanggal')),
+              DataColumn(label: Text('Jatuh Tempo')),
+              DataColumn(label: Text('Transaksi')),
+              DataColumn(label: Text('Customer')),
+              DataColumn(label: Text('Lusin')),
+              DataColumn(label: Text('Subtotal')),
+              DataColumn(label: Text('Diskon')),
+              DataColumn(label: Text('Total')),
+              DataColumn(label: Text('Status')),
+            ],
+            rows: [
+              ...rekapList.map((item) {
+                return DataRow(cells: [
+                  buildCell(
+                      item['tgl_transaksi'].split(' ')[0], colWidth, fontSize),
+                  buildCell(
                     item['tgl_jatuh_tempo'] == '0000-00-00'
                         ? '-'
                         : item['tgl_jatuh_tempo'],
-                    fontSize),
-                buildCellText(item['id_transaksi'], fontSize),
-                buildCellText(item['id_customer'], fontSize),
-                buildCellText(
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(item['id_transaksi'], colWidth, fontSize),
+                  buildCell(item['id_customer'], colWidth, fontSize),
+                  buildCell(
                     NumberFormat("0.##").format(double.parse(item['lusin'])),
-                    fontSize),
-                buildCellText(
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(
                     'Rp ${currency.format(int.parse(item['subtotal']))}',
-                    fontSize),
-                buildCellText(
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(
                     'Rp ${currency.format(double.parse(item['discon']).toInt())}',
-                    fontSize),
-                buildCellText(
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(
                     'Rp ${currency.format(double.parse(item['total_invoice']).toInt())}',
-                    fontSize),
-                buildCellText(item['status'] ?? '-', fontSize),
-              ],
-            );
-          }).toList(),
-
-          // Total row
-          TableRow(
-            decoration: BoxDecoration(color: Colors.indigo.shade200),
-            children: [
-              buildCellText('TOTAL', fontSize, isBold: true),
-              buildCellText('', fontSize),
-              buildCellText('', fontSize),
-              buildCellText('', fontSize),
-              buildCellText(NumberFormat("0.##").format(totalLusin), fontSize,
-                  isBold: true),
-              buildCellText('Rp ${currency.format(totalSubtotal)}', fontSize,
-                  isBold: true),
-              buildCellText('Rp ${currency.format(totalDiskon)}', fontSize,
-                  isBold: true),
-              buildCellText('Rp ${currency.format(totalInvoice)}', fontSize,
-                  isBold: true),
-              buildCellText('', fontSize),
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(item['status'] ?? '-', colWidth, fontSize),
+                ]);
+              }).toList(),
+              DataRow(
+                color: MaterialStateProperty.all(Colors.green.shade100),
+                cells: [
+                  buildCell('TOTAL', colWidth, fontSize, isBold: true),
+                  buildCell('', colWidth, fontSize),
+                  buildCell('', colWidth, fontSize),
+                  buildCell('', colWidth, fontSize),
+                  buildCell(NumberFormat("0.##").format(totalLusin), colWidth,
+                      fontSize,
+                      isBold: true),
+                  buildCell('Rp ${currency.format(totalSubtotal)}', colWidth,
+                      fontSize,
+                      isBold: true),
+                  buildCell(
+                      'Rp ${currency.format(totalDiskon)}', colWidth, fontSize,
+                      isBold: true),
+                  buildCell(
+                      'Rp ${currency.format(totalInvoice)}', colWidth, fontSize,
+                      isBold: true),
+                  buildCell('', colWidth, fontSize),
+                ],
+              ),
             ],
           ),
-        ],
-      );
-    },
-  );
-}
-
-Widget buildCellText(String text, double fontSize, {bool isBold = false}) {
-  return Padding(
-    padding: const EdgeInsets.all(6.0),
-    child: Text(
-      text,
-      style: TextStyle(
-        fontSize: fontSize,
-        fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-      ),
-      textAlign: TextAlign.center,
-    ),
-  );
-}
+        );
+      },
+    );
+  }
 }

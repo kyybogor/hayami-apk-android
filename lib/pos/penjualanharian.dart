@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hayami_app/pos/detailpenjualan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Penjualanharian extends StatefulWidget {
   const Penjualanharian({super.key});
@@ -19,20 +20,27 @@ class _PenjualanharianState extends State<Penjualanharian> {
   bool isLoading = true;
   bool dataChanged = false;
 
-  String selectedMonth = 'Semua'; // Default tampil bulan Juli
-  String selectedYear = DateFormat('yyyy').format(DateTime.now());
+  String selectedMonth =
+      DateFormat('MM').format(DateTime.now()); // Default bulan ini
+  String selectedYear =
+      DateFormat('yyyy').format(DateTime.now()); // Default tahun ini
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
     fetchInvoices();
+    filterByMonthYear();
   }
 
   Future<void> fetchInvoices() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
+
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.11/pos/barang_keluar.php'),
+        Uri.parse(
+            'http://192.168.1.11/pos/barang_keluar.php?id_cabang=$idCabang'),
       );
 
       if (response.statusCode == 200) {
@@ -79,11 +87,10 @@ class _PenjualanharianState extends State<Penjualanharian> {
 
       filteredInvoices.sort((a, b) {
         try {
-          final dateA =
-              DateFormat('yyyy-MM-dd HH:mm:ss').parse(a['tgl_transaksi']);
-          final dateB =
-              DateFormat('yyyy-MM-dd HH:mm:ss').parse(b['tgl_transaksi']);
-          return dateA.compareTo(dateB);
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['tgl_transaksi']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['tgl_transaksi']);
+          return dateB
+              .compareTo(dateA); // Urutkan dari yang terbaru ke yang terlama
         } catch (e) {
           return 0;
         }
@@ -126,7 +133,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
         try {
           final dateA = DateFormat('yyyy-MM-dd').parse(a['tgl_transaksi']);
           final dateB = DateFormat('yyyy-MM-dd').parse(b['tgl_transaksi']);
-          return dateA.compareTo(dateB);
+          return dateB.compareTo(dateA); // descending (baru ke lama)
         } catch (e) {
           return 0;
         }

@@ -8,6 +8,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 
 void main() => runApp(const MaterialApp(home: RekapHutangPage()));
@@ -346,10 +347,12 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
       hasilData = [];
     });
 
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
     final url =
-        'http://192.168.1.11/pos/laporan_hutang.php?tanggal_from=$from&tanggal_to=$to';
+        'http://192.168.1.11/pos/laporan_hutang.php?tanggal_from=$from&tanggal_to=$to&id_cabang=$idCabang';
 
     try {
       final response = await http.get(Uri.parse(url));
