@@ -576,57 +576,77 @@ Container(
     children: [
       // Baris Header
       const TableRow(
-        decoration: BoxDecoration(color: Colors.indigo),
-        children: [
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Ukuran', style: TextStyle(color: Colors.white)),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Awal', style: TextStyle(color: Colors.white)),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Masuk', style: TextStyle(color: Colors.white)),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Keluar', style: TextStyle(color: Colors.white)),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Sisa', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+  decoration: BoxDecoration(color: Colors.indigo),
+  children: [
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('Ukuran', style: TextStyle(color: Colors.white)),
       ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('Awal', style: TextStyle(color: Colors.white)),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('Masuk', style: TextStyle(color: Colors.white)),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('Keluar', style: TextStyle(color: Colors.white)),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('Sisa', style: TextStyle(color: Colors.white)),
+      ),
+    ),
+  ],
+),
 
       // Baris Data
       TableRow(
-        decoration: const BoxDecoration(color: Colors.white),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text('${item['ukuran']}', style: const TextStyle(color: Colors.black)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text('${summary['stock_awal']}', style: const TextStyle(color: Colors.black)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text('${summary['masuk']}', style: const TextStyle(color: Colors.black)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text('${summary['keluar']}', style: const TextStyle(color: Colors.black)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text('${summary['sisa']}', style: const TextStyle(color: Colors.black)),
-          ),
-        ],
+  decoration: const BoxDecoration(color: Colors.white),
+  children: [
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('${item['ukuran']}', style: const TextStyle(color: Colors.black)),
       ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('${summary['stock_awal']}', style: const TextStyle(color: Colors.black)),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('${summary['masuk']}', style: const TextStyle(color: Colors.black)),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('${summary['keluar']}', style: const TextStyle(color: Colors.black)),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: Text('${summary['sisa']}', style: const TextStyle(color: Colors.black)),
+      ),
+    ),
+  ],
+),
     ],
   ),
 ),
@@ -644,14 +664,39 @@ Container(
           },
           children: const [
             TableRow(
-              children: [
-                Text('Tgl', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('No. Transaksi', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Masuk', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Keluar', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
+  children: [
+    Padding(
+      padding: const EdgeInsets.all(1),
+      child: Center(
+        child: Text('Tgl'),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(1),
+      child: Center(
+        child: Text('No. Transaksi'),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(1),
+      child: Center(
+        child: Text('Masuk'),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(1),
+      child: Center(
+        child: Text('Keluar'),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(1),
+      child: Center(
+        child: Text('Total'),
+      ),
+    ),
+  ],
+),
           ],
         ),
       ),
@@ -668,29 +713,39 @@ Container(
         border: TableBorder.all(color: Colors.grey.shade300),
         children: detail.map<TableRow>((trx) {
           return TableRow(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(trx['tgl']),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(trx['no_transaksi']),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('${trx['masuk']}'),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('${trx['keluar']}'),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('${trx['total']}'),
-              ),
-            ],
-          );
+  children: [
+    Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Center(
+        child: Text(trx['tgl']),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Center(
+        child: Text(trx['no_transaksi']),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Center(
+        child: Text('${trx['masuk']}'),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Center(
+        child: Text('${trx['keluar']}'),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Center(
+        child: Text('${trx['total']}'),
+      ),
+    ),
+  ],
+);
         }).toList(),
       ),
     ],

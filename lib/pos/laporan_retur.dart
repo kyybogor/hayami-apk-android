@@ -181,18 +181,42 @@ class _LaporanReturState extends State<LaporanRetur> {
       },
       children: [
         TableRow(
-          decoration: const BoxDecoration(color: Colors.indigo),
-          children: const [
-            Padding(padding: EdgeInsets.all(8), child: Text("Tanggal", style: TextStyle(color: Colors.white))),
-            Padding(padding: EdgeInsets.all(8), child: Text("ID Transaksi", style: TextStyle(color: Colors.white))),
-            Padding(padding: EdgeInsets.all(8), child: Text("Nama Barang", style: TextStyle(color: Colors.white))),
-            Padding(padding: EdgeInsets.all(8), child: Text("Ukuran", style: TextStyle(color: Colors.white))),
-            Padding(padding: EdgeInsets.all(8), child: Text("Qty", style: TextStyle(color: Colors.white))),
-            Padding(padding: EdgeInsets.all(8), child: Text("UOM", style: TextStyle(color: Colors.white))),
-            Padding(padding: EdgeInsets.all(8), child: Text("Price", style: TextStyle(color: Colors.white))),
-            Padding(padding: EdgeInsets.all(8), child: Text("Total", style: TextStyle(color: Colors.white))),
-          ],
-        ),
+  decoration: const BoxDecoration(color: Colors.indigo),
+  children: const [
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("Tanggal", style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("ID Transaksi", style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("Nama Barang", style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("Ukuran", style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("Qty", style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("UOM", style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("Price", style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text("Total", style: TextStyle(color: Colors.white))),
+    ),
+  ],
+),
         ...details.map((item) {
           return TableRow(
             children: [

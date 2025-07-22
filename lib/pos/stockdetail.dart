@@ -405,68 +405,78 @@ class _StockdetailState extends State<Stockdetail> {
                   defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                   children: [
                     TableRow(
-                      decoration: const BoxDecoration(color: Colors.indigo),
-                      children: const [
-                        Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('Tanggal Masuk',
-                                style: TextStyle(color: Colors.white))),
-                        Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('No. Transaksi',
-                                style: TextStyle(color: Colors.white))),
-                        Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('Model',
-                                style: TextStyle(color: Colors.white))),
-                        Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('Ukuran',
-                                style: TextStyle(color: Colors.white))),
-                        Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('Qty',
-                                style: TextStyle(color: Colors.white))),
-                        Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('Harga',
-                                style: TextStyle(color: Colors.white))),
-                        Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Text('Action',
-                                style: TextStyle(color: Colors.white))),
-                      ],
-                    ),
+  decoration: const BoxDecoration(color: Colors.indigo),
+  children: const [
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text('Tanggal Masuk', style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text('No. Transaksi', style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text('Model', style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text('Ukuran', style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text('Qty', style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text('Harga', style: TextStyle(color: Colors.white))),
+    ),
+    Padding(
+      padding: EdgeInsets.all(8),
+      child: Center(child: Text('Action', style: TextStyle(color: Colors.white))),
+    ),
+  ],
+),
                     for (final item in displayedStock)
                       TableRow(
                         children: [
                           Padding(
                               padding: const EdgeInsets.all(8),
-                              child: Text(item['tgl_masuk'])),
+                              child: Center(
+    child: Text(item['tgl_masuk']),
+  ),),
                           Padding(
                               padding: const EdgeInsets.all(8),
-                              child: Text(item['id_transaksi'])),
+                              child: Center(
+    child: Text(item['id_transaksi']),
+  ),),
                           Padding(
                               padding: const EdgeInsets.all(8),
-                              child: Text(item['model'])),
+                              child: Center(
+    child: Text(item['model']),
+  ),),
                           Padding(
                               padding: const EdgeInsets.all(8),
-                              child: Text(item['ukuran'])),
+                              child: Center(
+    child: Text(item['ukuran']),
+  ),),
                           Padding(
                               padding: const EdgeInsets.all(8),
-                              child: Text(item['stock'].toString())),
+                              child: Center(
+    child: Text(item['stock']),
+  ),),
                           Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Text(
-                              NumberFormat.currency(
-                                      locale: 'id_ID',
-                                      symbol: 'Rp ',
-                                      decimalDigits: 0)
-                                  .format(double.tryParse(
-                                          item['harga'].toString()) ??
-                                      0),
-                            ),
-                          ),
+  padding: const EdgeInsets.all(8),
+  child: Center(
+    child: Text(
+      NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: 'Rp ',
+        decimalDigits: 0,
+      ).format(double.tryParse(item['harga'].toString()) ?? 0),
+    ),
+  ),
+),
                           Padding(
                             padding: const EdgeInsets.all(8),
                             child: ElevatedButton.icon(
