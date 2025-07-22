@@ -1,0 +1,636 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:excel/excel.dart' as excel;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+
+void main() => runApp(const MaterialApp(home: RekapitulasiPage()));
+
+class RekapitulasiPage extends StatefulWidget {
+  const RekapitulasiPage({super.key});
+
+  @override
+  State<RekapitulasiPage> createState() => _RekapitulasiState();
+}
+
+class _RekapitulasiState extends State<RekapitulasiPage> {
+  DateTime fromDate = DateTime.now();
+  DateTime toDate = DateTime.now();
+  String? selectedCustomer;
+  List<Map<String, dynamic>> customerList = [];
+  List<dynamic> rekapList = [];
+  bool isLoading = false;
+
+  double totalLusin = 0;
+  int totalSubtotal = 0;
+  int totalDiskon = 0;
+  int totalInvoice = 0;
+
+  late TextEditingController customerController;
+  final lusinFormat = NumberFormat("0.##");
+
+  final currency = NumberFormat('#,###', 'id_ID');
+
+  @override
+  void initState() {
+    super.initState();
+    customerController = TextEditingController();
+    customerController.addListener(() {
+      if (selectedCustomer != null && customerController.text.isEmpty) {
+        setState(() => selectedCustomer = null);
+      }
+    });
+    fetchCustomerList();
+  }
+
+  @override
+  void dispose() {
+    customerController.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchCustomerList() async {
+    const url = 'http://192.168.1.11/hayami/customer.php';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['status'] == 'success') {
+          setState(() {
+            customerList =
+                List<Map<String, dynamic>>.from(jsonData['data'] ?? []);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching customer list: $e');
+    }
+  }
+
+  List<String> getCustomerOptions(String query) {
+    final all = customerList.map((e) => e['id_customer'].toString()).toList();
+    final filtered = query.isEmpty
+        ? all
+        : all
+            .where((name) => name.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+    return ['-- Pilih Customer --', ...filtered];
+  }
+
+  Future<void> fetchRekapitulasiData() async {
+    final from = DateFormat('yyyy-MM-dd').format(fromDate);
+    final to = DateFormat('yyyy-MM-dd').format(toDate);
+    String url = 'http://192.168.1.11/pos/rekapitulasi.php?start=$from&end=$to';
+
+    if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
+      url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';
+    }
+
+    setState(() {
+      isLoading = true;
+      rekapList = [];
+      totalLusin = 0;
+      totalSubtotal = 0;
+      totalDiskon = 0;
+      totalInvoice = 0;
+    });
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+
+        double lus = 0;
+        int sub = 0, dis = 0, inv = 0;
+
+        for (var item in data) {
+          lus += double.parse(item['lusin']);
+          sub += int.parse(item['subtotal']);
+          dis += double.parse(item['discon']).toInt();
+          inv += double.parse(item['total_invoice']).toInt();
+        }
+
+        setState(() {
+          rekapList = data;
+          totalLusin = lus;
+          totalSubtotal = sub;
+          totalDiskon = dis;
+          totalInvoice = inv;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching data: $e');
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  Future<void> printPdf() async {
+    final pdf = pw.Document();
+
+    final headers = [
+      'Tanggal',
+      'Tgl Jatuh Tempo',
+      'Transaksi',
+      'Customer',
+      'Lusin',
+      'Subtotal',
+      'Diskon',
+      'Total',
+      'Status',
+    ];
+
+    final dataRows = rekapList.map((item) {
+      return [
+        item['tgl_transaksi'].split(' ')[0],
+        (item['tgl_jatuh_tempo'] != null &&
+                item['tgl_jatuh_tempo'] != '0000-00-00')
+            ? item['tgl_jatuh_tempo'].split(' ')[0]
+            : '-',
+        item['id_transaksi'] ?? '-',
+        item['id_customer'] ?? '-',
+        NumberFormat("0.##").format(double.tryParse(item['lusin'] ?? '0') ?? 0),
+        'Rp ${currency.format(int.tryParse(item['subtotal'] ?? '0') ?? 0)}',
+        'Rp ${currency.format((double.tryParse(item['discon'] ?? '0') ?? 0).toInt())}',
+        'Rp ${currency.format((double.tryParse(item['total_invoice'] ?? '0') ?? 0).toInt())}',
+        (item['status'] != null && item['status'].toString().trim().isNotEmpty)
+            ? item['status']
+            : '-',
+      ];
+    }).toList();
+
+    dataRows.add([
+      'TOTAL',
+      '',
+      '',
+      '',
+      NumberFormat("0.##").format(totalLusin),
+      'Rp ${currency.format(totalSubtotal)}',
+      'Rp ${currency.format(totalDiskon)}',
+      'Rp ${currency.format(totalInvoice)}',
+      '',
+    ]);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(10),
+        header: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Rekapitulasi Penjualan',
+              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              'Periode: ${DateFormat('dd/MM/yyyy').format(fromDate)} - ${DateFormat('dd/MM/yyyy').format(toDate)}',
+              style: const pw.TextStyle(fontSize: 10),
+            ),
+            pw.Divider(),
+          ],
+        ),
+        build: (context) => [
+          pw.Table.fromTextArray(
+            headers: headers,
+            data: dataRows,
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue),
+            headerHeight: 25,
+            cellHeight: 20,
+            headerStyle: pw.TextStyle(
+              color: PdfColors.white,
+              fontWeight: pw.FontWeight.bold,
+              fontSize: 10,
+            ),
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            border: pw.TableBorder.all(color: PdfColors.grey),
+            columnWidths: {
+              0: const pw.FixedColumnWidth(70),
+              1: const pw.FixedColumnWidth(80),
+              2: const pw.FixedColumnWidth(70),
+              3: const pw.FixedColumnWidth(80),
+              4: const pw.FixedColumnWidth(50),
+              5: const pw.FixedColumnWidth(70),
+              6: const pw.FixedColumnWidth(70),
+              7: const pw.FixedColumnWidth(70),
+              8: const pw.FixedColumnWidth(50),
+            },
+            cellDecoration: (index, data, rowIndex) {
+              if (rowIndex == dataRows.length - 0) {
+                return const pw.BoxDecoration(color: PdfColors.green100);
+              }
+              return const pw.BoxDecoration();
+            },
+            cellAlignments: {
+              4: pw.Alignment.centerRight,
+              5: pw.Alignment.centerRight,
+              6: pw.Alignment.centerRight,
+              7: pw.Alignment.centerRight,
+            },
+          ),
+        ],
+        footer: (context) => pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text(
+            'Halaman ${context.pageNumber} dari ${context.pagesCount}',
+            style: const pw.TextStyle(fontSize: 9),
+          ),
+        ),
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+
+  Future<void> exportToExcel(BuildContext context) async {
+    final excelFile = excel.Excel.createExcel();
+    final sheet = excelFile['Sheet1'];
+
+    sheet.appendRow([
+      'Tanggal',
+      'Tgl Jatuh Tempo',
+      'Transaksi',
+      'Customer',
+      'Lusin',
+      'Subtotal',
+      'Diskon',
+      'Total',
+      'Status',
+    ]);
+
+    for (var item in rekapList) {
+      sheet.appendRow([
+        (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
+        (item['tgl_jatuh_tempo'] != null &&
+                item['tgl_jatuh_tempo'] != '0000-00-00')
+            ? item['tgl_jatuh_tempo'].toString().split(' ')[0]
+            : '-',
+        item['id_transaksi']?.toString() ?? '-',
+        item['id_customer']?.toString() ?? '-',
+        double.tryParse(item['lusin']?.toString() ?? '0') ?? 0,
+        int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0,
+        double.tryParse(item['discon']?.toString() ?? '0')?.toInt() ?? 0,
+        double.tryParse(item['total_invoice']?.toString() ?? '0')?.toInt() ?? 0,
+        item['status']?.toString() ?? '-',
+      ]);
+    }
+
+    sheet.appendRow([
+      'TOTAL',
+      '',
+      '',
+      '',
+      totalLusin,
+      totalSubtotal,
+      totalDiskon,
+      totalInvoice,
+      '',
+    ]);
+
+    if (Platform.isAndroid) {
+      if (!await Permission.manageExternalStorage.isGranted) {
+        final status = await Permission.manageExternalStorage.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content:
+                    Text('Izin penyimpanan ditolak, aktifkan di pengaturan')),
+          );
+          openAppSettings();
+          return;
+        }
+      }
+    } else {
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Izin penyimpanan ditolak')),
+        );
+        return;
+      }
+    }
+
+    try {
+      Directory? outputDir;
+      if (Platform.isAndroid) {
+        outputDir = Directory('/storage/emulated/0/Download');
+        if (!(await outputDir.exists())) {
+          outputDir = await getExternalStorageDirectory();
+        }
+      } else {
+        outputDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (outputDir == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Tidak bisa mengakses folder penyimpanan')),
+        );
+        return;
+      }
+
+      if (!(await outputDir.exists())) {
+        await outputDir.create(recursive: true);
+      }
+
+      final filePath =
+          "${outputDir.path}/rekapitulasi_penjualan_${DateTime.now().millisecondsSinceEpoch}.xlsx";
+
+      final fileBytes = excelFile.encode();
+      if (fileBytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal membuat file Excel')),
+        );
+        return;
+      }
+
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File berhasil disimpan di $filePath')),
+      );
+    } catch (e) {
+      debugPrint("Gagal menyimpan file: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal menyimpan file')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Rekapitulasi Penjualan',
+            style: TextStyle(color: Colors.blue)),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.blue),
+                leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.blue),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(
+                  child: buildDatePicker('Dari Tanggal', fromDate, (picked) {
+                if (picked != null) setState(() => fromDate = picked);
+              })),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: buildDatePicker('Sampai Tanggal', toDate, (picked) {
+                if (picked != null) setState(() => toDate = picked);
+              })),
+            ]),
+            const SizedBox(height: 16),
+            Autocomplete<String>(
+              optionsBuilder: (TextEditingValue val) =>
+                  getCustomerOptions(val.text),
+              onSelected: (val) {
+                if (val == '-- Pilih Customer --') {
+                  FocusScope.of(context).unfocus();
+                  setState(() {
+                    selectedCustomer = null;
+                    customerController.clear();
+                  });
+                } else {
+                  setState(() {
+                    customerController.text = val;
+                    selectedCustomer = val;
+                  });
+                }
+              },
+              fieldViewBuilder: (context, textEditingController, focusNode, _) {
+                if (customerController.text != textEditingController.text) {
+                  textEditingController.value = customerController.value;
+                }
+                return TextField(
+                  controller: textEditingController,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer (Optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: fetchRekapitulasiData,
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.search),
+                      SizedBox(width: 8),
+                      Text('Cari'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: rekapList.isEmpty ? null : printPdf,
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.print),
+                      SizedBox(width: 8),
+                      Text('Print'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed:
+                      rekapList.isEmpty ? null : () => exportToExcel(context),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.file_download),
+                      SizedBox(width: 8),
+                      Text('Excel'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            if (isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (rekapList.isEmpty)
+              const Center(child: Text('Tidak ada data')),
+            if (!isLoading && rekapList.isNotEmpty) buildTable(),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget buildDatePicker(
+      String label, DateTime value, Function(DateTime?) onPick) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label),
+      const SizedBox(height: 4),
+      InkWell(
+        onTap: () async {
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: value,
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+          );
+          onPick(picked);
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(dateFormat.format(value)),
+        ),
+      ),
+    ]);
+  }
+
+  DataCell buildCell(String text, double width, double fontSize,
+      {bool isBold = false}) {
+    return DataCell(
+      SizedBox(
+        width: width,
+        child: Text(
+          text,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildTable() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double tableWidth = constraints.maxWidth;
+        double colWidth = tableWidth / 9;
+        double fontSize;
+
+        if (tableWidth < 320) {
+          fontSize = 10;
+        } else if (tableWidth < 400) {
+          fontSize = 11;
+        } else {
+          fontSize = 12;
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: DataTable(
+            headingRowColor: MaterialStateColor.resolveWith(
+                (states) => Colors.grey.shade200),
+            columnSpacing: 0,
+            columns: const [
+              DataColumn(label: Text('Tanggal')),
+              DataColumn(label: Text('Jatuh Tempo')),
+              DataColumn(label: Text('Transaksi')),
+              DataColumn(label: Text('Customer')),
+              DataColumn(label: Text('Lusin')),
+              DataColumn(label: Text('Subtotal')),
+              DataColumn(label: Text('Diskon')),
+              DataColumn(label: Text('Total')),
+              DataColumn(label: Text('Status')),
+            ],
+            rows: [
+              ...rekapList.map((item) {
+                return DataRow(cells: [
+                  buildCell(
+                      item['tgl_transaksi'].split(' ')[0], colWidth, fontSize),
+                  buildCell(
+                    item['tgl_jatuh_tempo'] == '0000-00-00'
+                        ? '-'
+                        : item['tgl_jatuh_tempo'],
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(item['id_transaksi'], colWidth, fontSize),
+                  buildCell(item['id_customer'], colWidth, fontSize),
+                  buildCell(
+                    NumberFormat("0.##").format(double.parse(item['lusin'])),
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(
+                    'Rp ${currency.format(int.parse(item['subtotal']))}',
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(
+                    'Rp ${currency.format(double.parse(item['discon']).toInt())}',
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(
+                    'Rp ${currency.format(double.parse(item['total_invoice']).toInt())}',
+                    colWidth,
+                    fontSize,
+                  ),
+                  buildCell(item['status'] ?? '-', colWidth, fontSize),
+                ]);
+              }).toList(),
+              DataRow(
+                color: MaterialStateProperty.all(Colors.green.shade100),
+                cells: [
+                  buildCell('TOTAL', colWidth, fontSize, isBold: true),
+                  buildCell('', colWidth, fontSize),
+                  buildCell('', colWidth, fontSize),
+                  buildCell('', colWidth, fontSize),
+                  buildCell(NumberFormat("0.##").format(totalLusin), colWidth,
+                      fontSize,
+                      isBold: true),
+                  buildCell('Rp ${currency.format(totalSubtotal)}', colWidth,
+                      fontSize,
+                      isBold: true),
+                  buildCell(
+                      'Rp ${currency.format(totalDiskon)}', colWidth, fontSize,
+                      isBold: true),
+                  buildCell(
+                      'Rp ${currency.format(totalInvoice)}', colWidth, fontSize,
+                      isBold: true),
+                  buildCell('', colWidth, fontSize),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
