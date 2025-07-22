@@ -219,8 +219,6 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
     );
   }
 
-
-
   Future<void> printPdf() async {
     final pdf = pw.Document();
 
@@ -536,7 +534,8 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                   ElevatedButton(
                     onPressed: cariData,
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo, foregroundColor: Colors.white),
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white),
                     child: const Text('Cari'),
                   ),
                   const SizedBox(width: 16),
@@ -551,8 +550,9 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                       }
                       printPdf();
                     },
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.indigo.shade200, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo.shade200,
+                        foregroundColor: Colors.white),
                     child: const Row(
                       children: [
                         Icon(Icons.print),
@@ -574,8 +574,9 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                       exportToExcel(context, hasilData, total, totalTerbayar,
                           totalOutstanding);
                     },
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white),
                     child: const Row(
                       children: [
                         Icon(Icons.file_download),
@@ -594,76 +595,95 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
               else
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    return DataTable(
-                      columnSpacing: 10,
-                      headingRowColor:
-                          MaterialStateProperty.all(Colors.indigo.shade200),
-                      columns: const [
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Tanggal',
-                                  overflow: TextOverflow.ellipsis)),
+                    return Container(
+                      width: constraints.maxWidth,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: Colors.grey, width: 1), // border luar penuh
+                      ),
+                      child: DataTable(
+                        columnSpacing: 10,
+                        headingRowColor:
+                            MaterialStateProperty.all(Colors.indigo.shade200),
+                        border: TableBorder(
+                          horizontalInside:
+                              BorderSide(width: 1, color: Colors.grey),
+                          verticalInside:
+                              BorderSide(width: 1, color: Colors.grey),
                         ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Tagihan',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('No.Transaksi',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Customer',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Lusin',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Total',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Terbayar',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Outstanding',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                              child: Text('Status',
-                                  overflow: TextOverflow.ellipsis)),
-                        ),
-                      ],
-                      rows: hasilData.map((data) {
-                        return DataRow(cells: [
-                          DataCell(Text(data['tanggal'])),
-                          DataCell(Text(data['tagihan'])),
-                          DataCell(Text(data['noTransaksi'])),
-                          DataCell(Text(data['customer'])),
-                          DataCell(Text(data['lusin'].toString())),
-                          DataCell(Text(NumberFormat.currency(
-                                  locale: 'id', symbol: 'Rp ', decimalDigits: 0)
-                              .format(data['total']))),
-                          DataCell(Text(NumberFormat.currency(
-                                  locale: 'id', symbol: 'Rp ', decimalDigits: 0)
-                              .format(data['terbayar']))),
-                          DataCell(Text(NumberFormat.currency(
-                                  locale: 'id', symbol: 'Rp ', decimalDigits: 0)
-                              .format(data['outstanding']))),
-                          DataCell(Text(data['status'])),
-                        ]);
-                      }).toList(),
+                        columns: const [
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Tanggal',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Tagihan',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('No.Transaksi',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Customer',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Lusin',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Total',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Terbayar',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Outstanding',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                          DataColumn(
+                            label: Expanded(
+                                child: Text('Status',
+                                    overflow: TextOverflow.ellipsis)),
+                          ),
+                        ],
+                        rows: hasilData.map((data) {
+                          return DataRow(cells: [
+                            DataCell(Text(data['tanggal'])),
+                            DataCell(Text(data['tagihan'])),
+                            DataCell(Text(data['noTransaksi'])),
+                            DataCell(Text(data['customer'])),
+                            DataCell(Text(data['lusin'].toString())),
+                            DataCell(Text(NumberFormat.currency(
+                                    locale: 'id',
+                                    symbol: 'Rp ',
+                                    decimalDigits: 0)
+                                .format(data['total']))),
+                            DataCell(Text(NumberFormat.currency(
+                                    locale: 'id',
+                                    symbol: 'Rp ',
+                                    decimalDigits: 0)
+                                .format(data['terbayar']))),
+                            DataCell(Text(NumberFormat.currency(
+                                    locale: 'id',
+                                    symbol: 'Rp ',
+                                    decimalDigits: 0)
+                                .format(data['outstanding']))),
+                            DataCell(Text(data['status'])),
+                          ]);
+                        }).toList(),
+                      ),
                     );
                   },
                 ),

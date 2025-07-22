@@ -47,6 +47,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
               "tgl_transaksi": item["tgl_transaksi"] ?? '-',
               "total_invoice": item["total_invoice"] ?? '0',
               "akun": item["akun"] ?? '-',
+              "sisa_bayar": item["sisa_bayar"] ?? '0', // Tambahan ini
             };
           }).toList();
 
@@ -338,6 +339,11 @@ class _PenjualanharianState extends State<Penjualanharian> {
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
                               final invoice = filteredInvoices[index];
+                              final int sisaBayar =
+                                  int.tryParse(invoice["sisa_bayar"] ?? '0') ??
+                                      0;
+                              final bool isOutstanding = sisaBayar > 0;
+
                               return ListTile(
                                 title: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,29 +359,44 @@ class _PenjualanharianState extends State<Penjualanharian> {
                                     ),
                                   ],
                                 ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.shade100,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        formatRupiah(
-                                            invoice["total_invoice"] ?? '0'),
-                                        style: const TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.bold,
+                                trailing: Builder(
+                                  builder: (context) {
+                                    final int sisaBayar = int.tryParse(
+                                            invoice["sisa_bayar"] ?? '0') ??
+                                        0;
+                                    final bool isOutstanding = sisaBayar > 0;
+
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: isOutstanding
+                                                ? Colors.red.shade100
+                                                : Colors.green.shade100,
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            formatRupiah(
+                                                invoice["total_invoice"] ??
+                                                    '0'),
+                                            style: TextStyle(
+                                              color: isOutstanding
+                                                  ? Colors.red
+                                                  : Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.arrow_forward_ios,
-                                        size: 16, color: Colors.grey),
-                                  ],
+                                        const SizedBox(width: 8),
+                                        const Icon(Icons.arrow_forward_ios,
+                                            size: 16, color: Colors.grey),
+                                      ],
+                                    );
+                                  },
                                 ),
                                 onTap: () async {
                                   final result = await Navigator.push(
