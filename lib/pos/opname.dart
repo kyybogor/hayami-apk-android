@@ -140,17 +140,18 @@ class _OpnameState extends State<Opname> {
     );
   }
 
-  Widget _buildCardInput({required Widget child}) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      elevation: 2,
-      margin: EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: child,
-      ),
-    );
-  }
+Widget _buildCardInput({required Widget child}) {
+  return Card(
+    elevation: 0,
+    margin: EdgeInsets.symmetric(vertical: 5),
+    color: Colors.transparent,
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: 5),
+      child: child,
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
