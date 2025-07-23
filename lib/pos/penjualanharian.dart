@@ -40,7 +40,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://192.168.1.11/pos/barang_keluar.php?id_cabang=$idCabang'),
+            'http://192.168.1.25/pos/barang_keluar.php?id_cabang=$idCabang'),
       );
 
       if (response.statusCode == 200) {

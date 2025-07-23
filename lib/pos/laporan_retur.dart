@@ -63,7 +63,7 @@ class _LaporanReturState extends State<LaporanRetur> {
   }
 
   Future<void> fetchCustomerList() async {
-    final url = 'http://192.168.1.11/hayami/customer.php';
+    final url = 'http://192.168.1.25/hayami/customer.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -80,7 +80,7 @@ class _LaporanReturState extends State<LaporanRetur> {
   }
 
   Future<void> fetchBahanModel() async {
-    final url = 'http://192.168.1.11/pos/bahan.php';
+    final url = 'http://192.168.1.25/pos/bahan.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -131,7 +131,7 @@ class _LaporanReturState extends State<LaporanRetur> {
     final prefs = await SharedPreferences.getInstance();
     final idCabang = prefs.getString('id_cabang') ?? '';
     String url =
-        'http://192.168.1.11/pos/laporan_retur.php?start_date=$from&end_date=$to&id_cabang=$idCabang';
+        'http://192.168.1.25/pos/laporan_retur.php?start_date=$from&end_date=$to&id_cabang=$idCabang';
     if (selectedBahan != null && selectedBahan!.isNotEmpty) {
       url += '&id_bahan=${Uri.encodeComponent(selectedBahan!)}';
     }

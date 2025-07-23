@@ -202,7 +202,7 @@ Future<void> handleBarcodePrint({
   required String ukuran,
   required String qty, // input dari user, misal "03"
 }) async {
-  final url = 'http://192.168.1.11/pos/stock.php';
+  final url = 'http://192.168.1.25/pos/stock.php';
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -305,7 +305,7 @@ pw.Page buildBarcodePage(dynamic item, String fullBarcode, String qtyLabel) {
 }
 
   Future<void> fetchBahanModel() async {
-    final url = 'http://192.168.1.11/pos/stock.php';
+    final url = 'http://192.168.1.25/pos/stock.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -343,7 +343,7 @@ pw.Page buildBarcodePage(dynamic item, String fullBarcode, String qtyLabel) {
     final to = DateFormat('yyyy-MM-dd').format(toDate);
 
     final url =
-        'http://192.168.1.11/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}';
+        'http://192.168.1.25/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}';
 
     setState(() => isLoading = true);
 

@@ -37,7 +37,7 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
 
   try {
     final response = await http.get(
-      Uri.parse('http://192.168.1.11/pos/masuk.php?id_cabang=$idCabang'),
+      Uri.parse('http://192.168.1.25/pos/masuk.php?id_cabang=$idCabang'),
     );
 
     if (response.statusCode == 200) {

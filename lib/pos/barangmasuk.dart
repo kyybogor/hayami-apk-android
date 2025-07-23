@@ -58,7 +58,7 @@ class _BarangmasukState extends State<Barangmasuk> {
     }
 
     final url = Uri.parse(
-        'http://192.168.1.11/pos/proses_barang_masuk.php?idCabang=$idCabang');
+        'http://192.168.1.25/pos/proses_barang_masuk.php?idCabang=$idCabang');
 
     try {
       final response = await http.get(url);
@@ -86,7 +86,7 @@ class _BarangmasukState extends State<Barangmasuk> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.11/pos/masuk.php?id_cabang=$idCabang'),
+        Uri.parse('http://192.168.1.25/pos/masuk.php?id_cabang=$idCabang'),
       );
 
       if (response.statusCode == 200) {

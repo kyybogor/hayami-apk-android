@@ -209,7 +209,7 @@ Future<void> fetchProduct() async {
   });
 
   final idTransaksi = widget.invoice['id']?.toString() ?? '';
-  final url = Uri.parse("http://192.168.1.11/pos/masuk_detail.php?id_transaksi=$idTransaksi");
+  final url = Uri.parse("http://192.168.1.25/pos/masuk_detail.php?id_transaksi=$idTransaksi");
 
   try {
     final response = await http.get(url);
@@ -219,7 +219,7 @@ Future<void> fetchProduct() async {
         final List<dynamic> produkList = jsonData['data'];
 
         // Mengambil data stock
-        final stockResponse = await http.get(Uri.parse('http://192.168.1.11/hayami/stock.php'));
+        final stockResponse = await http.get(Uri.parse('http://192.168.1.25/hayami/stock.php'));
         final List<dynamic> stockList = json.decode(stockResponse.body)['data'];
 
         // Menyamakan data produk dengan stock
@@ -279,7 +279,7 @@ Future<void> fetchProduct() async {
     final idTransaksi = widget.invoice['id']?.toString() ?? '';
     final prefs = await SharedPreferences.getInstance();
     final idCabang = prefs.getString('id_cabang') ?? '';
-    final url = Uri.parse('http://192.168.1.11/pos/inbond.php?id_transaksi=$idTransaksi&id_cabang=$idCabang');
+    final url = Uri.parse('http://192.168.1.25/pos/inbond.php?id_transaksi=$idTransaksi&id_cabang=$idCabang');
 
     showDialog(
       context: context,

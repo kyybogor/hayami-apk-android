@@ -26,7 +26,7 @@ class GudangApiService {
   }
 }
 class PosApiService {
-  static const String _baseUrl = 'http://192.168.1.11/hayami/loginpos.php';
+  static const String _baseUrl = 'http://192.168.1.25/hayami/loginpos.php';
 
   /// Fungsi login user (online dulu, jika gagal coba offline)
   static Future<Map<String, dynamic>> loginUser(String email, String password) async {

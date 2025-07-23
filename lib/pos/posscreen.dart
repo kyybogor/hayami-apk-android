@@ -62,7 +62,7 @@ Future<List<Map<String, dynamic>>> loadAccountsFromLocalDB() async {
 
 Future<bool> isOnline() async {
   try {
-    final response = await http.get(Uri.parse('http://192.168.1.11/hayami/customer.php')).timeout(
+    final response = await http.get(Uri.parse('http://192.168.1.25/hayami/customer.php')).timeout(
       const Duration(seconds: 2),
     );
     return response.statusCode == 200;
@@ -1038,7 +1038,7 @@ if (connectivityResult != ConnectivityResult.none) {
   final String? idCabangPref = prefs.getString('id_cabang');
   final String? dibuatOlehPref = prefs.getString('nm_user');
 
-  final url = Uri.parse("http://192.168.1.11/hayami/takepayment.php");
+  final url = Uri.parse("http://192.168.1.25/hayami/takepayment.php");
 
   final double discInvoice = newDiscount;
   final double subtotal =
@@ -1130,7 +1130,7 @@ if (connectivityResult != ConnectivityResult.none) {
     required String dibuatOleh,
     required List<Map<String, dynamic>> items,
   }) async {
-    final url = Uri.parse("http://192.168.1.11/hayami/draft.php");
+    final url = Uri.parse("http://192.168.1.25/hayami/draft.php");
 
     final body = {
       "idCustomer": idCustomer,
@@ -1166,7 +1166,7 @@ if (connectivityResult != ConnectivityResult.none) {
   Future<bool> deleteTransaction(String idTransaksi) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.11/hayami/delete_cart.php'),
+        Uri.parse('http://192.168.1.25/hayami/delete_cart.php'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'id_transaksi': idTransaksi}),
       );
@@ -1192,7 +1192,7 @@ Future<void> fetchPaymentAccounts() async {
 
   if (connectivityResult != ConnectivityResult.none) {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.11/hayami/akun.php'));
+      final response = await http.get(Uri.parse('http://192.168.1.25/hayami/akun.php'));
       if (response.statusCode == 200) {
         final result = json.decode(response.body);
         if (result['status'] == 'success') {
@@ -1229,7 +1229,7 @@ Future<void> fetchProducts() async {
     }
 
     if (online) {
-      final stockUrl = Uri.parse('http://192.168.1.11/hayami/stock.php');
+      final stockUrl = Uri.parse('http://192.168.1.25/hayami/stock.php');
       final stockResponse = await http.get(stockUrl);
 
       if (stockResponse.statusCode == 200) {
@@ -1286,7 +1286,7 @@ Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) as
   } else {
     print('🌐 Mengakses API...');
 
-    final response = await http.get(Uri.parse('http://192.168.1.11/hayami/customer.php'));
+    final response = await http.get(Uri.parse('http://192.168.1.25/hayami/customer.php'));
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
@@ -1586,7 +1586,7 @@ Future<void> handleCustomerIdChange(String id) async {
 
         final imgPath = representative['img'];
         final imgUrl = (imgPath is String && imgPath.isNotEmpty)
-            ? 'http://192.168.1.11/hayami/$imgPath'
+            ? 'http://192.168.1.25/hayami/$imgPath'
             : 'https://via.placeholder.com/150';
 
         return GestureDetector(

@@ -71,7 +71,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://192.168.1.11/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
+            'http://192.168.1.25/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
       );
 
       if (response.statusCode == 200) {
@@ -97,7 +97,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
   }
 
   Future<List<PaymentMethod>> fetchPaymentMethods() async {
-    final url = Uri.parse('http://192.168.1.11/hayami/akun.php');
+    final url = Uri.parse('http://192.168.1.25/hayami/akun.php');
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -128,7 +128,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     String? idUser = prefs.getString('id_user') ?? 'system';
     String idCabang = prefs.getString('id_cabang') ?? 'default_cabang';
 
-    final url = Uri.parse('http://192.168.1.11/pos/bayar.php');
+    final url = Uri.parse('http://192.168.1.25/pos/bayar.php');
 
     String jumlahBayarPlain = jumlahBayar.replaceAll('.', '');
 

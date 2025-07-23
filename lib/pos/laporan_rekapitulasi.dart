@@ -58,7 +58,7 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
   }
 
   Future<void> fetchCustomerList() async {
-    const url = 'http://192.168.1.11/hayami/customer.php';
+    const url = 'http://192.168.1.25/hayami/customer.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -90,7 +90,7 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
     final idCabang = prefs.getString('id_cabang') ?? '';
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
-    String url = 'http://192.168.1.11/pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
+    String url = 'http://192.168.1.25/pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
 
     if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
       url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';

@@ -56,7 +56,7 @@ class _StockdetailState extends State<Stockdetail> {
   }
 
   Future<void> fetchBahanModel() async {
-    final url = 'http://192.168.1.11/pos/stock.php';
+    final url = 'http://192.168.1.25/pos/stock.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -195,7 +195,7 @@ class _StockdetailState extends State<Stockdetail> {
       isLoading = true;
     });
 
-    final url = Uri.parse('http://192.168.1.11/pos/detail_stock.php'
+    final url = Uri.parse('http://192.168.1.25/pos/detail_stock.php'
         '?id_bahan=${Uri.encodeComponent(selectedBahan!)}');
 
     try {
