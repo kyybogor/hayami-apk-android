@@ -23,53 +23,55 @@ class _DetailPembelianPageState extends State<DetailPembelianPage> {
     fetchProduct();
   }
 
-  Future<void> fetchProduct() async {
-    setState(() {
-      isLoading = true;
-    });
+Future<void> fetchProduct() async {
+  setState(() {
+    isLoading = true;
+  });
 
-    final memo = widget.invoice['memo']?.toString() ?? '-';
+  final memo = widget.invoice['memo']?.toString() ?? '-';
 
-    final url = Uri.parse(
-        "https://hayami.id/apps/erp/api-android/api/barangpembelian.php?id_sj1=$memo");
+  final url = Uri.parse(
+    "https://hayami.id/apps/erp/api-android/api/barangpembelian.php?id_sj1=$memo",
+  );
 
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
 
-        final List<Map<String, dynamic>> parsedProduk =
-            data.map<Map<String, dynamic>>((item) {
-          final qty = double.tryParse(item['lusin']?.toString() ?? '0') ?? 0;
-          final harga = double.tryParse(item['cost']?.toString() ?? '0') ?? 0;
-          final total = double.tryParse(item['ttlcost']?.toString() ?? '0') ??
-              (qty * harga);
+      final List<Map<String, dynamic>> parsedProduk = data.map<Map<String, dynamic>>((item) {
+        final lusin = double.tryParse(item['lusin']?.toString() ?? '0') ?? 0;
+        final pcs = double.tryParse(item['pcs']?.toString() ?? '0') ?? 0;
+        final qty = lusin + (pcs / 12);
 
-          return {
-            'nama_barang': item['sku'] ?? 'Tidak Diketahui',
-            'size': (item['size'] != null && item['size'].toString().isNotEmpty)
-                ? item['size'].toString()
-                : 'All Size',
-            'jumlah': qty.toStringAsFixed(0),
-            'harga': harga.toStringAsFixed(0),
-            'total': total.toStringAsFixed(0),
-          };
-        }).toList();
+        final harga = double.tryParse(item['cost']?.toString() ?? '0') ?? 0;
+        final total = double.tryParse(item['ttlcost']?.toString() ?? '0') ?? (qty * harga);
 
-        setState(() {
-          barang = parsedProduk;
-        });
-      } else {
-        print('Gagal mengambil data barang. Status: ${response.statusCode}');
-      }
-    } catch (e) {
-      print("Error saat mengambil data barang: $e");
-    } finally {
+        return {
+          'nama_barang': item['sku'] ?? 'Tidak Diketahui',
+          'size': (item['size'] != null && item['size'].toString().isNotEmpty)
+              ? item['size'].toString()
+              : 'All Size',
+          'jumlah': qty.toStringAsFixed(2),
+          'harga': harga.toStringAsFixed(0),
+          'total': total.toStringAsFixed(2),
+        };
+      }).toList();
+
       setState(() {
-        isLoading = false;
+        barang = parsedProduk;
       });
+    } else {
+      print('Gagal mengambil data barang. Status: ${response.statusCode}');
     }
+  } catch (e) {
+    print("Error saat mengambil data barang: $e");
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
   }
+}
 
   double getTotalSemuaBarang() {
     double total = 0;
