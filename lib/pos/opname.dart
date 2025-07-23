@@ -672,7 +672,10 @@ Widget build(BuildContext context) {
       final qtyOpname = double.tryParse(item['stock_opname'] ?? '0') ?? 0;
 
       if (!_controllers.containsKey(i)) {
-        _controllers[i] = TextEditingController(text: qtyAsli.toStringAsFixed(2));
+        _controllers[i] = TextEditingController(
+  text: qtyAsli.toInt().toString()
+);
+
         _controllers[i]!.addListener(() {
           final val = _controllers[i]!.text;
           final parsed = double.tryParse(val);
@@ -685,9 +688,11 @@ Widget build(BuildContext context) {
           }
         });
       } else {
-        if (_controllers[i]!.text != qtyAsli.toStringAsFixed(2)) {
-          _controllers[i]!.text = qtyAsli.toStringAsFixed(2);
-        }
+final qtyAsliText = qtyAsli.toInt().toString();
+if (_controllers[i]!.text != qtyAsliText) {
+  _controllers[i]!.text = qtyAsliText;
+}
+
       }
 
       rows.add(TableRow(
@@ -698,9 +703,9 @@ Widget build(BuildContext context) {
           _buildCell(item['id_bahan'] ?? '', widths[0]),
           _buildCell('${item['id_product']} - ${item['model']}', widths[1]),
           _buildCell(item['ukuran'] ?? '', widths[2]),
-          _buildCell(stockAwal.toStringAsFixed(2), widths[3]),
+          _buildCell(stockAwal.toInt().toString(), widths[3]),
           _buildInputCell(i, widths[4]),
-          _buildCell(qtyOpname.toStringAsFixed(2), widths[5]),
+          _buildCell(qtyOpname.toInt().toString(), widths[5]),
           _buildCell(item['uom'] ?? '', widths[6]),
           _buildDeleteCell(i, widths[7]),
         ],

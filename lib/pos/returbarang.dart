@@ -86,18 +86,38 @@ class _ReturbarangState extends State<Returbarang> {
     }
   }
 
-  Future<List<String>> fetchTransaksiIds() async {
-  final response = await http.get(Uri.parse('http://192.168.1.25/pos/barang_keluar.php'));
+Future<List<String>> fetchTransaksiIds() async {
+  final urls = [
+    'http://192.168.1.25/pos/barang_keluar.php',
+    'http://192.168.1.25/pos/masuk.php',
+  ];
 
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    final transaksiList = data['data'] as List;
+  try {
+    // Kirim semua permintaan HTTP secara paralel
+    final responses = await Future.wait(
+      urls.map((url) => http.get(Uri.parse(url))),
+    );
 
-    return transaksiList.map<String>((item) => item['id_transaksi'].toString()).toList();
-  } else {
-    throw Exception('Gagal memuat data transaksi');
+    // Proses semua respon
+    final allIds = responses.expand((response) {
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final transaksiList = data['data'] as List;
+
+        return transaksiList.map<String>(
+          (item) => item['id_transaksi'].toString(),
+        );
+      } else {
+        throw Exception('Gagal memuat data dari salah satu endpoint');
+      }
+    }).toList();
+
+    return allIds;
+  } catch (e) {
+    throw Exception('Terjadi kesalahan: $e');
   }
 }
+
 
   Future<void> fetchCustomers() async {
     setState(() {
