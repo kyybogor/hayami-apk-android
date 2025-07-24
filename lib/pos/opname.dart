@@ -43,7 +43,7 @@ class _OpnameState extends State<Opname> {
 
   Future<void> fetchSuggestions() async {
     final response =
-        await http.get(Uri.parse('http://192.168.1.25/pos/stock.php'));
+        await http.get(Uri.parse('https://hayami.id/pos/stock.php'));
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       final List<dynamic> data = jsonResponse['data'];
@@ -93,7 +93,7 @@ class _OpnameState extends State<Opname> {
     double stockAwal = double.tryParse(match['stock'] ?? '0') ?? 0;
 
     final response = await http.post(
-      Uri.parse('http://192.168.1.25/pos/tambah_list_opname.php'),
+      Uri.parse('https://hayami.id/pos/tambah_list_opname.php'),
       body: {
         'id_inv_in': idUser,
         'id_product': _selectedNamaBarang!,
@@ -419,7 +419,7 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
 
   Future<void> _fetchOpnameList(String idUser) async {
     final url =
-        Uri.parse('http://192.168.1.25/pos/opname_list.php?id_inv_in=$idUser');
+        Uri.parse('https://hayami.id/pos/opname_list.php?id_inv_in=$idUser');
 
     try {
       final response = await http.get(url);
@@ -487,7 +487,7 @@ if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
   }
 
   Future<bool> _deleteFromServer(String invInId) async {
-    final url = Uri.parse('http://192.168.1.25/pos/delete_opname.php');
+    final url = Uri.parse('https://hayami.id/pos/delete_opname.php');
     try {
       final response = await http.post(url, body: {'inv_in_id': invInId});
       if (response.statusCode == 200) {
@@ -512,7 +512,7 @@ if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
   }
 
   Future<void> _updateQtyAsliToServer(String invInId, double qtyAsli) async {
-    final url = Uri.parse('http://192.168.1.25/pos/update_opname.php');
+    final url = Uri.parse('https://hayami.id/pos/update_opname.php');
 
     try {
       final response = await http.post(url, body: {
@@ -537,7 +537,7 @@ if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
       return;
     }
 
-    final url = Uri.parse('http://192.168.1.25/pos/opname.php');
+    final url = Uri.parse('https://hayami.id/pos/opname.php');
 
 final payload = {
   'data': _opnameData.map((e) => {

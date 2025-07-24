@@ -29,9 +29,9 @@ class _ReturbarangState extends State<Returbarang> {
     });
 
     final keluarUrl =
-        'http://192.168.1.25/pos/detail_keluar.php?id_transaksi=$idTransaksi';
+        'https://hayami.id/pos/detail_keluar.php?id_transaksi=$idTransaksi';
     final masukUrl =
-        'http://192.168.1.25/pos/detail_masuk.php?id_transaksi=$idTransaksi';
+        'https://hayami.id/pos/detail_masuk.php?id_transaksi=$idTransaksi';
 
     try {
       final keluarResponse = await http.get(Uri.parse(keluarUrl));
@@ -88,8 +88,8 @@ class _ReturbarangState extends State<Returbarang> {
 
 Future<List<String>> fetchTransaksiIds() async {
   final urls = [
-    'http://192.168.1.25/pos/barang_keluar.php',
-    'http://192.168.1.25/pos/masuk.php',
+    'https://hayami.id/pos/barang_keluar.php',
+    'https://hayami.id/pos/masuk.php',
   ];
 
   try {
@@ -124,7 +124,7 @@ Future<List<String>> fetchTransaksiIds() async {
       isCustomerLoading = true;
     });
 
-    final url = Uri.parse('http://192.168.1.25/hayami/customer.php');
+    final url = Uri.parse('https://hayami.id/pos/customer.php');
 
     try {
       final response = await http.get(url);
@@ -182,7 +182,7 @@ Future<List<String>> fetchTransaksiIds() async {
 
     final prefs = await SharedPreferences.getInstance();
     final idUser = prefs.getString('id_user') ?? 'admin';
-    final url = 'http://192.168.1.25/pos/list_retur.php?id_transaksi=$idUser';
+    final url = 'https://hayami.id/pos/list_retur.php?id_transaksi=$idUser';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -335,7 +335,7 @@ Future<List<String>> fetchTransaksiIds() async {
     required String custInvoice,
     required List<ReturItem> returItems,
   }) async {
-    final url = Uri.parse('http://192.168.1.25/pos/sinkronasi_retur.php');
+    final url = Uri.parse('https://hayami.id/pos/sinkronasi_retur.php');
 
     final body = jsonEncode({
       'sales': sales,
@@ -389,7 +389,7 @@ Future<List<String>> fetchTransaksiIds() async {
     required String user,
     required String idTransaksi,
   }) async {
-    final url = Uri.parse('http://192.168.1.25/pos/retur.php');
+    final url = Uri.parse('https://hayami.id/pos/retur.php');
 
     final response = await http.post(url, body: {
       'id_customer': idCustomer,
@@ -410,7 +410,7 @@ Future<List<String>> fetchTransaksiIds() async {
   }
 
   Future<void> deleteRetur(String noId) async {
-    final url = Uri.parse('http://192.168.1.25/pos/delete_retur.php');
+    final url = Uri.parse('https://hayami.id/pos/delete_retur.php');
 
     try {
       final response = await http.post(url, body: {'no_id': noId});

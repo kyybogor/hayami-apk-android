@@ -40,7 +40,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
   }
 
   Future<void> fetchCustomers() async {
-    final url = 'http://192.168.1.25/hayami/customer.php';
+    final url = 'https://hayami.id/pos/customer.php';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -352,7 +352,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
     final url =
-        'http://192.168.1.25/pos/laporan_hutang.php?tanggal_from=$from&tanggal_to=$to&id_cabang=$idCabang';
+        'https://hayami.id/pos/laporan_hutang.php?tanggal_from=$from&tanggal_to=$to&id_cabang=$idCabang';
 
     try {
       final response = await http.get(Uri.parse(url));

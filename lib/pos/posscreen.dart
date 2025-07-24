@@ -62,7 +62,7 @@ Future<List<Map<String, dynamic>>> loadAccountsFromLocalDB() async {
 
 Future<bool> isOnline() async {
   try {
-    final response = await http.get(Uri.parse('http://192.168.1.25/hayami/customer.php')).timeout(
+    final response = await http.get(Uri.parse('https://hayami.id/pos/customer.php')).timeout(
       const Duration(seconds: 2),
     );
     return response.statusCode == 200;
@@ -1040,7 +1040,7 @@ if (connectivityResult != ConnectivityResult.none) {
   final String? idCabangPref = prefs.getString('id_cabang');
   final String? dibuatOlehPref = prefs.getString('nm_user');
 
-  final url = Uri.parse("http://192.168.1.25/hayami/takepayment.php");
+  final url = Uri.parse("https://hayami.id/pos/takepayment.php");
 
   final double discInvoice = newDiscount;
   final double subtotal =
@@ -1132,7 +1132,7 @@ if (connectivityResult != ConnectivityResult.none) {
     required String dibuatOleh,
     required List<Map<String, dynamic>> items,
   }) async {
-    final url = Uri.parse("http://192.168.1.25/hayami/draft.php");
+    final url = Uri.parse("https://hayami.id/pos/draft.php");
 
     final body = {
       "idCustomer": idCustomer,
@@ -1168,7 +1168,7 @@ if (connectivityResult != ConnectivityResult.none) {
   Future<bool> deleteTransaction(String idTransaksi) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.25/hayami/delete_cart.php'),
+        Uri.parse('https://hayami.id/pos/delete_cart.php'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'id_transaksi': idTransaksi}),
       );
@@ -1194,7 +1194,7 @@ Future<void> fetchPaymentAccounts() async {
 
   if (connectivityResult != ConnectivityResult.none) {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.25/hayami/akun.php'));
+      final response = await http.get(Uri.parse('https://hayami.id/pos/akun.php'));
       if (response.statusCode == 200) {
         final result = json.decode(response.body);
         if (result['status'] == 'success') {
@@ -1231,7 +1231,7 @@ Future<void> fetchProducts() async {
     }
 
     if (online) {
-      final stockUrl = Uri.parse('http://192.168.1.25/hayami/stock.php');
+      final stockUrl = Uri.parse('https://hayami.id/pos/stock.php');
       final stockResponse = await http.get(stockUrl);
 
       if (stockResponse.statusCode == 200) {
@@ -1288,7 +1288,7 @@ Future<List<Customer>> fetchCustomers(String keyword, {bool offline = false}) as
   } else {
     print('🌐 Mengakses API...');
 
-    final response = await http.get(Uri.parse('http://192.168.1.25/hayami/customer.php'));
+    final response = await http.get(Uri.parse('https://hayami.id/pos/customer.php'));
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
@@ -1553,117 +1553,135 @@ Future<void> handleCustomerIdChange(String id) async {
     );
   }
 
-  Widget productGrid() {
-    final Map<String, List<dynamic>> grouped = {};
+Widget productGrid() {
+  final Map<String, List<dynamic>> grouped = {};
 
-    // 🔍 Filter berdasarkan searchQuery DAN selectedBahan
-    final filtered = allProducts.where((item) {
-      final tipe = item['id_bahan']?.toLowerCase() ?? '';
-      final model = item['model']?.toLowerCase() ?? '';
-      final query = searchQuery.toLowerCase();
+  // 🔍 Filter berdasarkan searchQuery DAN selectedBahan
+  final filtered = allProducts.where((item) {
+    final tipe = item['id_bahan']?.toLowerCase() ?? '';
+    final model = item['model']?.toLowerCase() ?? '';
+    final query = searchQuery.toLowerCase();
 
-      final cocokSearch = tipe.contains(query) || model.contains(query);
-      final cocokDropdown = selectedBahan == null ||
-          selectedBahan!.isEmpty ||
-          item['id_bahan'] == selectedBahan;
+    final cocokSearch = tipe.contains(query) || model.contains(query);
+    final cocokDropdown = selectedBahan == null ||
+        selectedBahan!.isEmpty ||
+        item['id_bahan'] == selectedBahan;
 
-      return cocokSearch && cocokDropdown;
-    }).toList();
+    return cocokSearch && cocokDropdown;
+  }).toList();
 
-    for (var item in filtered) {
-      final key = '${item['id_bahan']}|${item['model']}';
-      grouped.putIfAbsent(key, () => []).add(item);
-    }
+  for (var item in filtered) {
+    final key = '${item['id_bahan']}|${item['model']}';
+    grouped.putIfAbsent(key, () => []).add(item);
+  }
 
-    final items = grouped.entries.toList();
+  final items = grouped.entries.toList();
 
-    return GridView.count(
-      crossAxisCount: 4,
-      padding: const EdgeInsets.all(8),
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
-      childAspectRatio: 0.65,
-      children: items.map((entry) {
-        final representative = entry.value.first;
+  return GridView.count(
+    crossAxisCount: 4,
+    padding: const EdgeInsets.all(8),
+    crossAxisSpacing: 8,
+    mainAxisSpacing: 8,
+    childAspectRatio: 0.65,
+    children: items.map((entry) {
+      final representative = entry.value.first;
 
-        final imgPath = representative['img'];
-        final imgUrl = (imgPath is String && imgPath.isNotEmpty)
-            ? 'http://192.168.1.25/hayami/$imgPath'
-            : 'https://via.placeholder.com/150';
+      // Ambil nama file gambar dari new_image
+      final newImage = (representative['new_image'] ?? '').trim();
 
-        return GestureDetector(
-          onTap: () =>
-              showProductOrderDialog(context, representative, entry.value),
-          child: Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  Text(
-                    '${representative['id_bahan'] ?? ''}',
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+      // Bangun URL gambar
+      final imgUrl = newImage.isNotEmpty
+          ? 'https://hayami.id/apps/erp/img/${Uri.encodeComponent(newImage)}'
+          : 'https://via.placeholder.com/150';
+
+      // Print untuk debugging
+      print('🖼 URL GAMBAR: $imgUrl');
+
+      return GestureDetector(
+        onTap: () =>
+            showProductOrderDialog(context, representative, entry.value),
+        child: Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: [
+                Text(
+                  representative['id_bahan'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Text(
-                    '${representative['model'] ?? ''}',
-                    style: const TextStyle(fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
-                  Expanded(
-                    child: Center(
-                      child: Image.network(imgUrl, fit: BoxFit.contain),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  representative['model'] ?? '',
+                  style: const TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: Center(
+                    child: Image.network(
+                      imgUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image,
+                          size: 50,
+                          color: Colors.grey,
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: 60,
-                    child: ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context).copyWith(
-                        scrollbars: false,
-                        overscroll: false,
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const ClampingScrollPhysics(),
-                        itemCount: entry.value.length,
-                        itemBuilder: (context, index) {
-                          final item = entry.value[index];
-                          final stock = calculateStock(item);
-                          if (stock <= 0) return const SizedBox.shrink();
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: 60,
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context).copyWith(
+                      scrollbars: false,
+                      overscroll: false,
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: entry.value.length,
+                      itemBuilder: (context, index) {
+                        final item = entry.value[index];
+                        final stock = calculateStock(item);
+                        if (stock <= 0) return const SizedBox.shrink();
 
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    item['ukuran'] ?? '',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  stock.toStringAsFixed(2),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item['ukuran'] ?? '',
                                   style: const TextStyle(fontSize: 12),
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                stock.toStringAsFixed(2),
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        );
-      }).toList(),
-    );
-  }
+        ),
+      );
+    }).toList(),
+  );
+}
 
   double calculateGrandTotal({
     required List<OrderItem> items,
