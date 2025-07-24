@@ -204,7 +204,7 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
           pw.Table.fromTextArray(
             headers: headers,
             data: dataRows,
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.indigo),
             headerHeight: 25,
             cellHeight: 20,
             headerStyle: pw.TextStyle(

@@ -259,6 +259,10 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
   widget.onAddToOrder(updatedCart);
   Navigator.pop(context);
 },
+style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo, // Warna latar belakang biru
+    foregroundColor: Colors.white, // Warna teks putih
+  ),
 
                   child: const Text('Add to Order'),
                 ),

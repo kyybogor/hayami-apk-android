@@ -78,17 +78,32 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
         leading: IconButton(
           icon: const Icon(Icons.logout, color: Colors.white),
           onPressed: () async {
-            final confirm = await showLogoutConfirmation();
-            if (confirm == true) {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
+  final confirm = await showLogoutConfirmation();
+  if (confirm == true) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
 
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-              );
-            }
-          },
+    // Gunakan PageRouteBuilder untuk menambahkan efek geser
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const LoginPage(), // Halaman yang dituju
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0); // Geser dari kanan
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
+}
         ),
         title: Image.asset(
           'assets/image/hayamilogo.png',

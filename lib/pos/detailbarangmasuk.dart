@@ -119,6 +119,14 @@ Future<void> generateAndPrintBarcodePdf(
   final pdf = pw.Document();
   int totalPages = 0;
 
+  // Define the number of columns and rows per page
+  const int maxColumns = 3; // Jumlah kolom per halaman
+  const double spacing = 10; // Jarak antar barcode
+
+  // Define initial position for the first barcode
+  double currentX = 0;
+  double currentY = 0;
+
   for (var item in items) {
     final rawBarcode = item['barcode'] ?? '';
     final barcodeBase = rawBarcode.replaceAll(RegExp(r'[^0-9]'), '').padLeft(7, '0');
@@ -132,62 +140,67 @@ Future<void> generateAndPrintBarcodePdf(
     int remaining = stockPcs;
     int barcodeCount = (remaining / qtyPerBarcode).ceil();  // Jumlah barcode yang perlu dicetak
 
-    while (remaining > 0) {
-      final qty = remaining >= qtyPerBarcode ? qtyPerBarcode : remaining;
-      final qtyString = qty.toString().padLeft(2, '0');  // Menambahkan dua digit untuk qty
-      final fullBarcode = "$barcodeBase$qtyString";  // Gabungkan barcode dengan qty
-
-      // Menambahkan halaman baru ke PDF untuk setiap barcode
-      pdf.addPage(
+    // Membuat halaman baru
+    pdf.addPage(
   pw.Page(
     build: (pw.Context context) {
-      return pw.Center(
-        child: pw.Column(
-          mainAxisSize: pw.MainAxisSize.min,
-          children: [
-            // Bagian atas: ID_BAHAN dan qty
-            pw.Center(
-  child: pw.Text(
-    '${item['nama_barang'] ?? ''}  x$qty',
-    textAlign: pw.TextAlign.center,
-    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-  ),
-),
+      return pw.Column(
+        children: [
+          // Menggunakan Container untuk memusatkan elemen secara horizontal
+          pw.Container(
+            alignment: pw.Alignment.center, // Center secara horizontal
+            child: pw.Wrap(
+              direction: pw.Axis.horizontal,
+              spacing: spacing, // Jarak horizontal antar barcode
+              runSpacing: spacing, // Jarak vertikal antar barcode
+              children: List.generate(barcodeCount, (index) {
+                final qty = remaining >= qtyPerBarcode ? qtyPerBarcode : remaining;
+                final qtyString = qty.toString().padLeft(2, '0');  // Menambahkan dua digit untuk qty
+                final fullBarcode = "$barcodeBase$qtyString";  // Gabungkan barcode dengan qty
 
-            pw.SizedBox(height: 2),
-            
-            // Baris kedua: Model dan Ukuran
-            pw.Text(
-              '${item['model'] ?? ''} ${item['ukuran'] ?? ''}',
-              style: pw.TextStyle(fontSize: 10),
-            ),
-            pw.SizedBox(height: 8),
+                remaining -= qty;
 
-            // Barcode
-            pw.BarcodeWidget(
-              barcode: pw.Barcode.code128(),
-              data: fullBarcode,
-              width: 150,
-              height: 50,
-              drawText: false,
+                return pw.Column(
+                  children: [
+                    // Bagian atas: ID_BAHAN dan qty
+                    pw.Text(
+                      '${item['nama_barang'] ?? ''}  x$qty',
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(height: 2),
+                    // Baris kedua: Model dan Ukuran
+                    pw.Text(
+                      '${item['model'] ?? ''} ${item['ukuran'] ?? ''}',
+                      style: pw.TextStyle(fontSize: 10),
+                    ),
+                    pw.SizedBox(height: 8),
+                    // Barcode
+                    pw.BarcodeWidget(
+                      barcode: pw.Barcode.code128(),
+                      data: fullBarcode,
+                      width: 150,
+                      height: 50,
+                      drawText: false,
+                    ),
+                    pw.SizedBox(height: 4),
+                    // Nomor barcode di bawah gambar
+                    pw.Text(
+                      fullBarcode,
+                      style: pw.TextStyle(fontSize: 12),
+                    ),
+                  ],
+                );
+              }),
             ),
-            pw.SizedBox(height: 4),
-
-            // Nomor barcode di bawah gambar
-            pw.Text(
-              fullBarcode,
-              style: pw.TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
+          ),
+        ],
       );
     },
   ),
 );
 
-      remaining -= qty;
-      totalPages++;  // Hitung total halaman yang dicetak
-    }
+    totalPages++;  // Hitung total halaman yang dicetak
   }
 
   if (totalPages == 0) {
@@ -378,19 +391,20 @@ Future<void> fetchProduct() async {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: handleApprove,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Approve',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                ),
+  onPressed: handleApprove,
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo, // Warna latar belakang biru
+    foregroundColor: Colors.white, // Warna teks putih
+    padding: const EdgeInsets.symmetric(vertical: 16), // Padding vertikal
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8), // Sudut tombol melengkung
+    ),
+  ),
+  child: const Text(
+    'Approve',
+    style: TextStyle(fontSize: 16), // Ukuran font tetap 16
+  ),
+),
               ),
             ),
           if (widget.invoice['status']?.toString() == 's')

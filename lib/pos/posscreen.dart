@@ -540,6 +540,7 @@ fieldRow(
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.zero),
                                 ),
@@ -686,7 +687,8 @@ fieldRow(
                               });
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: Colors.indigo,
+                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.zero),
                             ),
@@ -705,7 +707,7 @@ fieldRow(
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       style: TextButton.styleFrom(
-                        backgroundColor: Colors.grey,
+                        backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(6)),
@@ -868,7 +870,7 @@ TextButton(
   style: TextButton.styleFrom(
     backgroundColor: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
         ? Colors.grey
-        : Colors.green,
+        : Colors.indigo,
     foregroundColor: Colors.white,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(6),
@@ -1462,7 +1464,7 @@ Future<void> handleCustomerIdChange(String id) async {
                           const SizedBox(width: 8),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: Colors.indigo,
                               foregroundColor: Colors.white,
                             ),
                             onPressed: customerData != null

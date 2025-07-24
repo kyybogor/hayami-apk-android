@@ -275,45 +275,46 @@ Future<List<String>> fetchTransaksiIds() async {
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
-                            onPressed: () async {
-                              if (selectedCustomerId == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'Pilih customer terlebih dahulu')),
-                                );
-                                return;
-                              }
+  onPressed: () async {
+    if (selectedCustomerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih customer terlebih dahulu')),
+      );
+      return;
+    }
 
-                              Navigator.of(context).pop();
+    Navigator.of(context).pop();
 
-                              bool success = await syncRetur(
-                                sales: selectedSales ?? '',
-                                keterangan: keteranganController.text.trim(),
-                                idCustomer: selectedCustomerId!,
-                                custInvoice: selectedCustomerId!,
-                                returItems: returList,
-                              );
+    bool success = await syncRetur(
+      sales: selectedSales ?? '',
+      keterangan: keteranganController.text.trim(),
+      idCustomer: selectedCustomerId!,
+      custInvoice: selectedCustomerId!,
+      returItems: returList,
+    );
 
-                              if (success) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        'Sinkronasi berhasil\nSales: $selectedSales\nKeterangan: ${keteranganController.text}'),
-                                  ),
-                                );
-                                await fetchItems(_searchController.text);
-                                await fetchReturList();
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Sinkronasi gagal, coba lagi')),
-                                );
-                              }
-                            },
-                            child: const Text('Save'),
-                          ),
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Sinkronasi berhasil\nSales: $selectedSales\nKeterangan: ${keteranganController.text}',
+          ),
+        ),
+      );
+      await fetchItems(_searchController.text);
+      await fetchReturList();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sinkronasi gagal, coba lagi')),
+      );
+    }
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo, // Warna latar belakang indigo
+    foregroundColor: Colors.white, // Warna teks putih
+  ),
+  child: const Text('Save'),
+),
                         ],
                       ),
                     ],
@@ -610,38 +611,43 @@ Future<List<String>> fetchTransaksiIds() async {
                       child: const Text('Cancel'),
                     ),
                     ElevatedButton(
-                      onPressed: () async {
-                        final userData = await getUserAndCabang();
-                        try {
-                          await postReturBarang(
-                            idCustomer: selectedCustomerId ?? 'CUST001',
-                            idBahan: item.idBahan,
-                            model: item.model,
-                            ukuran: item.ukuran,
-                            qty: double.parse(qtyController.text),
-                            harga: item.harga,
-                            idCabang: userData['id_cabang']!,
-                            user: userData['user']!,
-                            idTransaksi: item.idTransaksi,
-                          );
-                          Navigator.of(context).pop();
-                          fetchItems(_searchController.text);
-                          fetchReturList();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Retur berhasil disimpan'),
-                              duration: Duration(milliseconds: 500),
-                            ),
-                          );
-                        } catch (e) {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Gagal: $e')),
-                          );
-                        }
-                      },
-                      child: const Text('Save'),
-                    ),
+  onPressed: () async {
+    final userData = await getUserAndCabang();
+    try {
+      await postReturBarang(
+        idCustomer: selectedCustomerId ?? 'CUST001',
+        idBahan: item.idBahan,
+        model: item.model,
+        ukuran: item.ukuran,
+        qty: double.parse(qtyController.text),
+        harga: item.harga,
+        idCabang: userData['id_cabang']!,
+        user: userData['user']!,
+        idTransaksi: item.idTransaksi,
+      );
+      Navigator.of(context).pop();
+      fetchItems(_searchController.text);
+      fetchReturList();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Retur berhasil disimpan'),
+          duration: Duration(milliseconds: 500),
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal: $e')),
+      );
+    }
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo, // Warna latar belakang indigo
+    foregroundColor: Colors.white, // Warna teks putih
+  ),
+  child: const Text('Save'),
+),
+
                   ],
                 ),
               ],
@@ -671,8 +677,19 @@ void initState() {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Retur Barang'),
-      ),
+  title: const Text(
+    'Retur Barang',
+    style: TextStyle(color: Colors.blue), // Mengubah warna teks menjadi biru
+  ),
+  centerTitle: true,
+  leading: IconButton(
+    icon: Icon(Icons.arrow_back, color: Colors.blue), // Mengubah warna ikon back menjadi biru
+    onPressed: () {
+      // Tindakan saat tombol back ditekan
+      Navigator.pop(context);
+    },
+  ),
+),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -864,10 +881,15 @@ Autocomplete<Customer>(
                   const SizedBox(height: 20),
                   if (returList.isNotEmpty)
                     ElevatedButton.icon(
-                      onPressed: _showSyncDialog,
-                      icon: const Icon(Icons.sync),
-                      label: const Text('Sinkronasi'),
-                    ),
+  onPressed: _showSyncDialog,
+  icon: const Icon(Icons.sync),
+  label: const Text('Sinkronasi'),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo, // Warna latar belakang indigo
+    foregroundColor: Colors.white, // Warna teks dan ikon putih
+  ),
+),
+
                 ],
               ),
             ),

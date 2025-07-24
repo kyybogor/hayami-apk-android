@@ -125,7 +125,6 @@ class _ProdukDetailPageState extends State<ProdukDetailPage> {
           'Detail Produk',
           style: TextStyle(
             color: Colors.blue,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -202,7 +201,7 @@ class _ProdukDetailPageState extends State<ProdukDetailPage> {
                               // Header row
                               TableRow(
                                 decoration:
-                                    BoxDecoration(color: Colors.blue.shade100),
+                                    BoxDecoration(color: Colors.indigo),
                                 children: const [
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
@@ -210,7 +209,7 @@ class _ProdukDetailPageState extends State<ProdukDetailPage> {
                                       'Ukuran',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.blue),
+                                          color: Colors.white),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
@@ -220,7 +219,7 @@ class _ProdukDetailPageState extends State<ProdukDetailPage> {
                                       'Stok Tersedia',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.blue),
+                                          color: Colors.white),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
@@ -230,7 +229,7 @@ class _ProdukDetailPageState extends State<ProdukDetailPage> {
                                       'Harga',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.blue),
+                                          color: Colors.white),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),

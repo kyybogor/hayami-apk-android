@@ -350,9 +350,13 @@ Widget _buildCardInput({required Widget child}) {
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
-                onPressed: _tambahStok,
-                child: Text("Tambah"),
-              ),
+  onPressed: _tambahStok,
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo, // Warna latar belakang indigo
+    foregroundColor: Colors.white, // Warna teks putih
+  ),
+  child: const Text('Tambah'),
+),
             ),
             SizedBox(height: 30),
             OpnameListFromApi(key: _opnameListKey),

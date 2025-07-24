@@ -197,6 +197,7 @@ pw.Table(
 }
 
 Future<void> handleBarcodePrint({
+  required BuildContext context,
   required String idBahan,
   required String model,
   required String ukuran,
@@ -235,25 +236,76 @@ Future<void> handleBarcodePrint({
         return;
       }
 
-      final int fullBarcodeCount = stock ~/ qtyPerBarcode;
-      final int remainingQty = stock % qtyPerBarcode;
+      final int totalQty = stock;
+      int remaining = totalQty;
+      int barcodeCount = (remaining / qtyPerBarcode).ceil();
 
       final pdf = pw.Document();
 
-      // Cetak barcode @qty penuh
-      for (int i = 0; i < fullBarcodeCount; i++) {
-        final full = '$baseBarcode${qty.padLeft(2, '0')}';
-        pdf.addPage(buildBarcodePage(item, full, qty.padLeft(2, '0')));
-      }
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(16),
+          build: (pw.Context context) {
+            return pw.Column(
+              children: [
+                pw.Container(
+                  alignment: pw.Alignment.center,
+                  child: pw.Wrap(
+                    direction: pw.Axis.horizontal,
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: List.generate(barcodeCount, (index) {
+                      final qtyThis = remaining >= qtyPerBarcode
+                          ? qtyPerBarcode
+                          : remaining;
+                      final qtyStr = qtyThis.toString().padLeft(2, '0');
+                      final fullBarcode = "$baseBarcode$qtyStr";
 
-      // Jika ada sisa
-      if (remainingQty > 0) {
-        final sisa = remainingQty.toString().padLeft(2, '0');
-        final full = '$baseBarcode$sisa';
-        pdf.addPage(buildBarcodePage(item, full, sisa));
-      }
+                      remaining -= qtyThis;
 
-      await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+                      return pw.Column(
+  crossAxisAlignment: pw.CrossAxisAlignment.center,
+  children: [
+    pw.Text(
+      '${item['id_bahan']}  x$qtyThis',
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+    ),
+    pw.SizedBox(height: 2),
+    pw.Text(
+      '${item['model']} ${item['ukuran']}',
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(fontSize: 10),
+    ),
+    pw.SizedBox(height: 8),
+    pw.BarcodeWidget(
+      barcode: pw.Barcode.code128(),
+      data: fullBarcode,
+      width: 150,
+      height: 50,
+      drawText: false,
+    ),
+    pw.SizedBox(height: 4),
+    pw.Text(
+      fullBarcode,
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(fontSize: 12),
+    ),
+  ],
+);
+                    }),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+      );
     }
   } catch (e) {
     debugPrint('Error saat print barcode: $e');
@@ -263,44 +315,42 @@ Future<void> handleBarcodePrint({
   }
 }
 
-pw.Page buildBarcodePage(dynamic item, String fullBarcode, String qtyLabel) {
-  return pw.Page(
-    build: (pw.Context context) {
-      return pw.Center(
-        child: pw.Column(
-          mainAxisSize: pw.MainAxisSize.min,
-          children: [
-            // Nama barang + Qty
-            pw.Text(
-              '${item['id_bahan']}  x$qtyLabel',
-              textAlign: pw.TextAlign.center,
-              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 2),
-            // Model + Ukuran
-            pw.Text(
-              '${item['model']} ${item['ukuran']}',
-              style: pw.TextStyle(fontSize: 10),
-            ),
-            pw.SizedBox(height: 8),
-            // Barcode 128
-            pw.BarcodeWidget(
-              barcode: pw.Barcode.code128(),
-              data: fullBarcode,
-              width: 150,
-              height: 50,
-              drawText: false,
-            ),
-            pw.SizedBox(height: 4),
-            // Text barcode
-            pw.Text(
-              fullBarcode,
-              style: pw.TextStyle(fontSize: 12),
-            ),
-          ],
+// Fungsi membangun tampilan 1 barcode (tanpa Page, hanya Widget)
+pw.Widget buildBarcodeWidget(dynamic item, String fullBarcode, String qtyLabel) {
+  return pw.Container(
+    width: 180, // Lebar box barcode
+    padding: const pw.EdgeInsets.all(4),
+    decoration: pw.BoxDecoration(
+      border: pw.Border.all(width: 0.5),
+    ),
+    child: pw.Column(
+      mainAxisSize: pw.MainAxisSize.min,
+      children: [
+        pw.Text(
+          '${item['id_bahan']}  x$qtyLabel',
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
         ),
-      );
-    },
+        pw.SizedBox(height: 2),
+        pw.Text(
+          '${item['model']} ${item['ukuran']}',
+          style: pw.TextStyle(fontSize: 10),
+        ),
+        pw.SizedBox(height: 8),
+        pw.BarcodeWidget(
+          barcode: pw.Barcode.code128(),
+          data: fullBarcode,
+          width: 150,
+          height: 50,
+          drawText: false,
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          fullBarcode,
+          style: pw.TextStyle(fontSize: 12),
+        ),
+      ],
+    ),
   );
 }
 
@@ -783,11 +833,13 @@ Container(
     setState(() => isPrinting = true); // ⏳ Start loading
 
     await handleBarcodePrint(
-      idBahan: selectedBahan!,
-      model: selectedModel!,
-      ukuran: item['ukuran'],
-      qty: qty,
-    );
+  context: context, // Tambahkan ini
+  idBahan: selectedBahan!,
+  model: selectedModel!,
+  ukuran: item['ukuran'],
+  qty: qty,
+);
+
 
     setState(() => isPrinting = false); // ✅ Done
   }

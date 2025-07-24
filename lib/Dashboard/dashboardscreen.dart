@@ -749,10 +749,23 @@ class _KledoDrawerState extends State<KledoDrawer> {
                             final confirm = await showLogoutConfirmation();
                             if (confirm == true) {
                               Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const LoginPage()),
-                              );
+  context,
+  PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) =>
+        const LoginPage(), // Ganti dengan halaman login yang sesuai
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(1.0, 0.0); // Geser dari kanan
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 1000), // Durasi transisi
+  ),
+);
                             } else {
                               Navigator.pop(context);
                             }

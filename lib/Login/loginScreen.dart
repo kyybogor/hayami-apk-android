@@ -39,9 +39,27 @@ void _login() async {
   if (response['status'] == 'success') {
     await _saveUserPrefs(response['user']);
     setState(() => _isLoading = false);
+
+    // Slide transition for DashboardScreenPos
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const DashboardScreenPos()),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const DashboardScreenPos(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Slide transition from right to left with smooth curve
+          const begin = Offset(1.0, 0.0);  // Slide from the right
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          // Control the speed and easing using a custom tween
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 1000),  // Increased transition duration
+      ),
     );
     return;
   }
@@ -53,9 +71,27 @@ void _login() async {
 
   if (gudangResponse['status'] == 'success') {
     await _saveUserPrefs(gudangResponse['user']);
+
+    // Slide transition for Dashboardscreen
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const Dashboardscreen()),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const Dashboardscreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Slide transition from right to left with smooth curve
+          const begin = Offset(1.0, 0.0);  // Slide from the right
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          // Control the speed and easing using a custom tween
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 1000),  // Increased transition duration
+      ),
     );
   } else {
     // ❌ Keduanya gagal

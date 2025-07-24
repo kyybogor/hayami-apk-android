@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 import 'package:intl/intl.dart';
@@ -478,101 +479,103 @@ class _StockdetailState extends State<Stockdetail> {
   ),
 ),
                           Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                final qtyInput = await showDialog<String>(
-                                  context: context,
-                                  builder: (context) {
-                                    final qtyController =
-                                        TextEditingController();
-                                    return AlertDialog(
-                                      title: const Text('Input Qty (PCS)'),
-                                      content: TextField(
-                                        controller: qtyController,
-                                        keyboardType: TextInputType.number,
-                                        decoration: const InputDecoration(
-                                            hintText: 'Misal: 03'),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            child: const Text('Cancel')),
-                                        ElevatedButton(
-                                          onPressed: () => Navigator.pop(
-                                              context, qtyController.text),
-                                          child: const Text('Print'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
+  padding: const EdgeInsets.all(8),
+  child: ElevatedButton.icon(
+    onPressed: () async {
+      final qtyInput = await showDialog<String>(
+        context: context,
+        builder: (context) {
+          final qtyController = TextEditingController();
+          return AlertDialog(
+            title: const Text('Input Qty (PCS)'),
+            content: TextField(
+              controller: qtyController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(hintText: 'Misal: 03'),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pop(context, qtyController.text),
+                child: const Text('Print'),
+              ),
+            ],
+          );
+        },
+      );
 
-                                if (qtyInput == null || qtyInput.isEmpty)
-                                  return;
+      if (qtyInput == null || qtyInput.isEmpty) return;
 
-                                final perQty = int.tryParse(qtyInput) ?? 1;
-                                final totalStock =
-                                    int.tryParse(item['stock'].toString()) ?? 0;
-                                final totalPages = (totalStock / perQty).ceil();
+      final perQty = int.tryParse(qtyInput) ?? 1;
+      final totalStock = int.tryParse(item['stock'].toString()) ?? 0;
+      final totalPages = (totalStock / perQty).ceil();
 
-                                final pdf = pw.Document();
-                                final font = await PdfGoogleFonts.nunitoBold();
-                                final barcode = Barcode.code128();
+      final pdf = pw.Document();
+      final font = await PdfGoogleFonts.nunitoBold();
+      final barcode = Barcode.code128();
 
-                                for (int i = 0; i < totalPages; i++) {
-                                  final isLast = i == totalPages - 1;
-                                  final qtyThisPage =
-                                      isLast && (totalStock % perQty != 0)
-                                          ? (totalStock % perQty)
-                                          : perQty;
-                                  final qtyFormatted =
-                                      qtyThisPage.toString().padLeft(2, '0');
-                                  final kodeBarcode =
-                                      item['barcode'].toString() + qtyFormatted;
-                                  final svg = barcode.toSvg(kodeBarcode,
-                                      width: 200, height: 80);
+      // Definisikan jumlah kolom per halaman
+      const int maxColumns = 3;  // Misalnya, 3 kolom per halaman
+      const double spacing = 10; // Jarak antar barcode
 
-                                  pdf.addPage(
-                                    pw.Page(
-                                      build: (context) {
-                                        return pw.Center(
-                                          // <--- memastikan semua di tengah halaman
-                                          child: pw.Column(
-                                            mainAxisSize: pw.MainAxisSize.min,
-                                            children: [
-                                              pw.Text(
-                                                  '${stockDetail?['id_bahan'] ?? '-'}  x$qtyFormatted',
-                                                  style: pw.TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          pw.FontWeight.bold)),
-                                              pw.Text(
-                                                  '${item['model']} ${item['ukuran']}',
-                                                  style: pw.TextStyle(
-                                                      fontSize: 10)),
-                                              pw.SizedBox(height: 8),
-                                              pw.SvgImage(svg: svg),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  );
-                                }
+      // Mengatur halaman baru
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.Center(
+              child: pw.Column(
+                children: [
+                  pw.Wrap(
+                    direction: pw.Axis.horizontal,
+                    spacing: spacing, // Jarak horizontal antar barcode
+                    runSpacing: spacing, // Jarak vertikal antar barcode
+                    children: List.generate(totalPages, (index) {
+                      final isLast = index == totalPages - 1;
+                      final qtyThisPage = isLast && (totalStock % perQty != 0)
+                          ? (totalStock % perQty)
+                          : perQty;
+                      final qtyFormatted = qtyThisPage.toString().padLeft(2, '0');
+                      final kodeBarcode = item['barcode'].toString() + qtyFormatted;
+                      final svg = barcode.toSvg(kodeBarcode, width: 150, height: 50);
 
-                                await Printing.layoutPdf(
-                                  onLayout: (format) async => pdf.save(),
-                                );
-                              },
-                              icon: const Icon(Icons.print, size: 16),
-                              label: const Text('Print Barcode'),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.indigo.shade200,
-                                  foregroundColor: Colors.white),
-                            ),
+                      return pw.Column(
+                        children: [
+                          pw.Text(
+                            '${stockDetail?['id_bahan'] ?? '-'}  x$qtyFormatted',
+                            style: pw.TextStyle(
+                                fontSize: 10, fontWeight: pw.FontWeight.bold),
                           ),
+                          pw.Text(
+                            '${item['model']} ${item['ukuran']}',
+                            style: pw.TextStyle(fontSize: 10),
+                          ),
+                          pw.SizedBox(height: 8),
+                          pw.SvgImage(svg: svg),
+                        ],
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+
+      // Proses pencetakan PDF
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+      );
+    },
+    icon: const Icon(Icons.print, size: 16),
+    label: const Text('Print Barcode'),
+    style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.indigo.shade200, foregroundColor: Colors.white),
+  ),
+),
                         ],
                       ),
                   ],
