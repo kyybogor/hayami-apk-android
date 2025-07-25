@@ -14,6 +14,7 @@ void main() {
 class Customer {
   final String kode;
   final String nama;
+  final String kota;
   final String alamat;
   final String telp;
   final String email;
@@ -23,6 +24,7 @@ class Customer {
   Customer({
     required this.kode,
     required this.nama,
+    required this.kota,
     required this.alamat,
     required this.telp,
     required this.email,
@@ -34,7 +36,8 @@ class Customer {
     return Customer(
       kode: json['id_customer'] ?? '',
       nama: json['nama_customer'] ?? '',
-      alamat: json['kota'] ?? '',
+      kota: json['kota'] ?? '',
+      alamat: json['alamat_lengkap'] ?? '',
       telp: json['no_telp'] ?? '',
       email: json['email'] ?? '',
       diskon: json['diskon_lusin'] ?? '0.00',
@@ -46,7 +49,7 @@ class Customer {
 // ✅ SERVICE
 Future<List<Customer>> fetchCustomers() async {
   final response = await http.get(
-    Uri.parse('https://hayami.id/pos/customer.php?action=get_all'),
+    Uri.parse('http://192.168.1.25/pos/customer.php'),
   );
 
   if (response.statusCode == 200) {
@@ -265,11 +268,6 @@ Future<Map<String, dynamic>> _addCustomer(
   }
 }
 
-// Fungsi untuk membuat TextField
-
-
-
-
   void _showEditCustomerDialog(Customer customer) {
   final idController = TextEditingController(text: customer.kode);
   final namaController = TextEditingController(text: customer.nama);
@@ -332,24 +330,34 @@ Future<Map<String, dynamic>> _addCustomer(
                   ),
                   SizedBox(width: 10),
                   ElevatedButton(
-                    onPressed: () {
-                      if (namaController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Nama wajib diisi')),
-                        );
-                        return;
-                      }
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Customer berhasil diperbarui')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo, // Warna latar belakang tombol
-                      foregroundColor: Colors.white,   // Warna teks tombol
-                    ),
-                    child: Text('Simpan'),
-                  ),
+  onPressed: () {
+    if (namaController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Nama wajib diisi')),
+      );
+      return;
+    }
+
+    final updatedCustomer = Customer(
+      kode: idController.text,
+      nama: namaController.text,
+      kota: kotaController.text,
+      alamat: alamatController.text,
+      telp: telpController.text,
+      email: emailController.text,
+      diskon: diskonController.text,
+       idCabang: 'yourIdCabangHere',
+    );
+
+    updateCustomer(updatedCustomer);  // Update data ke server
+    Navigator.of(context).pop();
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo,
+    foregroundColor: Colors.white,
+  ),
+  child: Text('Simpan'),
+),
                 ],
               ),
             ],
@@ -360,6 +368,49 @@ Future<Map<String, dynamic>> _addCustomer(
   );
 }
 
+Future<void> updateCustomer(Customer customer) async {
+  final url = Uri.parse('http://192.168.1.25/pos/edit_customer.php');
+
+  // Siapkan data untuk dikirim
+  final Map<String, String> data = {
+    'id_customer': customer.kode,
+    'nama_customer': customer.nama,
+    'kota': customer.kota,
+    'alamat_lengkap': customer.alamat,
+    'no_telp': customer.telp,
+    'email': customer.email,
+    'diskon_lusin': customer.diskon,
+  };
+
+  try {
+    final response = await http.post(url, body: data);
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+
+      if (responseData['status'] == 'success') {
+        // Jika update berhasil
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Customer berhasil diperbarui')),
+        );
+      } else {
+        // Jika gagal update
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(responseData['message'])),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menghubungi server')),
+      );
+    }
+  } catch (e) {
+    print('Error: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Terjadi kesalahan saat mengupdate data')),
+    );
+  }
+}
 
   Widget _buildSearchBox() {
     return Padding(
