@@ -43,10 +43,11 @@ class Customer {
   }
 }
 
-// SERVICE
+// ✅ SERVICE
 Future<List<Customer>> fetchCustomers() async {
-  final response =
-      await http.get(Uri.parse('https://hayami.id/pos/customer.php'));
+  final response = await http.get(
+    Uri.parse('https://hayami.id/pos/customer.php?action=get_all'),
+  );
 
   if (response.statusCode == 200) {
     final Map<String, dynamic> jsonData = json.decode(response.body);
@@ -72,21 +73,14 @@ class _CustomerPageState extends State<CustomerPage> {
   List<Customer> allCustomers = [];
   List<Customer> filteredCustomers = [];
 
-  int currentPage = 1;
-  int rowsPerPage = 10;
-
   TextEditingController searchController = TextEditingController();
-  TextEditingController searchControllerTop = TextEditingController();
-
-  final List<int> rowsOptions = [10, 25, 50, 100];
 
   @override
   void initState() {
     super.initState();
     futureCustomer = fetchCustomers();
     futureCustomer.then((data) {
-      data.sort((a, b) =>
-          a.nama.toLowerCase().compareTo(b.nama.toLowerCase())); // Sorting A-Z
+      data.sort((a, b) => a.nama.toLowerCase().compareTo(b.nama.toLowerCase()));
       setState(() {
         allCustomers = data;
         filteredCustomers = data;
@@ -94,7 +88,40 @@ class _CustomerPageState extends State<CustomerPage> {
     });
   }
 
-  // ADDED: Show Add Customer Dialog
+  void _filter(String query) {
+    final filtered = allCustomers.where((cust) {
+      return cust.nama.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+
+    setState(() {
+      filteredCustomers = filtered;
+    });
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller,
+      {int maxLines = 1, bool readOnly = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label),
+          SizedBox(height: 4),
+          TextField(
+            controller: controller,
+            maxLines: maxLines,
+            readOnly: readOnly,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              fillColor: readOnly ? Colors.grey[200] : null,
+              filled: readOnly,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddCustomerDialog() {
     final idController = TextEditingController();
     final namaController = TextEditingController();
@@ -143,16 +170,12 @@ class _CustomerPageState extends State<CustomerPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                // Validasi singkat
                 if (idController.text.isEmpty || namaController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('ID dan Nama wajib diisi')),
                   );
                   return;
                 }
-
-                // TODO: Kirim ke backend atau tambahkan ke list
-
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Customer berhasil ditambahkan')),
@@ -212,16 +235,12 @@ class _CustomerPageState extends State<CustomerPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                // Validasi dan simpan perubahan
                 if (namaController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Nama wajib diisi')),
                   );
                   return;
                 }
-
-                // TODO: Kirim perubahan ke backend
-
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Customer berhasil diperbarui')),
@@ -233,49 +252,6 @@ class _CustomerPageState extends State<CustomerPage> {
         );
       },
     );
-  }
-
-// ADDED: Reusable field builder
-  Widget _buildTextField(String label, TextEditingController controller,
-      {int maxLines = 1, bool readOnly = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          SizedBox(height: 4),
-          TextField(
-            controller: controller,
-            maxLines: maxLines,
-            readOnly: readOnly,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              fillColor: readOnly ? Colors.grey[200] : null,
-              filled: readOnly,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _filter(String query) {
-    final filtered = allCustomers.where((cust) {
-      return cust.nama.toLowerCase().contains(query.toLowerCase());
-    }).toList();
-
-    setState(() {
-      filteredCustomers = filtered;
-      currentPage = 1;
-    });
-  }
-
-  List<Customer> getPaginatedData() {
-    final startIndex = (currentPage - 1) * rowsPerPage;
-    final endIndex =
-        (startIndex + rowsPerPage).clamp(0, filteredCustomers.length);
-    return filteredCustomers.sublist(startIndex, endIndex);
   }
 
   Widget _buildSearchBox() {
@@ -294,11 +270,9 @@ class _CustomerPageState extends State<CustomerPage> {
   }
 
   Widget _buildDataTable() {
-    final dataToShow = getPaginatedData();
-
     return Scrollbar(
       thumbVisibility: true,
-      thickness: 12, // <- agar lebih tebal
+      thickness: 12,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SingleChildScrollView(
@@ -313,7 +287,7 @@ class _CustomerPageState extends State<CustomerPage> {
               DataColumn(label: Text('Id Cabang')),
               DataColumn(label: Text('Aksi')),
             ],
-            rows: dataToShow.map((customer) {
+            rows: filteredCustomers.map((customer) {
               return DataRow(cells: [
                 DataCell(Text(customer.kode)),
                 DataCell(Text(customer.nama)),
@@ -324,10 +298,6 @@ class _CustomerPageState extends State<CustomerPage> {
                 DataCell(Text(customer.idCabang)),
                 DataCell(Row(
                   children: [
-                    // IconButton(
-                    //   icon: Icon(Icons.add, color: Colors.green),
-                    //   onPressed: _showAddCustomerDialog,
-                    // ),
                     IconButton(
                       icon: Icon(Icons.edit, color: Colors.blue),
                       onPressed: () => _showEditCustomerDialog(customer),
@@ -376,18 +346,15 @@ class _CustomerPageState extends State<CustomerPage> {
           ),
         ],
       ),
-
-      // ⬇️ Tambahkan ini di sini (di dalam Scaffold)
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(
-            right: 90, bottom: 50), // ⬅️ agar agak ke kiri dan naik sedikit
+        padding: const EdgeInsets.only(right: 90, bottom: 50),
         child: FloatingActionButton.extended(
           onPressed: _showAddCustomerDialog,
-          backgroundColor: Color(0xFF3B5BA9), // warna biru sesuai contoh
+          backgroundColor: Color(0xFF3B5BA9),
           icon: Icon(Icons.add, color: Colors.white),
           label: Text('Tambah Baru', style: TextStyle(color: Colors.white)),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8), // ⬅️ kotak rounded
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
       ),
