@@ -44,11 +44,14 @@ class _PettycashState extends State<Pettycash> {
         currentSaldo += inCash - outCash;
 
         result.add({
+          'id_petty': item['id_petty'], // tambahkan ini
           'tgl': item['tgl'],
           'keterangan': item['keterangan'],
           'in': inCash,
           'out': outCash,
           'saldo': currentSaldo,
+          'bukti_petty':
+              item['bukti_petty'], // jika kamu ingin menampilkan bukti
         });
       }
 
@@ -234,12 +237,13 @@ class _PettycashState extends State<Pettycash> {
                         jumlahController.text.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text("Semua field wajib diisi")),
+                            content: Text(
+                                "Kolom keterangan dan jumlah wajib diisi")),
                       );
                       return;
                     }
 
-                    Navigator.pop(context); // Tutup dialog dulu
+                    Navigator.pop(context);
 
                     await _submitData(
                       tipe: selectedType,
@@ -259,6 +263,265 @@ class _PettycashState extends State<Pettycash> {
         );
       },
     );
+  }
+
+  void showEditDialog(Map<String, dynamic> data) {
+    String selectedType = data['in'] > 0 ? 'In Cash' : 'Out Cash';
+    TextEditingController keteranganController =
+        TextEditingController(text: data['keterangan']);
+    TextEditingController jumlahController = TextEditingController(
+        text: (data['in'] > 0 ? data['in'] : data['out']).toString());
+    DateTime selectedDate = DateTime.parse(data['tgl']);
+    File? pickedImage;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text("Ubah Petty Cash"),
+              content: Container(
+                width: 500,
+                height: 600,
+                padding: const EdgeInsets.all(16.0),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Dropdown Tipe
+                      DropdownButtonFormField<String>(
+                        value: selectedType,
+                        items: ['In Cash', 'Out Cash']
+                            .map((e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              selectedType = value;
+                            });
+                          }
+                        },
+                        decoration: const InputDecoration(labelText: "Tipe"),
+                      ),
+                      const SizedBox(height: 12),
+
+                      TextFormField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: "Tanggal",
+                          filled: true,
+                          fillColor: Colors.grey.shade300,
+                        ),
+                        initialValue:
+                            DateFormat('dd/MM/yyyy').format(selectedDate),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Keterangan
+                      TextFormField(
+                        controller: keteranganController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: "Keterangan",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Bukti sebelumnya
+                      if (data['bukti_petty'] != null &&
+                          data['bukti_petty'].toString().isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Bukti Sebelumnya:"),
+                            const SizedBox(height: 5),
+                            Image.network(
+                              'http://192.168.1.25/pos/${data['bukti_petty']}',
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ),
+
+                      // Upload Gambar Baru
+                      Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () async {
+                              final ImagePicker picker = ImagePicker();
+                              final XFile? pickedFile = await picker.pickImage(
+                                  source: ImageSource.gallery);
+                              if (pickedFile != null) {
+                                setState(() {
+                                  pickedImage = File(pickedFile.path);
+                                });
+                              }
+                            },
+                            child: const Text("Choose File"),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              pickedImage == null
+                                  ? "No file chosen"
+                                  : pickedImage!.path.split('/').last,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Preview Gambar Baru
+                      if (pickedImage != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 12),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.grey.shade200,
+                          ),
+                          child: Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  pickedImage!,
+                                  height: 120,
+                                  width: 120,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                pickedImage!.path.split('/').last,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      pickedImage = null;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.delete_forever,
+                                      size: 32),
+                                  color: Colors.redAccent,
+                                  tooltip: "Hapus Gambar",
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      const SizedBox(height: 12),
+
+                      // Jumlah
+                      TextFormField(
+                        controller: jumlahController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: "Jumlah"),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Batal"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (keteranganController.text.isEmpty ||
+                        jumlahController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                "Kolom keterangan dan jumlah wajib diisi")),
+                      );
+                      return;
+                    }
+
+                    Navigator.pop(context);
+
+                    await _submitEditData(
+                      idPetty: data['id_petty'],
+                      tipe: selectedType,
+                      keterangan: keteranganController.text,
+                      jumlah: jumlahController.text,
+                      tanggal: selectedDate,
+                      imageFile: pickedImage,
+                    );
+                  },
+                  child: const Text("Simpan",
+                      style: TextStyle(color: Colors.white)),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _submitEditData({
+    required String idPetty,
+    required String tipe,
+    required String keterangan,
+    required String jumlah,
+    required DateTime tanggal,
+    File? imageFile,
+  }) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idUser = prefs.getString('id_user');
+
+    var uri = Uri.parse("http://192.168.1.25/pos/edit_petty.php");
+    var request = http.MultipartRequest("POST", uri);
+
+    request.fields['id_petty'] = idPetty;
+    request.fields['tipe'] = tipe == 'In Cash' ? 'in_cash' : 'out_cash';
+    request.fields['keterangan'] = keterangan;
+    request.fields['jumlah'] = jumlah;
+    request.fields['tgl'] = DateFormat('yyyy-MM-dd').format(tanggal);
+    request.fields['id_user'] = idUser ?? '';
+
+    if (imageFile != null) {
+      request.files.add(
+          await http.MultipartFile.fromPath('bukti_petty', imageFile.path));
+    }
+
+    final response = await request.send();
+    final res = await http.Response.fromStream(response);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      if (data['status'] == 'success') {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Berhasil disimpan")));
+        fetchData(); // refresh tabel
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Gagal: ${data['message']}")));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Terjadi kesalahan koneksi.")));
+    }
   }
 
   Future<void> _submitData({
@@ -564,7 +827,8 @@ class _PettycashState extends State<Pettycash> {
                                   padding: const EdgeInsets.all(4.0),
                                   child: Center(
                                     child: ElevatedButton(
-                                      onPressed: () {},
+                                      onPressed: () => showEditDialog(
+                                          row), // ← kirim seluruh data, termasuk id_petty
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.indigo.shade200,
                                       ),
