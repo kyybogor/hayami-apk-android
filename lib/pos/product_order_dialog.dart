@@ -79,9 +79,9 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
 
   @override
   Widget build(BuildContext context) {
-    final imagePath = widget.representative['image'];
+    final imagePath = widget.representative['image'] ?? widget.representative['image'];
     final imgUrl = (imagePath != null && imagePath.toString().isNotEmpty)
-        ? 'http://192.168.1.9/hayami/$imagePath'
+        ? 'https://hayami.id/apps/erp/$imagePath'
         : 'https://via.placeholder.com/150';
 
     return SingleChildScrollView(

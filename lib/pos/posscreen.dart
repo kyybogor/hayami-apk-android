@@ -1585,18 +1585,14 @@ Widget productGrid() {
     childAspectRatio: 0.65,
     children: items.map((entry) {
       final representative = entry.value.first;
-
-      // Ambil nama file gambar dari new_image
-      final newImage = (representative['new_image'] ?? '').trim();
-
-      // Bangun URL gambar
-      final imgUrl = newImage.isNotEmpty
-          ? 'https://hayami.id/apps/erp/img/${Uri.encodeComponent(newImage)}'
-          : 'https://via.placeholder.com/150';
+      final newImage = (representative['image'] ?? '').trim();
+final imgUrl = newImage.isNotEmpty
+    ? 'https://hayami.id/apps/erp/${newImage.replaceAll(' ', '%20')}'
+    : 'https://via.placeholder.com/150';
 
       // Print untuk debugging
-      print('🖼 URL GAMBAR: $imgUrl');
-
+         print('🖼 IMG RAW: $newImage');
+    print('🖼 IMG URL FINAL: $imgUrl');
       return GestureDetector(
         onTap: () =>
             showProductOrderDialog(context, representative, entry.value),
