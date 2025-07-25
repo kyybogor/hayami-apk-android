@@ -288,7 +288,7 @@ Future<Map<String, dynamic>> _addCustomer(
       'no_telp': noTelp,
       'email': email,
       'diskon_lusin': diskonLusin,
-      'id_cabang': '1', // Tambahkan ID Cabang, jika diperlukan
+      'id_cabang': idCabang,
     },
   );
 
@@ -304,8 +304,8 @@ Future<Map<String, dynamic>> _addCustomer(
   void _showEditCustomerDialog(Customer customer) {
   final idController = TextEditingController(text: customer.kode);
   final namaController = TextEditingController(text: customer.nama);
-  final kotaController = TextEditingController(text: customer.alamat);
-  final alamatController = TextEditingController();
+  final kotaController = TextEditingController(text: customer.kota);
+  final alamatController = TextEditingController(text: customer.alamat);
   final telpController = TextEditingController(text: customer.telp);
   final emailController = TextEditingController(text: customer.email);
   final diskonController = TextEditingController(text: customer.diskon);
