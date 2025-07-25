@@ -210,136 +210,106 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                   ),
                 ],
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: menuItems.map((item) {
+              child: GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: MediaQuery.of(context).size.width > 700
+                      ? 4
+                      : 3, // 4 kolom untuk iPad, 3 untuk HP
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 20,
+                  childAspectRatio:
+                      1, // ⬅️ kotak, bisa ubah jadi 0.9 kalau mau lebih tinggi
+                ),
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: menuItems.length,
+                itemBuilder: (context, index) {
+                  final item = menuItems[index];
                   return InkWell(
                     onTap: () {
                       switch (item['label']) {
                         case 'POS':
                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Posscreen(),
-                            ),
-                          );
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const Posscreen()));
                           break;
-                        // case 'Menu':
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (_) => const Menu(),
-                        //     ),
-                        //   );
-                        //   break;
                         case 'Laporan':
                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Laporanpos(),
-                            ),
-                          );
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const Laporanpos()));
                           break;
                         case 'Barang Masuk':
                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Barangmasuk(),
-                            ),
-                          );
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const Barangmasuk()));
                           break;
                         case 'List Penjualan':
                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Penjualanharian(),
-                            ),
-                          );
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const Penjualanharian()));
                           break;
                         case 'Opname':
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => Opname(),
-                            ),
-                          );
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => Opname()));
                           break;
                         case 'Retur Barang':
                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Returbarang(),
-                            ),
-                          );
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const Returbarang()));
                           break;
                         case 'Petty Cash':
                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Penjualanharian(),
-                            ),
-                          );
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const Penjualanharian()));
                           break;
                         case 'Master Customer':
                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CustomerPage(),
-                            ),
-                          );
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => CustomerPage()));
                           break;
                         case 'Master Akun':
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AkunPage(),
-                            ),
-                          );
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => AkunPage()));
                           break;
                         default:
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(
-                                  'Navigasi ke ${item['label']} belum tersedia'),
-                            ),
+                                content: Text(
+                                    'Navigasi ke ${item['label']} belum tersedia')),
                           );
                       }
                     },
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            double screenWidth =
-                                MediaQuery.of(context).size.width;
-                            double iconSize = screenWidth > 600 ? 36 : 26;
-                            double containerSize = screenWidth > 600 ? 72 : 48;
-
-                            return Container(
-                              width: containerSize,
-                              height: containerSize,
-                              decoration: BoxDecoration(
-                                color: item['color']?.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(item['icon'],
-                                  color: item['color'], size: iconSize),
-                            );
-                          },
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: item['color'].withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(item['icon'],
+                              color: item['color'], size: 30),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           item['label'],
                           style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
+                              fontSize: 13, fontWeight: FontWeight.w500),
                           textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   );
-                }).toList(),
+                },
               ),
             ),
           ],

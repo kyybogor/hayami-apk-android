@@ -293,145 +293,6 @@ class _CustomerPageState extends State<CustomerPage> {
     );
   }
 
-  Widget _buildTopFilterRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, // ⬅️ sejajarkan dari atas
-        children: [
-          // Spacer agar dropdown sejajar dengan kolom "Kode"
-          SizedBox(width: 1), // bisa disesuaikan kalau terlalu kiri
-
-          Container(
-            height: 36, // Samakan tinggi dengan baris tabel
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade400),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: rowsPerPage,
-                alignment: Alignment.center,
-                icon: Icon(Icons.arrow_drop_down),
-                items: rowsOptions.map((int value) {
-                  return DropdownMenuItem<int>(
-                    value: value,
-                    child: Text('$value'),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      rowsPerPage = newValue;
-                      currentPage = 1;
-                    });
-                  }
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Widget _buildSearchBox() {
-  //   return Padding(
-  //     padding: const EdgeInsets.all(12.0),
-  //     child: TextField(
-  //       controller: searchController,
-  //       decoration: InputDecoration(
-  //         hintText: 'Cari Nama Customer',
-  //         prefixIcon: Icon(Icons.search),
-  //         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-  //       ),
-  //       onChanged: _filter,
-  //     ),
-  //   );
-  // }
-
-  Widget _buildInfoAndPagination() {
-    final totalEntries = filteredCustomers.length;
-    final startEntry = ((currentPage - 1) * rowsPerPage) + 1;
-    final endEntry = (startEntry + rowsPerPage - 1).clamp(1, totalEntries);
-    final totalPages = (totalEntries / rowsPerPage).ceil();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Kiri: Text "Showing..."
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              "Showing $startEntry to $endEntry of $totalEntries entries",
-              style: TextStyle(fontSize: 13),
-            ),
-          ),
-
-          // Kanan: Pagination kotak
-          Row(
-            children: [
-              // Previous
-              TextButton(
-                onPressed: currentPage > 1
-                    ? () => setState(() => currentPage--)
-                    : null,
-                style: TextButton.styleFrom(
-                  foregroundColor: currentPage > 1 ? Colors.blue : Colors.grey,
-                  minimumSize: Size(50, 36),
-                  padding: EdgeInsets.zero,
-                ),
-                child: Text("Previous"),
-              ),
-
-              // Kotak nomor halaman
-              ...List.generate(totalPages, (index) {
-                final i = index + 1;
-                return Container(
-                  width: 36,
-                  height: 36,
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor:
-                          i == currentPage ? Colors.blue : Colors.white,
-                      foregroundColor:
-                          i == currentPage ? Colors.white : Colors.black,
-                      side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero,
-                      ),
-                      padding: EdgeInsets.zero,
-                    ),
-                    onPressed: () => setState(() => currentPage = i),
-                    child: Text('$i', style: TextStyle(fontSize: 14)),
-                  ),
-                );
-              }),
-
-              // Next
-              TextButton(
-                onPressed: currentPage < totalPages
-                    ? () => setState(() => currentPage++)
-                    : null,
-                style: TextButton.styleFrom(
-                  foregroundColor:
-                      currentPage < totalPages ? Colors.blue : Colors.grey,
-                  minimumSize: Size(40, 36),
-                  padding: EdgeInsets.zero,
-                ),
-                child: Text("Next"),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
   Widget _buildDataTable() {
     final dataToShow = getPaginatedData();
 
@@ -496,7 +357,6 @@ class _CustomerPageState extends State<CustomerPage> {
       body: Column(
         children: [
           _buildSearchBox(),
-          _buildTopFilterRow(),
           Expanded(
             child: FutureBuilder<List<Customer>>(
               future: futureCustomer,
@@ -509,7 +369,6 @@ class _CustomerPageState extends State<CustomerPage> {
                 return Column(
                   children: [
                     Expanded(child: _buildDataTable()),
-                    _buildInfoAndPagination(),
                   ],
                 );
               },
