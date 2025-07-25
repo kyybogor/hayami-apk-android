@@ -211,14 +211,11 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                 ],
               ),
               child: GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.of(context).size.width > 700
-                      ? 4
-                      : 3, // 4 kolom untuk iPad, 3 untuk HP
-                  crossAxisSpacing: 20,
-                  mainAxisSpacing: 20,
-                  childAspectRatio:
-                      1, // ⬅️ kotak, bisa ubah jadi 0.9 kalau mau lebih tinggi
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3, // tetap 3 kolom
+                  crossAxisSpacing: 2, // jarak horizontal lebih kecil
+                  mainAxisSpacing: 2, // jarak vertikal lebih kecil
+                  childAspectRatio: 3, // biar lebih kotak & padat
                 ),
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
@@ -290,20 +287,20 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 60,
-                          height: 60,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
                             color: item['color'].withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(item['icon'],
-                              color: item['color'], size: 30),
+                              color: item['color'], size: 20),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           item['label'],
                           style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w500),
+                              fontSize: 12, fontWeight: FontWeight.w500),
                           textAlign: TextAlign.center,
                         ),
                       ],
