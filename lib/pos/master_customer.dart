@@ -209,8 +209,26 @@ void _showAddCustomerDialog() {
 
                       if (response['status'] == 'success') {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Customer berhasil ditambahkan')),
-                        );
+  SnackBar(content: Text('Customer berhasil ditambahkan')),
+);
+
+// Tambah customer ke list dan refresh tampilan
+final newCustomer = Customer(
+  kode: idController.text,
+  nama: namaController.text,
+  kota: kotaController.text,
+  alamat: alamatController.text,
+  telp: telpController.text,
+  email: emailController.text,
+  diskon: diskonController.text.isEmpty ? '0' : diskonController.text,
+  idCabang: (await SharedPreferences.getInstance()).getString('id_cabang') ?? '',
+);
+
+setState(() {
+  allCustomers.add(newCustomer);
+  filteredCustomers = List.from(allCustomers);
+});
+
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Error: ${response['message']}')),
@@ -424,8 +442,18 @@ Future<void> updateCustomer(Customer customer) async {
       if (responseData['status'] == 'success') {
         // Jika update berhasil
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Customer berhasil diperbarui')),
-        );
+  SnackBar(content: Text('Customer berhasil diperbarui')),
+);
+
+// Update data lokal agar langsung terlihat perubahan di UI
+setState(() {
+  int index = allCustomers.indexWhere((c) => c.kode == customer.kode);
+  if (index != -1) {
+    allCustomers[index] = customer;
+    filteredCustomers = List.from(allCustomers);
+  }
+});
+
       } else {
         // Jika gagal update
         ScaffoldMessenger.of(context).showSnackBar(
