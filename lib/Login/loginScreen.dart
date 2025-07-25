@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hayami_app/Dashboard/dashboardposscreens.dart';
 import 'package:hayami_app/Dashboard/dashboardscreen.dart';
 import 'package:hayami_app/Login/forget.dart';
-import 'package:hayami_app/Login/otp.dart';
-import 'package:hayami_app/SignUp/dashboardSignUp.dart';
 import 'package:hayami_app/api/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -256,64 +254,6 @@ void _login() async {
                               ),
                       ),
                     ),
-                    SizedBox(height: isTablet ? 24 : 16),
-                    Text(
-                      "Atau login dengan",
-                      style: TextStyle(fontSize: fontSize * 0.9),
-                    ),
-                    SizedBox(height: isTablet ? 12 : 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.g_mobiledata),
-                          label: Text("Google",
-                              style: TextStyle(fontSize: fontSize)),
-                        ),
-                        SizedBox(width: isTablet ? 20 : 10),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const OtpPage(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.lock),
-                          label:
-                              Text("OTP", style: TextStyle(fontSize: fontSize)),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: isTablet ? 30 : 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Belum punya akun? ",
-                          style: TextStyle(fontSize: fontSize),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const PackageSelectionPage(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            "Daftar sekarang",
-                            style: TextStyle(
-                                color: Colors.blue, fontSize: fontSize),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: isTablet ? 30 : 20),
                   ],
                 ),
               ),
