@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
 import 'package:hayami_app/pos/barangmasuk.dart';
+import 'package:hayami_app/pos/penjualanharian.dart';
+import 'package:hayami_app/pos/returbarang.dart';
+import 'package:hayami_app/pos/opname.dart';
+import 'package:hayami_app/pos/master_customer.dart';
+import 'package:hayami_app/pos/master_akun.dart';
 import 'package:hayami_app/pos/laporanpos.dart';
 import 'package:hayami_app/pos/menu.dart';
 import 'package:hayami_app/pos/posscreen.dart';
@@ -34,7 +39,7 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Tidak'),
           ),
-          ElevatedButton( 
+          ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Ya'),
           ),
@@ -56,14 +61,49 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
       'label': 'POS',
       'color': Colors.deepPurple,
     },
-    {
-      'icon': Icons.bar_chart,
-      'label': 'Menu',
-      'color': Colors.purple,
-    },
+    // {
+    //   'icon': Icons.bar_chart,
+    //   'label': 'Menu',
+    //   'color': Colors.purple,
+    // },
     {
       'icon': Icons.assignment,
       'label': 'Laporan',
+      'color': Colors.blue,
+    },
+    {
+      'icon': Icons.inventory,
+      'label': 'Barang Masuk',
+      'color': Colors.blue,
+    },
+    {
+      'icon': Icons.shopping_cart,
+      'label': 'List Penjualan',
+      'color': Colors.orange,
+    },
+    {
+      'icon': Icons.assignment,
+      'label': 'Opname',
+      'color': Colors.green,
+    },
+    {
+      'icon': Icons.restore_from_trash,
+      'label': 'Retur Barang',
+      'color': Colors.purple,
+    },
+    {
+      'icon': Icons.attach_money,
+      'label': 'Petty Cash',
+      'color': Colors.green,
+    },
+    {
+      'icon': Icons.people,
+      'label': 'Master Customer',
+      'color': Colors.blue,
+    },
+    {
+      'icon': Icons.account_circle,
+      'label': 'Master Akun',
       'color': Colors.blue,
     },
   ];
@@ -76,35 +116,37 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.logout, color: Colors.white),
-          onPressed: () async {
-  final confirm = await showLogoutConfirmation();
-  if (confirm == true) {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              final confirm = await showLogoutConfirmation();
+              if (confirm == true) {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
 
-    // Gunakan PageRouteBuilder untuk menambahkan efek geser
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const LoginPage(), // Halaman yang dituju
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0); // Geser dari kanan
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
+                // Gunakan PageRouteBuilder untuk menambahkan efek geser
+                Navigator.pushReplacement(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        const LoginPage(), // Halaman yang dituju
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(1.0, 0.0); // Geser dari kanan
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOut;
 
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          var offsetAnimation = animation.drive(tween);
+                      var tween = Tween(begin: begin, end: end)
+                          .chain(CurveTween(curve: curve));
+                      var offsetAnimation = animation.drive(tween);
 
-          return SlideTransition(position: offsetAnimation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 800),
-      ),
-    );
-  }
-}
-        ),
+                      return SlideTransition(
+                          position: offsetAnimation, child: child);
+                    },
+                    transitionDuration: const Duration(milliseconds: 800),
+                  ),
+                );
+              }
+            }),
         title: Image.asset(
           'assets/image/hayamilogo.png',
           height: 48,
@@ -182,19 +224,75 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                             ),
                           );
                           break;
-                        case 'Menu':
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const Menu(),
-                            ),
-                          );
-                          break;
+                        // case 'Menu':
+                        //   Navigator.push(
+                        //     context,
+                        //     MaterialPageRoute(
+                        //       builder: (_) => const Menu(),
+                        //     ),
+                        //   );
+                        //   break;
                         case 'Laporan':
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const Laporanpos(), // Halaman Laporan
+                              builder: (_) => const Laporanpos(),
+                            ),
+                          );
+                          break;
+                        case 'Barang Masuk':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Barangmasuk(),
+                            ),
+                          );
+                          break;
+                        case 'List Penjualan':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Penjualanharian(),
+                            ),
+                          );
+                          break;
+                        case 'Opname':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => Opname(),
+                            ),
+                          );
+                          break;
+                        case 'Retur Barang':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Returbarang(),
+                            ),
+                          );
+                          break;
+                        case 'Petty Cash':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Penjualanharian(),
+                            ),
+                          );
+                          break;
+                        case 'Master Customer':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CustomerPage(),
+                            ),
+                          );
+                          break;
+                        case 'Master Akun':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AkunPage(),
                             ),
                           );
                           break;
@@ -250,4 +348,3 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
     );
   }
 }
-
