@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hayami_app/Login/loginScreen.dart';
 import 'package:hayami_app/pos/barangmasuk.dart';
 import 'package:hayami_app/pos/penjualanharian.dart';
+import 'package:hayami_app/pos/pettycash.dart';
 import 'package:hayami_app/pos/returbarang.dart';
 import 'package:hayami_app/pos/opname.dart';
 import 'package:hayami_app/pos/master_customer.dart';
@@ -263,7 +264,7 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const Penjualanharian()));
+                                  builder: (_) => const Pettycash()));
                           break;
                         case 'Master Customer':
                           Navigator.push(
