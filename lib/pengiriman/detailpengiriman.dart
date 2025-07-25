@@ -1,5 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+const platform = MethodChannel('com.hayami.galleryscanner');
 
 class DetailPengirimanPage extends StatefulWidget {
   final Map<String, dynamic> invoice;
@@ -63,6 +70,80 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
     }
   }
 
+  Future<bool> requestPermission() async {
+    if (Platform.isAndroid) {
+      if (await Permission.manageExternalStorage.isGranted) {
+        return true;
+      } else {
+        final result = await Permission.manageExternalStorage.request();
+        if (result.isGranted) {
+          return true;
+        } else {
+          await openAppSettings();
+          return false;
+        }
+      }
+    } else {
+      return true;
+    }
+  }
+
+  Future<void> scanFile(String path) async {
+    try {
+      await platform.invokeMethod('scanFile', {'path': path});
+    } on PlatformException catch (e) {
+      debugPrint("Failed to scan file: '${e.message}'.");
+    }
+  }
+
+  Future<void> downloadAndSaveImage(String url) async {
+    final hasPermission = await requestPermission();
+    if (!hasPermission) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Izin penyimpanan ditolak')),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+
+        String downloadPath = '';
+        if (Platform.isAndroid) {
+          final downloadsDir = Directory('/storage/emulated/0/Download');
+          downloadPath = downloadsDir.path;
+        } else if (Platform.isIOS) {
+          final docDir = await getApplicationDocumentsDirectory();
+          downloadPath = docDir.path;
+        }
+
+        final originalFileName = url.split('/').last.split('?').first;
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = '${timestamp}_$originalFileName';
+
+        final file = File('$downloadPath/$fileName');
+        await file.writeAsBytes(bytes);
+
+        /// 👇 Tambahkan pemanggilan scan agar file muncul di galeri
+        await scanFile(file.path);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gambar tersimpan di $downloadPath/$fileName')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mengunduh gambar')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
@@ -73,14 +154,9 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
     final dueDate = invoice['due'] ?? '-';
     final status = invoice['status']?.toString().toLowerCase() ?? 'belum dibayar';
     final statusColor = _getStatusColor(status);
-    
-    // Ambil path file gambar dari invoice
+
     final filePath = invoice['file'] ?? '';
-
-    // Base URL untuk gambar
     final baseUrl = 'https://hayami.id/apps/erp/';
-
-    // Buat URL lengkap gambar
     final imageUrl = filePath.trim().isEmpty ? null : baseUrl + filePath;
 
     return Scaffold(
@@ -119,39 +195,50 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Tampilkan gambar jika ada
             if (imageUrl != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return SizedBox(
-                        height: 150,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 150,
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                        ),
-                      );
-                    },
-                  ),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return SizedBox(
+                            height: 150,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        (loadingProgress.expectedTotalBytes ?? 1)
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 150,
+                            color: Colors.grey[200],
+                            child: const Center(
+                              child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.download),
+                      label: const Text('Download Gambar'),
+                      onPressed: () {
+                        downloadAndSaveImage(imageUrl);
+                      },
+                    ),
+                  ],
                 ),
               )
             else
@@ -168,10 +255,7 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
                   ),
                 ),
               ),
-
             const SizedBox(height: 20),
-
-            // Kamu bisa tambahkan detail lainnya disini
           ],
         ),
       ),

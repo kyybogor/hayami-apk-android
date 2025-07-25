@@ -57,6 +57,20 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
     super.dispose();
   }
 
+  double toDouble(dynamic val) {
+  if (val is double) return val;
+  if (val is int) return val.toDouble();
+  if (val is String) return double.tryParse(val) ?? 0;
+  return 0;
+}
+
+int toInt(dynamic val) {
+  if (val is int) return val;
+  if (val is double) return val.toInt();
+  if (val is String) return double.tryParse(val)?.toInt() ?? 0;
+  return 0;
+}
+
   Future<void> fetchCustomerList() async {
     const url = 'http://192.168.1.25/hayami/customer.php';
     try {
@@ -113,12 +127,19 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
         double lus = 0;
         int sub = 0, dis = 0, inv = 0;
 
-        for (var item in data) {
-          lus += double.parse(item['lusin']);
-          sub += int.parse(item['subtotal']);
-          dis += double.parse(item['discon']).toInt();
-          inv += double.parse(item['total_invoice']).toInt();
-        }
+
+
+
+// Lalu gunakan:
+
+for (var item in data) {
+  lus += toDouble(item['lusin']);
+  sub += toInt(item['subtotal']);
+  dis += toInt(item['discon']);
+  inv += toInt(item['total_invoice']);
+}
+
+
 
         setState(() {
           rekapList = data;
@@ -601,18 +622,23 @@ Widget buildTable() {
                     fontSize),
                 buildCellText(item['id_transaksi'], fontSize),
                 buildCellText(item['id_customer'], fontSize),
-                buildCellText(
-                    NumberFormat("0.##").format(double.parse(item['lusin'])),
-                    fontSize),
-                buildCellText(
-                    'Rp ${currency.format(int.parse(item['subtotal']))}',
-                    fontSize),
-                buildCellText(
-                    'Rp ${currency.format(double.parse(item['discon']).toInt())}',
-                    fontSize),
-                buildCellText(
-                    'Rp ${currency.format(double.parse(item['total_invoice']).toInt())}',
-                    fontSize),
+buildCellText(
+  NumberFormat("0.##").format(toDouble(item['lusin'])),
+  fontSize,
+),
+buildCellText(
+  'Rp ${currency.format(toInt(item['subtotal']))}',
+  fontSize,
+),
+buildCellText(
+  'Rp ${currency.format(toInt(item['discon']))}',
+  fontSize,
+),
+buildCellText(
+  'Rp ${currency.format(toInt(item['total_invoice']))}',
+  fontSize,
+),
+
                 buildCellText(item['status'] ?? '-', fontSize),
               ],
             );
@@ -646,7 +672,7 @@ Widget buildCellText(String text, double fontSize, {bool isBold = false}) {
       text,
       style: TextStyle(
         fontSize: fontSize,
-        fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        fontWeight: isBold ? FontWeight.bold : FontWeight.normal, 
       ),
       textAlign: TextAlign.center,
     ),

@@ -425,6 +425,101 @@ class _PenjualanharianState extends State<Penjualanharian> {
                         ),
                 ],
               ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            final idCabang = prefs.getString('id_cabang') ?? '';
+            final idUser = prefs.getString('id_user') ?? '';
+
+            if (idCabang.isEmpty || idUser.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Data user belum lengkap, harap login ulang.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
+            // Simpan context Scaffold utama
+            final scaffoldContext = context;
+
+            showDialog(
+              context: scaffoldContext,
+              builder: (context) => AlertDialog(
+                title: const Text('Closing Penjualan'),
+                content: const Text(
+                    'Apakah Anda yakin ingin melakukan closing penjualan hari ini? Pastikan semua transaksi sudah selesai karena proses ini tidak dapat diulangi setelah berhasil.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Batal'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+
+                      final Uri url = Uri.parse(
+                          'http://192.168.1.25/pos/closing.php?id_cabang=$idCabang&id_user=$idUser');
+
+                      try {
+                        final response = await http.get(url);
+
+                        if (response.statusCode == 200) {
+                          final data = json.decode(response.body);
+
+                          if (data['success'] == true) {
+                            ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Penjualan berhasil di-closing.\nTotal: Rp ${data['total']} (ID: ${data['id_petty']})'),
+                                duration: const Duration(milliseconds: 500),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                              SnackBar(
+                                content: Text('Gagal: ${data['message']}'),
+                                duration: const Duration(milliseconds: 500),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } else {
+                          ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                            SnackBar(
+                              content:
+                                  Text('Error server: ${response.statusCode}'),
+                              duration: const Duration(milliseconds: 500),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                          SnackBar(
+                            content: Text('Terjadi kesalahan: $e'),
+                            duration: const Duration(milliseconds: 500),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Ya'),
+                  ),
+                ],
+              ),
+            );
+          },
+          icon: const Icon(Icons.lock),
+          foregroundColor: Colors.white,
+          label: const Text(
+            "Closing Penjualan",
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.indigo,
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
   }
