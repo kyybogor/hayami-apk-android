@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -234,6 +235,35 @@ void _showAddCustomerDialog() {
   );
 }
 
+Future<void> _deleteCustomer(String idCustomer) async {
+  final url = 'http://192.168.1.25/pos/hapus_customer.php?id_customer=$idCustomer';
+
+  try {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      // Asumsi API sukses menghapus data jika status 200
+      // Bisa ditambahkan cek response.body jika API memberikan pesan
+
+      // Update UI setelah hapus, misal:
+      setState(() {
+        filteredCustomers.removeWhere((c) => c.kode == idCustomer);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Customer berhasil dihapus')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menghapus customer')),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  }
+}
+
 // Fungsi untuk mengirim data ke server PHP
 Future<Map<String, dynamic>> _addCustomer(
   String idCustomer,
@@ -244,6 +274,9 @@ Future<Map<String, dynamic>> _addCustomer(
   String email,
   String diskonLusin,
 ) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idCabang = prefs.getString('id_cabang');
+
   final url = Uri.parse('http://192.168.1.25/pos/tambah_customer.php');
   final response = await http.post(
     url,
@@ -542,10 +575,33 @@ Future<void> updateCustomer(Customer customer) async {
           icon: Icon(Icons.edit, color: Colors.blue),
           onPressed: () => _showEditCustomerDialog(customer),
         ),
-        IconButton(
-          icon: Icon(Icons.delete, color: Colors.red),
-          onPressed: () {},
-        ),
+IconButton(
+  icon: Icon(Icons.delete, color: Colors.red),
+  onPressed: () async {
+    // Konfirmasi hapus dulu (optional tapi disarankan)
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Konfirmasi'),
+        content: Text('Yakin ingin menghapus customer ini?'),
+        actions: [
+          TextButton(
+            child: Text('Batal'),
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+          TextButton(
+            child: Text('Hapus'),
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _deleteCustomer(customer.kode);
+    }
+  },
+),
       ],
     ),
   )),
