@@ -58,7 +58,7 @@ class _PettycashState extends State<Pettycash> {
     }
   }
 
-  void _requestPermission() async {
+void _requestPermission() async {
   var status = await Permission.photos.request();
   if (status.isGranted) {
     print("Permission granted");
@@ -72,171 +72,180 @@ void showAddNewDialog() {
   TextEditingController keteranganController = TextEditingController();
   TextEditingController jumlahController = TextEditingController();
   DateTime today = DateTime.now();
-  File? pickedImage; // Inisialisasi gambar yang dipilih
+  XFile? pickedFile;
 
-  // Pastikan dialog ini ada di dalam StatefulWidget yang memanggil setState
+  File? pickedImage;
+
   showDialog(
     context: context,
     builder: (context) {
-      return AlertDialog(
-        title: const Text("Petty Cash"),
-        content: Container(
-          width: 500, // Lebar dialog
-          height: 600, // Tinggi dialog
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Tipe Dropdown
-                DropdownButtonFormField<String>(
-                  value: selectedType,
-                  items: ['In Cash', 'Out Cash']
-                      .map((e) => DropdownMenuItem(
-                            value: e,
-                            child: Text(e),
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) selectedType = value;
-                  },
-                  decoration: const InputDecoration(labelText: "Tipe"),
-                ),
-                const SizedBox(height: 12),
-
-                // Tanggal (tidak bisa diubah)
-                TextFormField(
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: "Tanggal",
-                    filled: true,
-                    fillColor: Colors.grey.shade300,
-                  ),
-                  initialValue: DateFormat('dd/MM/yyyy').format(today),
-                ),
-                const SizedBox(height: 12),
-
-                // Keterangan
-                TextFormField(
-                  controller: keteranganController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: "Keterangan",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Bukti Upload
-                Row(
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return AlertDialog(
+            title: const Text("Petty Cash"),
+            content: Container(
+              width: 500,
+              height: 600,
+              padding: const EdgeInsets.all(16.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton(
-                      onPressed: () async {
-                        final ImagePicker picker = ImagePicker();
-                        final XFile? pickedImageFile = await picker.pickImage(source: ImageSource.gallery); // Menggunakan pickImage untuk XFile
-                        if (pickedImageFile != null) {
-                          print("Gambar terpilih: ${pickedImageFile.path}"); // Debugging log
-                          setState(() {
-                            pickedImage = File(pickedImageFile.path); // Menyimpan gambar yang dipilih
-                          });
-                        } else {
-                          print("Tidak ada gambar yang dipilih"); // Jika tidak ada gambar yang dipilih
-                        }
+                    // Dropdown Tipe
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      items: ['In Cash', 'Out Cash']
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(e),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) selectedType = value;
                       },
-                      child: const Text("Choose File"),
+                      decoration: const InputDecoration(labelText: "Tipe"),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        pickedImage == null
-                            ? "No file chosen"
-                            : pickedImage!.path.split('/').last, // Menampilkan nama file gambar
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 12),
+
+                    // Tanggal
+                    TextFormField(
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: "Tanggal",
+                        filled: true,
+                        fillColor: Colors.grey.shade300,
                       ),
+                      initialValue: DateFormat('dd/MM/yyyy').format(today),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Keterangan
+                    TextFormField(
+                      controller: keteranganController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: "Keterangan",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Upload Gambar
+                    Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            final ImagePicker picker = ImagePicker();
+                            final XFile? pickedImageFile =
+                                await picker.pickImage(
+                                    source: ImageSource.gallery);
+                            if (pickedImageFile != null) {
+                              setState(() {
+                                pickedImage =
+                                    File(pickedImageFile.path); // Simpan gambar
+                              });
+                            }
+                          },
+                          child: const Text("Choose File"),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            pickedImage == null
+                                ? "No file chosen"
+                                : pickedImage!.path.split('/').last,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Preview Gambar + Tombol Hapus Icon
+                    if (pickedImage != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey.shade200,
+                        ),
+                        child: Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                pickedImage!,
+                                height: 120,
+                                width: 120,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              pickedImage!.path.split('/').last,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            // Icon Hapus
+                            // Diubah: Tombol hapus di kanan
+Align(
+  alignment: Alignment.centerRight,
+  child: IconButton(
+    onPressed: () {
+      setState(() {
+        pickedImage = null;
+      });
+    },
+    icon: const Icon(Icons.delete_forever, size: 32),
+    color: Colors.redAccent,
+    tooltip: "Hapus Gambar",
+  ),
+),
+
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 12),
+
+                    // Jumlah
+                    TextFormField(
+                      controller: jumlahController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Jumlah"),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-
-                // Menampilkan gambar yang dipilih
-                if (pickedImage != null)
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    height: 120,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade400),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 5,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            pickedImage!, // Gambar yang dipilih ditampilkan di sini
-                            width: double.infinity,
-                            height: 80,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              pickedImage = null; // Menghapus gambar yang sudah dipilih
-                            });
-                          },
-                          child: const Text("Remove"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent, // Mengganti primary dengan backgroundColor
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 12),
-
-                // Jumlah
-                TextFormField(
-                  controller: jumlahController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Jumlah"),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Batal"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Simpan data logic di sini
-              print("Simpan: $selectedType, ${keteranganController.text}, ${jumlahController.text}");
-              Navigator.pop(context);
-            },
-            child: const Text("Simpan", style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Batal"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  print(
+                      "Simpan: $selectedType, ${keteranganController.text}, ${jumlahController.text}");
+                  Navigator.pop(context);
+                },
+                child:
+                    const Text("Simpan", style: TextStyle(color: Colors.white)),
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+              ),
+            ],
+          );
+        },
       );
     },
   );
 }
-
 
 
   Future<void> _pickDate(BuildContext context, bool isStart) async {
