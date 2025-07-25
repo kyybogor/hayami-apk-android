@@ -122,137 +122,244 @@ class _CustomerPageState extends State<CustomerPage> {
     );
   }
 
-  void _showAddCustomerDialog() {
-    final idController = TextEditingController();
-    final namaController = TextEditingController();
-    final kotaController = TextEditingController();
-    final alamatController = TextEditingController();
-    final telpController = TextEditingController();
-    final emailController = TextEditingController();
-    final diskonController = TextEditingController();
+void _showAddCustomerDialog() {
+  final idController = TextEditingController();
+  final namaController = TextEditingController();
+  final kotaController = TextEditingController();
+  final alamatController = TextEditingController();
+  final telpController = TextEditingController();
+  final emailController = TextEditingController();
+  final diskonController = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0), // Sudut lebih melengkung
+        ),
+        child: Container(
+          width: 500,  // Lebar dialog
+          height: 400, // Tinggi dialog
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Customer'),
-              IconButton(
-                icon: Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              )
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Customer', style: TextStyle(fontSize: 18)),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  )
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTextField('ID Customer', idController),
+                      _buildTextField('Nama Customer', namaController),
+                      _buildTextField('Kota', kotaController),
+                      _buildTextField('Alamat Lengkap', alamatController, maxLines: 3),
+                      _buildTextField('No. Telp', telpController),
+                      _buildTextField('Email', emailController),
+                      _buildTextField('Diskon/Lusin', diskonController),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: Text('Batal', style: TextStyle(color: Colors.white)),
+                  ),
+                  SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Validasi data
+                      if (idController.text.isEmpty || namaController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('ID dan Nama wajib diisi')),
+                        );
+                        return;
+                      }
+
+                      // Kirim data ke server
+                      final response = await _addCustomer(
+                        idController.text,
+                        namaController.text,
+                        kotaController.text,
+                        alamatController.text,
+                        telpController.text,
+                        emailController.text,
+                        diskonController.text.isEmpty ? '0' : diskonController.text,
+                      );
+
+                      if (response['status'] == 'success') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Customer berhasil ditambahkan')),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${response['message']}')),
+                        );
+                      }
+
+                      Navigator.of(context).pop(); // Menutup dialog setelah simpan
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo, // Warna latar belakang tombol
+                      foregroundColor: Colors.white,   // Warna teks tombol
+                    ),
+                    child: Text('Simpan'),
+                  ),
+                ],
+              ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTextField('ID Customer', idController),
-                _buildTextField('Nama Customer', namaController),
-                _buildTextField('Kota', kotaController),
-                _buildTextField('Alamat Lengkap', alamatController,
-                    maxLines: 3),
-                _buildTextField('No. Telp', telpController),
-                _buildTextField('Email', emailController),
-                _buildTextField('Diskon/Lusin', diskonController),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.grey[400],
-              ),
-              child: Text('Batal', style: TextStyle(color: Colors.white)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (idController.text.isEmpty || namaController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('ID dan Nama wajib diisi')),
-                  );
-                  return;
-                }
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Customer berhasil ditambahkan')),
-                );
-              },
-              child: Text('Simpan'),
-            ),
-          ],
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
+}
+
+// Fungsi untuk mengirim data ke server PHP
+Future<Map<String, dynamic>> _addCustomer(
+  String idCustomer,
+  String namaCustomer,
+  String kota,
+  String alamatLengkap,
+  String noTelp,
+  String email,
+  String diskonLusin,
+) async {
+  final url = Uri.parse('http://192.168.1.25/pos/tambah_customer.php');
+  final response = await http.post(
+    url,
+    body: {
+      'id_customer': idCustomer,
+      'nama_customer': namaCustomer,
+      'kota': kota,
+      'alamat_lengkap': alamatLengkap,
+      'no_telp': noTelp,
+      'email': email,
+      'diskon_lusin': diskonLusin,
+      'id_cabang': '1', // Tambahkan ID Cabang, jika diperlukan
+    },
+  );
+
+  if (response.statusCode == 200) {
+    // Parsing response jika status 200 (OK)
+    return json.decode(response.body);
+  } else {
+    // Menangani error server
+    return {'status': 'error', 'message': 'Gagal menghubungi server'};
   }
+}
+
+// Fungsi untuk membuat TextField
+
+
+
 
   void _showEditCustomerDialog(Customer customer) {
-    final idController = TextEditingController(text: customer.kode);
-    final namaController = TextEditingController(text: customer.nama);
-    final kotaController = TextEditingController(text: customer.alamat);
-    final alamatController = TextEditingController();
-    final telpController = TextEditingController(text: customer.telp);
-    final emailController = TextEditingController(text: customer.email);
-    final diskonController = TextEditingController(text: customer.diskon);
+  final idController = TextEditingController(text: customer.kode);
+  final namaController = TextEditingController(text: customer.nama);
+  final kotaController = TextEditingController(text: customer.alamat);
+  final alamatController = TextEditingController();
+  final telpController = TextEditingController(text: customer.telp);
+  final emailController = TextEditingController(text: customer.email);
+  final diskonController = TextEditingController(text: customer.diskon);
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0), // Sudut lebih melengkung
+        ),
+        // Menambahkan batasan ukuran dialog
+        child: Container(
+          width: 500,  // Lebar dialog
+          height: 400, // Tinggi dialog
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Edit Customer'),
-              IconButton(
-                icon: Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              )
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Edit Customer', style: TextStyle(fontSize: 18)),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  )
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTextField('ID Customer', idController, readOnly: true),
+                      _buildTextField('Nama Customer', namaController),
+                      _buildTextField('Kota', kotaController),
+                      _buildTextField('Alamat Lengkap', alamatController, maxLines: 3),
+                      _buildTextField('No. Telp', telpController),
+                      _buildTextField('Email', emailController),
+                      _buildTextField('Diskon/Lusin', diskonController),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: Text('Batal', style: TextStyle(color: Colors.white)),
+                  ),
+                  SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (namaController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Nama wajib diisi')),
+                        );
+                        return;
+                      }
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Customer berhasil diperbarui')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo, // Warna latar belakang tombol
+                      foregroundColor: Colors.white,   // Warna teks tombol
+                    ),
+                    child: Text('Simpan'),
+                  ),
+                ],
+              ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTextField('ID Customer', idController, readOnly: true),
-                _buildTextField('Nama Customer', namaController),
-                _buildTextField('Kota', kotaController),
-                _buildTextField('Alamat Lengkap', alamatController,
-                    maxLines: 3),
-                _buildTextField('No. Telp', telpController),
-                _buildTextField('Email', emailController),
-                _buildTextField('Diskon/Lusin', diskonController),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(backgroundColor: Colors.grey[400]),
-              child: Text('Batal', style: TextStyle(color: Colors.white)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (namaController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Nama wajib diisi')),
-                  );
-                  return;
-                }
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Customer berhasil diperbarui')),
-                );
-              },
-              child: Text('Simpan'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
+
 
   Widget _buildSearchBox() {
     return Padding(
@@ -270,51 +377,142 @@ class _CustomerPageState extends State<CustomerPage> {
   }
 
   Widget _buildDataTable() {
-    return Scrollbar(
-      thumbVisibility: true,
-      thickness: 12,
+  return Scrollbar(
+    thumbVisibility: true,
+    thickness: 12,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SingleChildScrollView(
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('Kode')),
-              DataColumn(label: Text('Nama Customer')),
-              DataColumn(label: Text('Alamat')),
-              DataColumn(label: Text('No. Telp')),
-              DataColumn(label: Text('Email')),
-              DataColumn(label: Text('Diskon/Lusin')),
-              DataColumn(label: Text('Id Cabang')),
-              DataColumn(label: Text('Aksi')),
-            ],
-            rows: filteredCustomers.map((customer) {
-              return DataRow(cells: [
-                DataCell(Text(customer.kode)),
-                DataCell(Text(customer.nama)),
-                DataCell(Text(customer.alamat)),
-                DataCell(Text(customer.telp)),
-                DataCell(Text(customer.email)),
-                DataCell(Text(customer.diskon)),
-                DataCell(Text(customer.idCabang)),
-                DataCell(Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => _showEditCustomerDialog(customer),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {},
-                    ),
-                  ],
-                )),
-              ]);
-            }).toList(),
+        child: DataTable(
+          headingRowColor:
+              MaterialStateColor.resolveWith((states) => Colors.indigo),
+          headingTextStyle: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold),
+          dataRowHeight: 50,
+          columnSpacing: 30, // spacing antar kolom
+          columns: [
+  DataColumn(
+    label: SizedBox(
+      width: 100,
+      child: Text(
+        'Kode',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+  DataColumn(
+    label: SizedBox(
+      width: 150,
+      child: Text(
+        'Nama Customer',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+  DataColumn(
+    label: SizedBox(
+      width: 150,
+      child: Text(
+        'Alamat',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+  DataColumn(
+    label: SizedBox(
+      width: 120,
+      child: Text(
+        'No. Telp',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+  DataColumn(
+    label: SizedBox(
+      width: 200,
+      child: Text(
+        'Email',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+  DataColumn(
+    label: SizedBox(
+      width: 130,
+      child: Text(
+        'Diskon/Lusin',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+  DataColumn(
+    label: SizedBox(
+      width: 200,
+      child: Text(
+        'Id Cabang',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+  DataColumn(
+    label: SizedBox(
+      width: 100,
+      child: Text(
+        'Aksi',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ),
+],
+
+          rows: filteredCustomers.map((customer) {
+            return DataRow(cells: [
+  DataCell(Center(child: Text(customer.kode, textAlign: TextAlign.center))),
+  DataCell(Center(child: Text(customer.nama, textAlign: TextAlign.center))),
+  DataCell(Center(child: Text(customer.alamat, textAlign: TextAlign.center))),
+  DataCell(Center(child: Text(customer.telp, textAlign: TextAlign.center))),
+  DataCell(Center(
+    child: SizedBox(
+      width: 200,
+      child: Text(
+        customer.email,
+        textAlign: TextAlign.center,
+      ),
+    ),
+  )),
+  DataCell(Center(child: Text(customer.diskon, textAlign: TextAlign.center))),
+  DataCell(Center(child: Text(customer.idCabang, textAlign: TextAlign.center))),
+  DataCell(Center(
+    child: Row(
+      mainAxisSize: MainAxisSize.min, // Supaya Row-nya nggak melebar
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(Icons.edit, color: Colors.blue),
+          onPressed: () => _showEditCustomerDialog(customer),
+        ),
+        IconButton(
+          icon: Icon(Icons.delete, color: Colors.red),
+          onPressed: () {},
+        ),
+      ],
+    ),
+  )),
+]);
+          }).toList(),
+          border: TableBorder(
+            horizontalInside: BorderSide(width: 1, color: Colors.grey.shade300),
+            verticalInside: BorderSide(width: 1, color: Colors.grey.shade300),
+            bottom: BorderSide(width: 1, color: Colors.grey.shade300),
+            top: BorderSide(width: 1, color: Colors.grey.shade300),
+            left: BorderSide(width: 1, color: Colors.grey.shade300),
+            right: BorderSide(width: 1, color: Colors.grey.shade300),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +545,7 @@ class _CustomerPageState extends State<CustomerPage> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(right: 90, bottom: 50),
+        padding: const EdgeInsets.only(right: 30, bottom: 10),
         child: FloatingActionButton.extended(
           onPressed: _showAddCustomerDialog,
           backgroundColor: Color(0xFF3B5BA9),

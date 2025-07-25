@@ -287,14 +287,14 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 44,
-                          height: 44,
+                          width: 60,
+                          height: 60,
                           decoration: BoxDecoration(
                             color: item['color'].withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(item['icon'],
-                              color: item['color'], size: 20),
+                              color: item['color'], size: 40),
                         ),
                         const SizedBox(height: 6),
                         Text(
