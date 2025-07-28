@@ -203,180 +203,194 @@ Future<List<String>> fetchTransaksiIds() async {
     }
   }
 
-  void _showSyncDialog() {
-    String? selectedSales = 'Sales 1';
-    TextEditingController keteranganController = TextEditingController();
+void _showSyncDialog() {
+  String? selectedSales = 'Sales 1';
+  TextEditingController keteranganController = TextEditingController();
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              insetPadding: const EdgeInsets.all(20),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                  left: 16,
-                  right: 16,
-                  top: 16,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Sinkronasi Data',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+  // Simpan context utama dari ReturBarang
+  final outerContext = context;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (dialogContext, setState) {
+          return Dialog(
+            insetPadding: const EdgeInsets.all(20),
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(dialogContext).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Sinkronasi Data',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
-                      const SizedBox(height: 20),
-                      DropdownButtonFormField<String>(
-                        value: selectedSales,
-                        decoration: const InputDecoration(
-                          labelText: 'Sales',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: ['Sales 1', 'Sales 2', 'Sales 3']
-                            .map((sales) => DropdownMenuItem(
-                                  value: sales,
-                                  child: Text(sales),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedSales = value;
-                          });
-                        },
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      value: selectedSales,
+                      decoration: const InputDecoration(
+                        labelText: 'Sales',
+                        border: OutlineInputBorder(),
                       ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: keteranganController,
-                        decoration: const InputDecoration(
-                          labelText: 'Keterangan',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: null,
-                        minLines: 3,
-                        keyboardType: TextInputType.multiline,
+                      items: ['Sales 1', 'Sales 2', 'Sales 3']
+                          .map((sales) => DropdownMenuItem(
+                                value: sales,
+                                child: Text(sales),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedSales = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: keteranganController,
+                      decoration: const InputDecoration(
+                        labelText: 'Keterangan',
+                        border: OutlineInputBorder(),
                       ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('Close'),
+                      maxLines: null,
+                      minLines: 3,
+                      keyboardType: TextInputType.multiline,
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                          },
+                          child: const Text('Close'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (selectedCustomerId == null) {
+                              ScaffoldMessenger.of(outerContext).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Pilih customer terlebih dahulu')),
+                              );
+                              return;
+                            }
+
+                            Navigator.of(dialogContext).pop();
+
+                            bool success = await syncRetur(
+                              sales: selectedSales ?? '',
+                              keterangan: keteranganController.text.trim(),
+                              idCustomer: selectedCustomerId!,
+                              custInvoice: selectedCustomerId!,
+                              returItems: returList,
+                            );
+
+                            if (!outerContext.mounted) return;
+
+                            if (success) {
+                              ScaffoldMessenger.of(outerContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Sinkronasi berhasil\nSales: $selectedSales\nKeterangan: ${keteranganController.text}',
+                                  ),
+                                ),
+                              );
+                              await fetchItems(_searchController.text);
+                              await fetchReturList();
+                            } else {
+                              ScaffoldMessenger.of(outerContext).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Sinkronasi gagal, coba lagi')),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo,
+                            foregroundColor: Colors.white,
                           ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-  onPressed: () async {
-    if (selectedCustomerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih customer terlebih dahulu')),
-      );
-      return;
-    }
-
-    Navigator.of(context).pop();
-
-    bool success = await syncRetur(
-      sales: selectedSales ?? '',
-      keterangan: keteranganController.text.trim(),
-      idCustomer: selectedCustomerId!,
-      custInvoice: selectedCustomerId!,
-      returItems: returList,
-    );
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Sinkronasi berhasil\nSales: $selectedSales\nKeterangan: ${keteranganController.text}',
-          ),
-        ),
-      );
-      await fetchItems(_searchController.text);
-      await fetchReturList();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sinkronasi gagal, coba lagi')),
-      );
-    }
-  },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.indigo, // Warna latar belakang indigo
-    foregroundColor: Colors.white, // Warna teks putih
-  ),
-  child: const Text('Save'),
-),
-                        ],
-                      ),
-                    ],
-                  ),
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<bool> syncRetur({
-    required String sales,
-    required String keterangan,
-    required String idCustomer,
-    required String custInvoice,
-    required List<ReturItem> returItems,
-  }) async {
-    final url = Uri.parse('https://hayami.id/pos/sinkronasi_retur.php');
-
-    final body = jsonEncode({
-      'sales': sales,
-      'keterangan': keterangan,
-      'id_customer': idCustomer,
-      'cust_invoice': custInvoice,
-      'retur_items': returItems
-          .map((r) => {
-                'no_id': r.noId,
-                'total': r.total,
-                'id_bahan': r.idBahan,
-                'model': r.model,
-                'ukuran': r.ukuran,
-              })
-          .toList(),
-    });
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: body,
+            ),
+          );
+        },
       );
+    },
+  );
+}
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          return true;
-        } else {
-          print('Sinkronasi gagal: ${data['error']}');
-          return false;
-        }
+Future<bool> syncRetur({
+  required String sales,
+  required String keterangan,
+  required String idCustomer,
+  required String custInvoice,
+  required List<ReturItem> returItems,
+}) async {
+  final url = Uri.parse('https://hayami.id/pos/sinkronasi_retur.php');
+
+  final bodyData = {
+    'sales': sales,
+    'keterangan': keterangan,
+    'id_customer': idCustomer,
+    'cust_invoice': custInvoice,
+    'retur_items': returItems.map((r) => {
+      'no_id': r.noId,
+      'id_bahan': r.idBahan,
+      'model': r.model,
+      'ukuran': r.ukuran,
+      'qty': r.qty,        // <- PENTING: pastikan qty dikirim
+      'harga': r.harga,    // <- PENTING: pastikan harga dikirim
+      'uom': r.uom,        // <- PENTING: jika dibutuhkan backend
+      'total': r.total,
+    }).toList(),
+  };
+
+  print('DEBUG: Data dikirim ke server:');
+  print(jsonEncode(bodyData)); // Logging JSON yang dikirim
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(bodyData),
+    );
+
+    print('DEBUG: Response code: ${response.statusCode}');
+    print('DEBUG: Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success'] == true || data['status'] == 'success') {
+        return true;
       } else {
-        print('Response error: ${response.statusCode}');
+        print('Sinkronasi gagal: ${data['error'] ?? data}');
         return false;
       }
-    } catch (e) {
-      print('Error saat sinkronasi: $e');
+    } else {
+      print('Response error: ${response.statusCode}');
       return false;
     }
+  } catch (e) {
+    print('Error saat sinkronasi: $e');
+    return false;
   }
+}
 
   Future<void> postReturBarang({
     required String idCustomer,
