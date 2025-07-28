@@ -1,8 +1,8 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -82,143 +82,107 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
     double total,
     double totalTerbayar,
     double totalOutstanding,
-  ) async {
-    Future<bool> requestStoragePermission() async {
-      if (Platform.isAndroid) {
-        final statusManage = await Permission.manageExternalStorage.status;
-        if (statusManage.isGranted) return true;
+) async {
+  // Minta izin penyimpanan
+  var status = await Permission.storage.request();
+  if (!status.isGranted) return;
 
-        final result = await Permission.manageExternalStorage.request();
-        if (result.isGranted) return true;
+  final workbook = xlsio.Workbook();
+  final sheet = workbook.worksheets[0];
+  sheet.name = 'Laporan Piutang';
 
-        if (result.isPermanentlyDenied) {
-          await openAppSettings();
-        }
-        return false;
-      } else {
-        final status = await Permission.storage.request();
-        if (status.isGranted) return true;
+  final formatDate = DateFormat('dd/MM/yyyy');
+  final formatCurrency =
+      NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
 
-        if (status.isPermanentlyDenied) {
-          await openAppSettings();
-        }
-        return false;
-      }
-    }
+  final headers = [
+    'Tanggal',
+    'Tagihan',
+    'No.Transaksi',
+    'Customer',
+    'Lusin',
+    'Total',
+    'Terbayar',
+    'Outstanding',
+    'Status',
+  ];
+  final headerRowIndex = 3;
 
-    if (!await requestStoragePermission()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Izin penyimpanan tidak diberikan')),
-      );
-      return;
-    }
+  // Menulis header
+  for (int i = 0; i < headers.length; i++) {
+    final cell = sheet.getRangeByIndex(headerRowIndex, i + 1);
+    cell.setText(headers[i]);
+    cell.cellStyle.bold = true;
+    cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+  }
 
-    final workbook = xlsio.Workbook();
-    final sheet = workbook.worksheets[0];
-    sheet.name = 'Laporan Piutang';
-
-    final formatDate = DateFormat('dd/MM/yyyy');
-    final formatCurrency =
-        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
-
-    final headers = [
-      'Tanggal',
-      'Tagihan',
-      'No.Transaksi',
-      'Customer',
-      'Lusin',
-      'Total',
-      'Terbayar',
-      'Outstanding',
-      'Status',
+  // Menulis data
+  for (int i = 0; i < hasilData.length; i++) {
+    final row = hasilData[i];
+    final rowIndex = headerRowIndex + 1 + i;
+    final values = [
+      formatDate.format(DateTime.parse(row['tanggal'])),
+      formatDate.format(DateTime.parse(row['tagihan'])),
+      row['noTransaksi'].toString(),
+      row['customer'].toString(),
+      row['lusin'].toString(),
+      formatCurrency.format(row['total']),
+      formatCurrency.format(row['terbayar']),
+      formatCurrency.format(row['outstanding']),
+      row['status'].toString(),
     ];
-    final headerRowIndex = 3;
 
-    for (int i = 0; i < headers.length; i++) {
-      final cell = sheet.getRangeByIndex(headerRowIndex, i + 1);
-      cell.setText(headers[i]);
-      cell.cellStyle.bold = true;
+    for (int col = 0; col < values.length; col++) {
+      final cell = sheet.getRangeByIndex(rowIndex, col + 1);
+      cell.setText(values[col]);
       cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
     }
-
-    for (int i = 0; i < hasilData.length; i++) {
-      final row = hasilData[i];
-      final rowIndex = headerRowIndex + 1 + i;
-      final values = [
-        formatDate.format(DateTime.parse(row['tanggal'])),
-        formatDate.format(DateTime.parse(row['tagihan'])),
-        row['noTransaksi'].toString(),
-        row['customer'].toString(),
-        row['lusin'].toString(),
-        formatCurrency.format(row['total']),
-        formatCurrency.format(row['terbayar']),
-        formatCurrency.format(row['outstanding']),
-        row['status'].toString(),
-      ];
-
-      for (int col = 0; col < values.length; col++) {
-        final cell = sheet.getRangeByIndex(rowIndex, col + 1);
-        cell.setText(values[col]);
-        cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
-      }
-    }
-
-    int totalRow = headerRowIndex + 1 + hasilData.length;
-
-    void addTotalRow(String label, double value) {
-      final mergedRange = sheet.getRangeByIndex(totalRow, 1, totalRow, 8);
-      mergedRange.merge();
-      final labelCell = sheet.getRangeByIndex(totalRow, 1);
-      final valueCell = sheet.getRangeByIndex(totalRow, 9);
-      labelCell.setText(label);
-      valueCell.setText(formatCurrency.format(value));
-      labelCell.cellStyle.bold = true;
-      valueCell.cellStyle.bold = true;
-      mergedRange.cellStyle.borders.left.lineStyle = xlsio.LineStyle.thin;
-      mergedRange.cellStyle.borders.top.lineStyle = xlsio.LineStyle.thin;
-      mergedRange.cellStyle.borders.right.lineStyle = xlsio.LineStyle.thin;
-      mergedRange.cellStyle.borders.bottom.lineStyle = xlsio.LineStyle.thin;
-      valueCell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
-      totalRow++;
-    }
-
-    addTotalRow('Total', total);
-    addTotalRow('Total Terbayar', totalTerbayar);
-    addTotalRow('Total Outstanding', totalOutstanding);
-
-    for (int i = 1; i <= headers.length; i++) {
-      sheet.getRangeByIndex(headerRowIndex, i).columnWidth = 20;
-    }
-
-    final bytes = workbook.saveAsStream();
-    workbook.dispose();
-
-    final downloadDir = Directory('/storage/emulated/0/Download');
-    if (!downloadDir.existsSync()) {
-      await downloadDir.create(recursive: true);
-    }
-
-    String getAvailableFilePath(String baseName, String extension) {
-      int counter = 1;
-      String fileName = '$baseName.$extension';
-      String fullPath = '${downloadDir.path}/$fileName';
-
-      while (File(fullPath).existsSync()) {
-        fileName = '$baseName ($counter).$extension';
-        fullPath = '${downloadDir.path}/$fileName';
-        counter++;
-      }
-      return fullPath;
-    }
-
-    final filePath = getAvailableFilePath('laporan_piutang', 'xlsx');
-    final file = File(filePath);
-    await file.writeAsBytes(bytes, flush: true);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('File berhasil disimpan di $filePath')),
-    );
   }
+
+  // Menambahkan row total
+  int totalRow = headerRowIndex + 1 + hasilData.length;
+
+  void addTotalRow(String label, double value) {
+    final mergedRange = sheet.getRangeByIndex(totalRow, 1, totalRow, 8);
+    mergedRange.merge();
+    final labelCell = sheet.getRangeByIndex(totalRow, 1);
+    final valueCell = sheet.getRangeByIndex(totalRow, 9);
+    labelCell.setText(label);
+    valueCell.setText(formatCurrency.format(value));
+    labelCell.cellStyle.bold = true;
+    valueCell.cellStyle.bold = true;
+    mergedRange.cellStyle.borders.left.lineStyle = xlsio.LineStyle.thin;
+    mergedRange.cellStyle.borders.top.lineStyle = xlsio.LineStyle.thin;
+    mergedRange.cellStyle.borders.right.lineStyle = xlsio.LineStyle.thin;
+    mergedRange.cellStyle.borders.bottom.lineStyle = xlsio.LineStyle.thin;
+    valueCell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+    totalRow++;
+  }
+
+  addTotalRow('Total', total);
+  addTotalRow('Total Terbayar', totalTerbayar);
+  addTotalRow('Total Outstanding', totalOutstanding);
+
+  // Mengatur lebar kolom
+  for (int i = 1; i <= headers.length; i++) {
+    sheet.getRangeByIndex(headerRowIndex, i).columnWidth = 20;
+  }
+
+  // Menyimpan file
+  final bytes = workbook.saveAsStream();
+  workbook.dispose();
+
+  final directory = await getExternalStorageDirectory();
+  final filePath = '${directory!.path}/laporan_piutang.xlsx';
+  final file = File(filePath)
+    ..createSync(recursive: true)
+    ..writeAsBytesSync(bytes);
+
+  // Menampilkan notifikasi
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('File berhasil disimpan di $filePath')),
+  );
+}
 
   Future<void> printPdf() async {
     final pdf = pw.Document();
@@ -413,7 +377,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Laporan Piutang Customer'),
+        title: const Text('Laporan Piutang Customer', style: TextStyle(color: Colors.blue)),
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.blue),
@@ -584,7 +548,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                       children: [
                         Icon(Icons.file_download),
                         SizedBox(width: 8),
-                        Text('Excel'),
+                        Text('Print Excel'),
                       ],
                     ),
                   ),

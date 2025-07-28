@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -57,7 +58,9 @@ class _StockdetailState extends State<Stockdetail> {
   }
 
   Future<void> fetchBahanModel() async {
-    final url = 'https://hayami.id/pos/stock.php';
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+String? idCabang = prefs.getString('id_cabang');
+    final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -192,52 +195,81 @@ class _StockdetailState extends State<Stockdetail> {
   }
 
   Future<void> fetchDetailStock() async {
+  setState(() {
+    isLoading = true;
+  });
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? idCabang = prefs.getString('id_cabang');
+
+  // Pastikan selectedBahan tidak null sebelum memasukkannya ke URL
+  if (selectedBahan == null) {
     setState(() {
-      isLoading = true;
+      isLoading = false;
     });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ID Bahan harus diisi')),
+    );
+    return;
+  }
 
-    final url = Uri.parse('https://hayami.id/pos/detail_stock.php'
-        '?id_bahan=${Uri.encodeComponent(selectedBahan!)}');
+  // Menyusun URL dengan parameter yang tepat
+  String url = 'https://hayami.id/pos/detail_stock.php?id_cabang=$idCabang&id_bahan=${Uri.encodeComponent(selectedBahan!)}';
 
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final allStock = data['stok_detail'] as List;
+  // Jika model tidak null, tambahkan parameter model ke URL
+  if (selectedModel != null && selectedModel!.isNotEmpty) {
+    url += '&model=${Uri.encodeComponent(selectedModel!)}';
+  }
 
-        // Simpan total stock dari seluruh ID Bahan (tanpa filter)
-        final totalStock = data['total_stock'];
+  // Jika ukuran tidak null, tambahkan parameter ukuran ke URL
+  if (selectedUkuran != null && selectedUkuran!.isNotEmpty) {
+    url += '&ukuran=${Uri.encodeComponent(selectedUkuran!)}';
+  }
 
-        // Lalu filter jika model dan ukuran dipilih
-        List<dynamic> result = allStock.where((item) {
-          final matchModel =
-              selectedModel == null || item['model'] == selectedModel;
-          final matchUkuran =
-              selectedUkuran == null || item['ukuran'] == selectedUkuran;
-          return matchModel && matchUkuran;
-        }).toList();
+  try {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final allStock = data['stok_detail'] as List;
 
-        setState(() {
-          stockDetail = {
-            'id_bahan': data['id_bahan'],
-            'total_stock': totalStock,
-          };
-          filteredStock = result;
-          currentPage = 1; // Reset halaman
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching detail stock: $e');
+      // Simpan total stock dari seluruh ID Bahan (tanpa filter)
+      final totalStock = data['total_stock'];
+
+      // Lalu filter jika model dan ukuran dipilih
+      List<dynamic> result = allStock.where((item) {
+        final matchModel = selectedModel == null || item['model'] == selectedModel;
+        final matchUkuran = selectedUkuran == null || item['ukuran'] == selectedUkuran;
+        return matchModel && matchUkuran;
+      }).toList();
+
+      setState(() {
+        stockDetail = {
+          'id_bahan': data['id_bahan'],
+          'total_stock': totalStock,
+        };
+        filteredStock = result;
+        currentPage = 1; // Reset halaman
+        isLoading = false;
+      });
+    } else {
       setState(() {
         isLoading = false;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal mengambil data stok')),
+      );
     }
+  } catch (e) {
+    debugPrint('Error fetching detail stock: $e');
+    setState(() {
+      isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Terjadi kesalahan')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +383,7 @@ class _StockdetailState extends State<Stockdetail> {
                   ElevatedButton(
                     onPressed: generateExcel,
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo.shade200,
+                        backgroundColor: Colors.green,
                         foregroundColor: Colors.white),
                     child: const Row(
                       children: [

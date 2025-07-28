@@ -50,7 +50,7 @@ class Customer {
 // ✅ SERVICE
 Future<List<Customer>> fetchCustomers() async {
   final response = await http.get(
-    Uri.parse('http://192.168.1.25/pos/customer.php'),
+    Uri.parse('https://hayami.id//pos/customer.php'),
   );
 
   if (response.statusCode == 200) {
@@ -143,8 +143,8 @@ void _showAddCustomerDialog() {
           borderRadius: BorderRadius.circular(16.0), // Sudut lebih melengkung
         ),
         child: Container(
-          width: 500,  // Lebar dialog
-          height: 400, // Tinggi dialog
+          width: 500,
+          height: 400,
           padding: EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,6 +196,34 @@ void _showAddCustomerDialog() {
                         return;
                       }
 
+                      // Pengecekan duplikat ID dan Nama customer
+                      final isDuplicateID = allCustomers.any((cust) => cust.kode.toLowerCase() == idController.text.toLowerCase());
+                      final isDuplicateNama = allCustomers.any((cust) => cust.nama.toLowerCase() == namaController.text.toLowerCase());
+
+                      if (isDuplicateID || isDuplicateNama) {
+                        // Menampilkan AlertDialog jika ID atau Nama customer sudah ada
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Error'),
+                              content: Text(isDuplicateID
+                                  ? 'ID customer sudah ada!'
+                                  : 'Nama customer sudah ada!'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(); // Menutup dialog error
+                                  },
+                                  child: Text('Tutup'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                        return;
+                      }
+
                       // Kirim data ke server
                       final response = await _addCustomer(
                         idController.text,
@@ -209,26 +237,25 @@ void _showAddCustomerDialog() {
 
                       if (response['status'] == 'success') {
                         ScaffoldMessenger.of(context).showSnackBar(
-  SnackBar(content: Text('Customer berhasil ditambahkan')),
-);
+                          SnackBar(content: Text('Customer berhasil ditambahkan')),
+                        );
 
-// Tambah customer ke list dan refresh tampilan
-final newCustomer = Customer(
-  kode: idController.text,
-  nama: namaController.text,
-  kota: kotaController.text,
-  alamat: alamatController.text,
-  telp: telpController.text,
-  email: emailController.text,
-  diskon: diskonController.text.isEmpty ? '0' : diskonController.text,
-  idCabang: (await SharedPreferences.getInstance()).getString('id_cabang') ?? '',
-);
+                        // Tambah customer ke list dan refresh tampilan
+                        final newCustomer = Customer(
+                          kode: idController.text,
+                          nama: namaController.text,
+                          kota: kotaController.text,
+                          alamat: alamatController.text,
+                          telp: telpController.text,
+                          email: emailController.text,
+                          diskon: diskonController.text.isEmpty ? '0' : diskonController.text,
+                          idCabang: (await SharedPreferences.getInstance()).getString('id_cabang') ?? '',
+                        );
 
-setState(() {
-  allCustomers.add(newCustomer);
-  filteredCustomers = List.from(allCustomers);
-});
-
+                        setState(() {
+                          allCustomers.add(newCustomer);
+                          filteredCustomers = List.from(allCustomers);
+                        });
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Error: ${response['message']}')),
@@ -238,8 +265,8 @@ setState(() {
                       Navigator.of(context).pop(); // Menutup dialog setelah simpan
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo, // Warna latar belakang tombol
-                      foregroundColor: Colors.white,   // Warna teks tombol
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
                     ),
                     child: Text('Simpan'),
                   ),
@@ -254,7 +281,7 @@ setState(() {
 }
 
 Future<void> _deleteCustomer(String idCustomer) async {
-  final url = 'http://192.168.1.25/pos/hapus_customer.php?id_customer=$idCustomer';
+  final url = 'https://hayami.id//pos/hapus_customer.php?id_customer=$idCustomer';
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -262,20 +289,25 @@ Future<void> _deleteCustomer(String idCustomer) async {
       // Asumsi API sukses menghapus data jika status 200
       // Bisa ditambahkan cek response.body jika API memberikan pesan
 
-      // Update UI setelah hapus, misal:
+      // Hapus customer dari list di UI (setState untuk merefresh UI)
       setState(() {
-        filteredCustomers.removeWhere((c) => c.kode == idCustomer);
+        // Menghapus customer dari list berdasarkan id
+        allCustomers.removeWhere((customer) => customer.kode == idCustomer);
+        filteredCustomers = List.from(allCustomers);  // Update filteredCustomers juga
       });
 
+      // Menampilkan SnackBar bahwa customer berhasil dihapus
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Customer berhasil dihapus')),
       );
     } else {
+      // Menampilkan error jika gagal menghapus
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menghapus customer')),
       );
     }
   } catch (e) {
+    // Menampilkan error jika ada exception
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error: $e')),
     );
@@ -295,7 +327,7 @@ Future<Map<String, dynamic>> _addCustomer(
       SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idCabang = prefs.getString('id_cabang');
 
-  final url = Uri.parse('http://192.168.1.25/pos/tambah_customer.php');
+  final url = Uri.parse('https://hayami.id//pos/tambah_customer.php');
   final response = await http.post(
     url,
     body: {
@@ -420,7 +452,7 @@ Future<Map<String, dynamic>> _addCustomer(
 }
 
 Future<void> updateCustomer(Customer customer) async {
-  final url = Uri.parse('http://192.168.1.25/pos/edit_customer.php');
+  final url = Uri.parse('https://hayami.id//pos/edit_customer.php');
 
   // Siapkan data untuk dikirim
   final Map<String, String> data = {

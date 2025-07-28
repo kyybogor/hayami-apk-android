@@ -34,7 +34,7 @@ Future<void> resetPassword() async {
 
   try {
     final response = await http.post(
-      Uri.parse('http://192.168.1.25/reset.php'), // Ganti dengan URL yang benar
+      Uri.parse('https://hayami.id//reset.php'), // Ganti dengan URL yang benar
       body: {
         'id_karyawan': idKaryawan,
         'new_password': passwordBaru,

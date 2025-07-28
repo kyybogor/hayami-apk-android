@@ -72,7 +72,7 @@ int toInt(dynamic val) {
 }
 
   Future<void> fetchCustomerList() async {
-    const url = 'http://192.168.1.25/hayami/customer.php';
+    const url = 'https://hayami.id//hayami/customer.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -104,7 +104,7 @@ int toInt(dynamic val) {
     final idCabang = prefs.getString('id_cabang') ?? '';
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
-    String url = 'http://192.168.1.25/pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
+    String url = 'https://hayami.id//pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
 
     if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
       url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';
@@ -273,121 +273,95 @@ for (var item in data) {
     await Printing.layoutPdf(onLayout: (format) async => pdf.save());
   }
 
-  Future<void> exportToExcel(BuildContext context) async {
-    final excelFile = excel.Excel.createExcel();
-    final sheet = excelFile['Sheet1'];
+Future<void> exportToExcel(BuildContext context) async {
+  var status = await Permission.storage.request();  // Izin pertama
 
+  if (!status.isGranted) return;
+
+  final excelFile = excel.Excel.createExcel();
+  final sheet = excelFile['Sheet1'];
+
+  // Menulis header
+  sheet.appendRow([
+    'Tanggal',
+    'Tgl Jatuh Tempo',
+    'Transaksi',
+    'Customer',
+    'Lusin',
+    'Subtotal',
+    'Diskon',
+    'Total',
+    'Status',
+  ]);
+
+  // Menulis data
+  for (var item in rekapList) {
     sheet.appendRow([
-      'Tanggal',
-      'Tgl Jatuh Tempo',
-      'Transaksi',
-      'Customer',
-      'Lusin',
-      'Subtotal',
-      'Diskon',
-      'Total',
-      'Status',
+      (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
+      (item['tgl_jatuh_tempo'] != null &&
+              item['tgl_jatuh_tempo'] != '0000-00-00')
+          ? item['tgl_jatuh_tempo'].toString().split(' ')[0]
+          : '-',
+      item['id_transaksi']?.toString() ?? '-',
+      item['id_customer']?.toString() ?? '-',
+      double.tryParse(item['lusin']?.toString() ?? '0') ?? 0,
+      int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0,
+      double.tryParse(item['discon']?.toString() ?? '0')?.toInt() ?? 0,
+      double.tryParse(item['total_invoice']?.toString() ?? '0')?.toInt() ?? 0,
+      item['status']?.toString() ?? '-',
     ]);
-
-    for (var item in rekapList) {
-      sheet.appendRow([
-        (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
-        (item['tgl_jatuh_tempo'] != null &&
-                item['tgl_jatuh_tempo'] != '0000-00-00')
-            ? item['tgl_jatuh_tempo'].toString().split(' ')[0]
-            : '-',
-        item['id_transaksi']?.toString() ?? '-',
-        item['id_customer']?.toString() ?? '-',
-        double.tryParse(item['lusin']?.toString() ?? '0') ?? 0,
-        int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0,
-        double.tryParse(item['discon']?.toString() ?? '0')?.toInt() ?? 0,
-        double.tryParse(item['total_invoice']?.toString() ?? '0')?.toInt() ?? 0,
-        item['status']?.toString() ?? '-',
-      ]);
-    }
-
-    sheet.appendRow([
-      'TOTAL',
-      '',
-      '',
-      '',
-      totalLusin,
-      totalSubtotal,
-      totalDiskon,
-      totalInvoice,
-      '',
-    ]);
-
-    if (Platform.isAndroid) {
-      if (!await Permission.manageExternalStorage.isGranted) {
-        final status = await Permission.manageExternalStorage.request();
-        if (!status.isGranted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content:
-                    Text('Izin penyimpanan ditolak, aktifkan di pengaturan')),
-          );
-          openAppSettings();
-          return;
-        }
-      }
-    } else {
-      final status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Izin penyimpanan ditolak')),
-        );
-        return;
-      }
-    }
-
-    try {
-      Directory? outputDir;
-      if (Platform.isAndroid) {
-        outputDir = Directory('/storage/emulated/0/Download');
-        if (!(await outputDir.exists())) {
-          outputDir = await getExternalStorageDirectory();
-        }
-      } else {
-        outputDir = await getApplicationDocumentsDirectory();
-      }
-
-      if (outputDir == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Tidak bisa mengakses folder penyimpanan')),
-        );
-        return;
-      }
-
-      if (!(await outputDir.exists())) {
-        await outputDir.create(recursive: true);
-      }
-
-      final filePath =
-          "${outputDir.path}/rekapitulasi_penjualan_${DateTime.now().millisecondsSinceEpoch}.xlsx";
-
-      final fileBytes = excelFile.encode();
-      if (fileBytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal membuat file Excel')),
-        );
-        return;
-      }
-
-      final file = File(filePath);
-      await file.writeAsBytes(fileBytes);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('File berhasil disimpan di $filePath')),
-      );
-    } catch (e) {
-      debugPrint("Gagal menyimpan file: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal menyimpan file')),
-      );
-    }
   }
+
+  // Menambahkan baris total
+  sheet.appendRow([
+    'TOTAL',
+    '',
+    '',
+    '',
+    totalLusin,
+    totalSubtotal,
+    totalDiskon,
+    totalInvoice,
+    '',
+  ]);
+
+  // Minta izin penyimpanan
+  var storagePermissionStatus = await Permission.storage.request(); // Ubah nama variabel disini
+
+  if (!storagePermissionStatus.isGranted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Izin penyimpanan ditolak')),
+    );
+    return;
+  }
+
+  try {
+    // Menggunakan getExternalStorageDirectory() yang sesuai
+    final directory = await getExternalStorageDirectory();
+    final filePath = '${directory!.path}/rekapitulasi_penjualan_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
+    final fileBytes = excelFile.encode();
+    if (fileBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membuat file Excel')),
+      );
+      return;
+    }
+
+    final file = File(filePath);
+    await file.writeAsBytes(fileBytes);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('File berhasil disimpan di $filePath')),
+    );
+  } catch (e) {
+    debugPrint("Gagal menyimpan file: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gagal menyimpan file')),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -495,7 +469,7 @@ for (var item in data) {
                     children: [
                       Icon(Icons.file_download),
                       SizedBox(width: 8),
-                      Text('Excel'),
+                      Text('Print Excel'),
                     ],
                   ),
                 ),

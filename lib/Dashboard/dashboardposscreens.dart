@@ -102,11 +102,11 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
       'label': 'Master Customer',
       'color': Colors.blue,
     },
-    {
-      'icon': Icons.account_circle,
-      'label': 'Master Akun',
-      'color': Colors.blue,
-    },
+    // {
+    //   'icon': Icons.account_circle,
+    //   'label': 'Master Akun',
+    //   'color': Colors.blue,
+    // },
   ];
 
   @override
@@ -272,10 +272,10 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                               MaterialPageRoute(
                                   builder: (_) => CustomerPage()));
                           break;
-                        case 'Master Akun':
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => AkunPage()));
-                          break;
+                        // case 'Master Akun':
+                        //   Navigator.push(context,
+                        //       MaterialPageRoute(builder: (_) => AkunPage()));
+                        //   break;
                         default:
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

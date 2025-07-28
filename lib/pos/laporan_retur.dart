@@ -556,7 +556,7 @@ class _LaporanReturState extends State<LaporanRetur> {
                             child: Text(
                               'Total: Rp ${currencyFormat.format(item['total'])}',
                               style: const TextStyle(
-                                  color: Colors.black
+                                  color: Colors.white
                                   ),
                             ),
                           ),

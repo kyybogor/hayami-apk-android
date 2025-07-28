@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 
 class Pettycash extends StatefulWidget {
   const Pettycash({super.key});
@@ -26,7 +28,7 @@ class _PettycashState extends State<Pettycash> {
     String start = DateFormat('yyyy-MM-dd').format(dariTanggal);
     String end = DateFormat('yyyy-MM-dd').format(sampaiTanggal);
     final url = Uri.parse(
-        'http://192.168.1.25/pos/petty_cash.php?start=$start&end=$end');
+        'https://hayami.id//pos/petty_cash.php?start=$start&end=$end');
 
     final response = await http.get(url);
     if (response.statusCode == 200) {
@@ -44,7 +46,7 @@ class _PettycashState extends State<Pettycash> {
         currentSaldo += inCash - outCash;
 
         result.add({
-          'id_petty': item['id_petty'], // tambahkan ini
+          'id_petty': item['id_petty'], 
           'tgl': item['tgl'],
           'keterangan': item['keterangan'],
           'in': inCash,
@@ -97,30 +99,34 @@ class _PettycashState extends State<Pettycash> {
                     children: [
                       // Dropdown Tipe
                       DropdownButtonFormField<String>(
-                        value: selectedType,
-                        items: ['In Cash', 'Out Cash']
-                            .map((e) => DropdownMenuItem(
-                                  value: e,
-                                  child: Text(e),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) selectedType = value;
-                        },
-                        decoration: const InputDecoration(labelText: "Tipe"),
-                      ),
+  value: selectedType,
+  items: ['In Cash', 'Out Cash']
+      .map((e) => DropdownMenuItem(
+            value: e,
+            child: Text(e),
+          ))
+      .toList(),
+  onChanged: (value) {
+    if (value != null) selectedType = value;
+  },
+  decoration: const InputDecoration(
+    labelText: "Tipe",
+    border: OutlineInputBorder(), // Border kotak untuk dropdown
+  ),
+),
                       const SizedBox(height: 12),
 
                       // Tanggal
                       TextFormField(
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: "Tanggal",
-                          filled: true,
-                          fillColor: Colors.grey.shade300,
-                        ),
-                        initialValue: DateFormat('dd/MM/yyyy').format(today),
-                      ),
+  readOnly: true,
+  decoration: InputDecoration(
+    labelText: "Tanggal",
+    filled: true,
+    fillColor: Colors.grey.shade300,
+    border: OutlineInputBorder(), // Border kotak untuk tanggal
+  ),
+  initialValue: DateFormat('dd/MM/yyyy').format(today),
+),
                       const SizedBox(height: 12),
 
                       // Keterangan
@@ -217,11 +223,15 @@ class _PettycashState extends State<Pettycash> {
                       const SizedBox(height: 12),
 
                       // Jumlah
-                      TextFormField(
-                        controller: jumlahController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: "Jumlah"),
-                      ),
+                      
+TextFormField(
+  controller: jumlahController,
+  keyboardType: TextInputType.number,
+  decoration: const InputDecoration(
+    labelText: "Jumlah",
+    border: OutlineInputBorder(), // Border kotak untuk jumlah
+  ),
+),
                     ],
                   ),
                 ),
@@ -290,36 +300,38 @@ class _PettycashState extends State<Pettycash> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Dropdown Tipe
-                      DropdownButtonFormField<String>(
-                        value: selectedType,
-                        items: ['In Cash', 'Out Cash']
-                            .map((e) => DropdownMenuItem(
-                                  value: e,
-                                  child: Text(e),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              selectedType = value;
-                            });
-                          }
-                        },
-                        decoration: const InputDecoration(labelText: "Tipe"),
-                      ),
+                     DropdownButtonFormField<String>(
+  value: selectedType,
+  items: ['In Cash', 'Out Cash']
+      .map((e) => DropdownMenuItem(
+            value: e,
+            child: Text(e),
+          ))
+      .toList(),
+  onChanged: (value) {
+    if (value != null) {
+      setState(() {
+        selectedType = value;
+      });
+    }
+  },
+  decoration: const InputDecoration(
+    labelText: "Tipe",
+    border: OutlineInputBorder(), // Kotak untuk dropdown
+  ),
+),
                       const SizedBox(height: 12),
 
                       TextFormField(
-                        enabled: false,
-                        decoration: InputDecoration(
-                          labelText: "Tanggal",
-                          filled: true,
-                          fillColor: Colors.grey.shade300,
-                        ),
-                        initialValue:
-                            DateFormat('dd/MM/yyyy').format(selectedDate),
-                      ),
-
+  enabled: false, // Menonaktifkan editing
+  decoration: InputDecoration(
+    labelText: "Tanggal",
+    filled: true,
+    fillColor: Colors.grey.shade300,
+    border: OutlineInputBorder(), // Kotak untuk tanggal
+  ),
+  initialValue: DateFormat('dd/MM/yyyy').format(selectedDate),
+),
                       const SizedBox(height: 12),
 
                       // Keterangan
@@ -342,7 +354,7 @@ class _PettycashState extends State<Pettycash> {
                             const Text("Bukti Sebelumnya:"),
                             const SizedBox(height: 5),
                             Image.network(
-                              'http://192.168.1.25/pos/${data['bukti_petty']}',
+                              'https://hayami.id//pos/${data['bukti_petty']}',
                               height: 120,
                               fit: BoxFit.cover,
                             ),
@@ -430,10 +442,13 @@ class _PettycashState extends State<Pettycash> {
 
                       // Jumlah
                       TextFormField(
-                        controller: jumlahController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: "Jumlah"),
-                      ),
+  controller: jumlahController,
+  keyboardType: TextInputType.number,
+  decoration: const InputDecoration(
+    labelText: "Jumlah",
+    border: OutlineInputBorder(), // Kotak untuk jumlah
+  ),
+),
                     ],
                   ),
                 ),
@@ -490,7 +505,7 @@ class _PettycashState extends State<Pettycash> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idUser = prefs.getString('id_user');
 
-    var uri = Uri.parse("http://192.168.1.25/pos/edit_petty.php");
+    var uri = Uri.parse("https://hayami.id//pos/edit_petty.php");
     var request = http.MultipartRequest("POST", uri);
 
     request.fields['id_petty'] = idPetty;
@@ -541,7 +556,7 @@ class _PettycashState extends State<Pettycash> {
       return;
     }
 
-    var uri = Uri.parse("http://192.168.1.25/pos/tambah_petty.php");
+    var uri = Uri.parse("https://hayami.id//pos/tambah_petty.php");
     var request = http.MultipartRequest("POST", uri);
 
     request.fields['tipe'] = tipe == 'In Cash' ? 'in_cash' : 'out_cash';
@@ -595,6 +610,83 @@ class _PettycashState extends State<Pettycash> {
       });
     }
   }
+
+Future<void> exportToExcel() async {
+  var status = await Permission.storage.request();
+  if (!status.isGranted) return;
+
+  final workbook = xlsio.Workbook();
+  final sheet = workbook.worksheets[0];
+  sheet.name = 'Petty Cash';
+
+  final headers = [
+    'ID',
+    'Tanggal',
+    'Keterangan',
+    'Uang Masuk',
+    'Uang Keluar',
+    'Saldo',
+  ];
+
+  // Style border semua sisi
+  void applyFullBorder(xlsio.Range cell) {
+    final style = cell.cellStyle;
+    style.borders.top.lineStyle = xlsio.LineStyle.thin;
+    style.borders.bottom.lineStyle = xlsio.LineStyle.thin;
+    style.borders.left.lineStyle = xlsio.LineStyle.thin;
+    style.borders.right.lineStyle = xlsio.LineStyle.thin;
+  }
+
+  // Tulis header dengan bold dan border
+  for (int col = 0; col < headers.length; col++) {
+    final cell = sheet.getRangeByIndex(1, col + 1);
+    cell.setText(headers[col]);
+    cell.cellStyle.bold = true;
+    applyFullBorder(cell);
+  }
+
+  // Tulis data dengan border
+  for (int row = 0; row < pettyData.length; row++) {
+    final item = pettyData[row];
+    final values = [
+      item['id_petty'].toString(),
+      item['tgl'],
+      item['keterangan'],
+      item['in'].toString(),
+      item['out'].toString(),
+      item['saldo'].toString(),
+    ];
+
+    for (int col = 0; col < values.length; col++) {
+      final cell = sheet.getRangeByIndex(row + 2, col + 1);
+      cell.setText(values[col]);
+      applyFullBorder(cell);
+    }
+  }
+
+  // Set kolom agar cukup lebar (manual)
+  for (int col = 1; col <= headers.length; col++) {
+    sheet.getRangeByIndex(1, col).columnWidth = 25; // Ubah angka kalau perlu
+  }
+
+  // Simpan ke file
+  final bytes = workbook.saveAsStream();
+  workbook.dispose();
+
+  final directory = await getExternalStorageDirectory();
+  final filePath = '${directory!.path}/petty_cash_export.xlsx';
+  final file = File(filePath)
+    ..createSync(recursive: true)
+    ..writeAsBytesSync(bytes);
+
+  // Notifikasi sukses
+  ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text('Excel berhasil disimpan di: $filePath'),
+    duration: Duration(seconds: 4),
+  ),
+);
+}
 
   @override
   void initState() {
@@ -722,16 +814,16 @@ class _PettycashState extends State<Pettycash> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {},
-                  child: const Text("Export Excel",
-                      style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.green, // Set the background color to white
-                    foregroundColor:
-                        Colors.white, // Set the text color to green
-                  ),
-                ),
+  onPressed: () async {
+    await exportToExcel(); // Fungsi untuk export
+  },
+  child: const Text("Print Excel", style: TextStyle(color: Colors.white)),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green,
+    foregroundColor: Colors.white,
+  ),
+),
+
               ],
             ),
             const SizedBox(height: 20),

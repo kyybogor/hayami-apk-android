@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'dart:convert';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const MaterialApp(home: StockCard()));
 
@@ -61,7 +62,7 @@ Future<void> printAllStockData({
               // Header ukuran + ringkasan
               // Header ukuran + ringkasan dalam bentuk tabel 2 baris
 pw.Table(
-  border: pw.TableBorder.symmetric(inside: pw.BorderSide(color: PdfColors.black, width: 0.3)),
+  border: pw.TableBorder.all(color: PdfColors.black, width: 0.5),
   columnWidths: const {
     0: pw.FlexColumnWidth(2),
     1: pw.FlexColumnWidth(1.5),
@@ -70,65 +71,59 @@ pw.Table(
     4: pw.FlexColumnWidth(1.5),
   },
   children: [
-    // Baris judul
-    pw.TableRow(
-  decoration: pw.BoxDecoration(color: indigo),
-  children: [
-    pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text('Ukuran',
-        style: pw.TextStyle(color: PdfColors.white)),
-    ),
-    pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text('Awal',
-        style: pw.TextStyle(color: PdfColors.white)),
-    ),
-    pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text('Masuk',
-        style: pw.TextStyle(color: PdfColors.white)),
-    ),
-    pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text('Keluar',
-        style: pw.TextStyle(color: PdfColors.white)),
-    ),
-    pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text('Sisa',
-        style: pw.TextStyle(color: PdfColors.white)),
-    ),
-  ],
-),
-    // Baris data
     pw.TableRow(
       decoration: pw.BoxDecoration(color: indigo),
       children: [
         pw.Padding(
           padding: const pw.EdgeInsets.all(6),
-          child: pw.Text('${item['ukuran']}', style: const pw.TextStyle(color: PdfColors.white)),
+          child: pw.Text('Ukuran', style: pw.TextStyle(color: PdfColors.white)),
         ),
         pw.Padding(
           padding: const pw.EdgeInsets.all(6),
-          child: pw.Text('${summary['stock_awal']}', style: const pw.TextStyle(color: PdfColors.white)),
+          child: pw.Text('Awal', style: pw.TextStyle(color: PdfColors.white)),
         ),
         pw.Padding(
           padding: const pw.EdgeInsets.all(6),
-          child: pw.Text('${summary['masuk']}', style: const pw.TextStyle(color: PdfColors.white)),
+          child: pw.Text('Masuk', style: pw.TextStyle(color: PdfColors.white)),
         ),
         pw.Padding(
           padding: const pw.EdgeInsets.all(6),
-          child: pw.Text('${summary['keluar']}', style: const pw.TextStyle(color: PdfColors.white)),
+          child: pw.Text('Keluar', style: pw.TextStyle(color: PdfColors.white)),
         ),
         pw.Padding(
           padding: const pw.EdgeInsets.all(6),
-          child: pw.Text('${summary['sisa']}', style: const pw.TextStyle(color: PdfColors.white)),
+          child: pw.Text('Sisa', style: pw.TextStyle(color: PdfColors.white)),
+        ),
+      ],
+    ),
+    pw.TableRow(
+      decoration: pw.BoxDecoration(color: white),
+      children: [
+        pw.Padding(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text('${item['ukuran']}', style: pw.TextStyle(color: PdfColors.black)),
+        ),
+        pw.Padding(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text('${summary['stock_awal']}', style: pw.TextStyle(color: PdfColors.black)),
+        ),
+        pw.Padding(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text('${summary['masuk']}', style: pw.TextStyle(color: PdfColors.black)),
+        ),
+        pw.Padding(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text('${summary['keluar']}', style: pw.TextStyle(color: PdfColors.black)),
+        ),
+        pw.Padding(
+          padding: const pw.EdgeInsets.all(6),
+          child: pw.Text('${summary['sisa']}', style: pw.TextStyle(color: PdfColors.black)),
         ),
       ],
     ),
   ],
 ),
+
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColor.fromInt(0xFF000000), width: 0.5),
                 columnWidths: {
@@ -203,7 +198,9 @@ Future<void> handleBarcodePrint({
   required String ukuran,
   required String qty, // input dari user, misal "03"
 }) async {
-  final url = 'https://hayami.id/pos/stock.php';
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+String? idCabang = prefs.getString('id_cabang');
+  final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -355,7 +352,9 @@ pw.Widget buildBarcodeWidget(dynamic item, String fullBarcode, String qtyLabel) 
 }
 
   Future<void> fetchBahanModel() async {
-    final url = 'https://hayami.id/pos/stock.php';
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idCabang = prefs.getString('id_cabang');
+    final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -391,9 +390,10 @@ pw.Widget buildBarcodeWidget(dynamic item, String fullBarcode, String qtyLabel) 
 
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
-
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+String? idCabang = prefs.getString('id_cabang');
     final url =
-        'https://hayami.id/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}';
+        'https://hayami.id/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}&id_cabang=$idCabang';
 
     setState(() => isLoading = true);
 
