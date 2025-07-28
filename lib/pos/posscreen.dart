@@ -124,6 +124,7 @@ class _PosscreenState extends State<Posscreen> {
   void initState() {
     super.initState();
     TransaksiHelper.instance.trySyncIfOnline();
+    
     CartDBHelper.instance.syncPendingDrafts();
     fetchProducts();
     fetchPaymentAccounts();
@@ -749,7 +750,7 @@ TextButton(
       final String namaUser = prefs.getString('nm_user') ?? "admin";
       final String idCabang = prefs.getString('id_cabang') ?? "C1";
 
-      // Ganti generate ID transaksi dan invoice pake helper yang sinkron server/offline
+      // Generate ID transaksi dan invoice
       final String idTransaksi = await TransaksiHelper.instance.generateIDTransaksi();
       final String idInvoice = await TransaksiHelper.instance.generateIDInvoice();
 
@@ -804,7 +805,7 @@ TextButton(
           'by_user_pajak': 1,
           'non_stock': 0,
           'id_invoice': idInvoice,
-          'disc_invoice': totalDiskonFinal, // ✅ FIXED HERE
+          'disc_invoice': totalDiskonFinal,
           'cust_invoice': selectedCustomer?.name ?? '',
           'tgl_invoice': DateTime.now().toIso8601String(),
           'subtotal_invoice': subTotal,
@@ -830,6 +831,7 @@ TextButton(
         };
 
         await TransaksiHelper.instance.saveTransaksiToSQLite(data);
+        await TransaksiHelper.instance.savePembayaranSplitToSQLite(splitPayments ?? []);
 
         await StockDBHelper.reduceStockOffline(
           item.idTipe,
@@ -839,9 +841,11 @@ TextButton(
           item.quantity.toDouble(),
         );
       }
-       Navigator.of(context).pop();
-        await playSuccessSound();
-        await generateAndPrintStrukPdf(
+
+      Navigator.of(context).pop();
+      await playSuccessSound();
+
+      await generateAndPrintStrukPdf(
         cartItems: cartItems,
         grandTotal: grandTotal,
         totalDiskon: totalDiskonCustomer,
@@ -852,15 +856,15 @@ TextButton(
         collectedBy: namaUser,
         idTransaksi: idTransaksi,
       );
-       resetTransaction();
-      // Sync jika online
+
+      // Simpan pembayaran split ke SQLite
+      
+      // Sinkronisasi transaksi jika online
       await TransaksiHelper.instance.trySyncIfOnline();
 
-      // Cetak struk
-      
-
-      await fetchProducts();
+      // Reset transaksi dan fetch produk
       resetTransaction();
+      await fetchProducts();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Gagal menyimpan transaksi: $e")),
@@ -879,6 +883,7 @@ TextButton(
   ),
   child: const Text('Take Payment'),
 ),
+
 
                     TextButton(
 onPressed: () async {
@@ -1231,7 +1236,7 @@ Future<void> fetchProducts() async {
     }
 
     if (online) {
-      final stockUrl = Uri.parse('https://hayami.id/pos/stock.php');
+      final stockUrl = Uri.parse('https://hayami.id/pos/stock.php?id_cabang=$idCabang');
       final stockResponse = await http.get(stockUrl);
 
       if (stockResponse.statusCode == 200) {
@@ -1589,10 +1594,6 @@ Widget productGrid() {
 final imgUrl = newImage.isNotEmpty
     ? 'https://hayami.id/apps/erp/${newImage.replaceAll(' ', '%20')}'
     : 'https://via.placeholder.com/150';
-
-      // Print untuk debugging
-         print('🖼 IMG RAW: $newImage');
-    print('🖼 IMG URL FINAL: $imgUrl');
       return GestureDetector(
         onTap: () =>
             showProductOrderDialog(context, representative, entry.value),

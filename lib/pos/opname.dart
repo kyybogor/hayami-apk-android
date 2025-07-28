@@ -42,8 +42,11 @@ class _OpnameState extends State<Opname> {
   }
 
   Future<void> fetchSuggestions() async {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idCabang = prefs.getString('id_cabang');
+
     final response =
-        await http.get(Uri.parse('https://hayami.id/pos/stock.php'));
+        await http.get(Uri.parse('https://hayami.id/pos/stock.php?id_cabang=$idCabang'));
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       final List<dynamic> data = jsonResponse['data'];
@@ -418,8 +421,10 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
   }
 
   Future<void> _fetchOpnameList(String idUser) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idCabang = prefs.getString('id_cabang');
     final url =
-        Uri.parse('https://hayami.id/pos/opname_list.php?id_inv_in=$idUser');
+        Uri.parse('https://hayami.id/pos/opname_list.php?id_inv_in=$idUser&id_cabang=$idCabang');
 
     try {
       final response = await http.get(url);
