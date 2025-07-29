@@ -211,101 +211,103 @@ class _DashboardScreenPosState extends State<DashboardScreenPos> {
                   ),
                 ],
               ),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3, // tetap 3 kolom
-                  crossAxisSpacing: 2, // jarak horizontal lebih kecil
-                  mainAxisSpacing: 2, // jarak vertikal lebih kecil
-                  childAspectRatio: 3, // biar lebih kotak & padat
-                ),
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: menuItems.length,
-                itemBuilder: (context, index) {
-                  final item = menuItems[index];
-                  return InkWell(
-                    onTap: () {
-                      switch (item['label']) {
-                        case 'POS':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Posscreen()));
-                          break;
-                        case 'Laporan':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Laporanpos()));
-                          break;
-                        case 'Barang Masuk':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Barangmasuk()));
-                          break;
-                        case 'List Penjualan':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Penjualanharian()));
-                          break;
-                        case 'Opname':
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => Opname()));
-                          break;
-                        case 'Retur Barang':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Returbarang()));
-                          break;
-                        case 'Petty Cash':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Pettycash()));
-                          break;
-                        case 'Master Customer':
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => CustomerPage()));
-                          break;
-                        // case 'Master Akun':
-                        //   Navigator.push(context,
-                        //       MaterialPageRoute(builder: (_) => AkunPage()));
-                        //   break;
-                        default:
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(
-                                    'Navigasi ke ${item['label']} belum tersedia')),
-                          );
-                      }
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: item['color'].withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(item['icon'],
-                              color: item['color'], size: 40),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          item['label'],
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w500),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isPortrait = MediaQuery.of(context).orientation ==
+                      Orientation.portrait;
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isPortrait ? 3 : 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: isPortrait ? 1.2 : 3,
                     ),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: menuItems.length,
+                    itemBuilder: (context, index) {
+                      final item = menuItems[index];
+                      return InkWell(
+                        onTap: () {
+                          switch (item['label']) {
+                            case 'POS':
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const Posscreen()));
+                              break;
+                            case 'Laporan':
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const Laporanpos()));
+                              break;
+                            case 'Barang Masuk':
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const Barangmasuk()));
+                              break;
+                            case 'List Penjualan':
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const Penjualanharian()));
+                              break;
+                            case 'Opname':
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => Opname()));
+                              break;
+                            case 'Retur Barang':
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const Returbarang()));
+                              break;
+                            case 'Petty Cash':
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const Pettycash()));
+                              break;
+                            case 'Master Customer':
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => CustomerPage()));
+                              break;
+                            default:
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'Navigasi ke ${item['label']} belum tersedia')),
+                              );
+                          }
+                        },
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: item['color'].withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(item['icon'],
+                                  color: item['color'], size: 40),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              item['label'],
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w500),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
               ),
