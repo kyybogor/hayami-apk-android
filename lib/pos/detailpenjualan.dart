@@ -470,13 +470,13 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                   children: [
                     pw.Text('Hayami Indonesia',
                         style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                            fontWeight: pw.FontWeight.bold, fontSize: 18)),
                     pw.Text('Pasar Mester Jatinegara Lt.1 Blok AKS No:144-145.',
-                        style: pw.TextStyle(fontSize: 15)),
+                        style: pw.TextStyle(fontSize: 18)),
                     pw.Text('NPWP: 86.783.673.6-033.000',
-                        style: pw.TextStyle(fontSize: 15)),
+                        style: pw.TextStyle(fontSize: 18)),
                     pw.Text('Jakarta Timur, DKI Jakarta, 13310',
-                        style: pw.TextStyle(fontSize: 15)),
+                        style: pw.TextStyle(fontSize: 18)),
                     pw.Text('087788155246', style: pw.TextStyle(fontSize: 15)),
                   ],
                 ),
@@ -487,36 +487,36 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(dateFormatter.format(dateTime!),
-                      style: pw.TextStyle(fontSize: 15)),
+                      style: pw.TextStyle(fontSize: 18)),
                   pw.Text(timeFormatter.format(dateTime!),
-                      style: pw.TextStyle(fontSize: 15)),
+                      style: pw.TextStyle(fontSize: 18)),
                 ],
               ),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Order ID', style: pw.TextStyle(fontSize: 15)),
+                  pw.Text('Order ID', style: pw.TextStyle(fontSize: 18)),
                   pw.Text(idTransaksi ?? 'SO/xxxx/yyyy',
-                      style: pw.TextStyle(fontSize: 15)),
+                      style: pw.TextStyle(fontSize: 18)),
                 ],
               ),
               pw.SizedBox(height: 3),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Collected By', style: pw.TextStyle(fontSize: 15)),
+                  pw.Text('Collected By', style: pw.TextStyle(fontSize: 18)),
                   pw.Text(invoiceDetail['dibuat_oleh'] ?? 'Unknown',
-                      style: pw.TextStyle(fontSize: 15)),
+                      style: pw.TextStyle(fontSize: 18)),
                 ],
               ),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text('Metode Pembayaran',
-                      style: pw.TextStyle(fontSize: 15)),
+                      style: pw.TextStyle(fontSize: 18)),
                   pw.Text(paymentMethod,
                       style: pw.TextStyle(
-                          fontSize: 15, fontWeight: pw.FontWeight.bold)),
+                          fontSize: 18, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
               pw.SizedBox(height: 6),
@@ -527,14 +527,14 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                       flex: 5,
                       child: pw.Text('Nama Barang',
                           style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 15))),
+                              fontWeight: pw.FontWeight.bold, fontSize: 18))),
                   pw.Expanded(
                     flex: 2,
                     child: pw.Padding(
                       padding: const pw.EdgeInsets.only(left: 6),
                       child: pw.Text('Ukuran',
                           style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 15)),
+                              fontWeight: pw.FontWeight.bold, fontSize: 18)),
                     ),
                   ),
                   pw.Expanded(
@@ -542,13 +542,13 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                       child: pw.Text('Qty',
                           textAlign: pw.TextAlign.center,
                           style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 15))),
+                              fontWeight: pw.FontWeight.bold, fontSize: 18))),
                   pw.Expanded(
                       flex: 3,
                       child: pw.Text('Harga',
                           textAlign: pw.TextAlign.right,
                           style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 15))),
+                              fontWeight: pw.FontWeight.bold, fontSize: 18))),
                 ],
               ),
               pw.Divider(thickness: 0.3),
@@ -561,25 +561,25 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                             flex: 5,
                             child: pw.Text(
                                 '${item.idTipe} - ${item.productName}',
-                                style: pw.TextStyle(fontSize: 15))),
+                                style: pw.TextStyle(fontSize: 18))),
                         pw.Expanded(
                           flex: 2,
                           child: pw.Padding(
                             padding: const pw.EdgeInsets.only(left: 12),
                             child: pw.Text(item.size,
-                                style: pw.TextStyle(fontSize: 15)),
+                                style: pw.TextStyle(fontSize: 18)),
                           ),
                         ),
                         pw.Expanded(
                             flex: 2,
                             child: pw.Text(item.quantity.toStringAsFixed(2),
                                 textAlign: pw.TextAlign.center,
-                                style: pw.TextStyle(fontSize: 15))),
+                                style: pw.TextStyle(fontSize: 18))),
                         pw.Expanded(
                             flex: 3,
                             child: pw.Text(currencyFormatter.format(item.total),
                                 textAlign: pw.TextAlign.right,
-                                style: pw.TextStyle(fontSize: 15))),
+                                style: pw.TextStyle(fontSize: 18))),
                       ],
                     ),
                     pw.Divider(thickness: 0.3),
@@ -592,10 +592,10 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                 children: [
                   pw.Text('Total Lusin',
                       style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                          fontWeight: pw.FontWeight.bold, fontSize: 15)),
                   pw.Text(computedLusin.toStringAsFixed(2),
                       style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                          fontWeight: pw.FontWeight.bold, fontSize: 15)),
                 ],
               ),
               if (totalDiskonFinal > 0)
@@ -605,12 +605,12 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                     pw.Text('Total Diskon',
                         style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: 18,
                             color: PdfColors.red)),
                     pw.Text(currencyFormatter.format(totalDiskonFinal),
                         style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: 18,
                             color: PdfColors.red)),
                   ],
                 ),
@@ -619,10 +619,10 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
                 children: [
                   pw.Text('Grand Total',
                       style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                          fontWeight: pw.FontWeight.bold, fontSize: 18)),
                   pw.Text(currencyFormatter.format(grandTotal),
                       style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                          fontWeight: pw.FontWeight.bold, fontSize: 18)),
                 ],
               ),
               pw.SizedBox(height: 10),
