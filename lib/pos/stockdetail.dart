@@ -139,7 +139,6 @@ String? idCabang = prefs.getString('id_cabang');
     // Header tabel di baris ke-3
     final headers = [
       'Tanggal Masuk',
-      'No. Transaksi',
       'Model',
       'Ukuran',
       'Qty',
@@ -158,14 +157,13 @@ String? idCabang = prefs.getString('id_cabang');
       final item = filteredStock[i];
 
       sheet.getRangeByIndex(row, 1).setText(item['tgl_masuk']);
-      sheet.getRangeByIndex(row, 2).setText(item['id_transaksi']);
-      sheet.getRangeByIndex(row, 3).setText(item['model']);
-      sheet.getRangeByIndex(row, 4).setText(item['ukuran'].toString());
+      sheet.getRangeByIndex(row, 2).setText(item['model']);
+      sheet.getRangeByIndex(row, 3).setText(item['ukuran'].toString());
       sheet
-          .getRangeByIndex(row, 5)
+          .getRangeByIndex(row, 4)
           .setNumber(double.tryParse(item['stock'].toString()) ?? 0);
       sheet
-          .getRangeByIndex(row, 6)
+          .getRangeByIndex(row, 5)
           .setNumber(double.tryParse(item['harga'].toString()) ?? 0);
 
       for (int col = 1; col <= 6; col++) {
@@ -446,10 +444,6 @@ String? idCabang = prefs.getString('id_cabang');
     ),
     Padding(
       padding: EdgeInsets.all(8),
-      child: Center(child: Text('No. Transaksi', style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
       child: Center(child: Text('Model', style: TextStyle(color: Colors.white))),
     ),
     Padding(
@@ -478,11 +472,7 @@ String? idCabang = prefs.getString('id_cabang');
                               child: Center(
     child: Text(item['tgl_masuk']),
   ),),
-                          Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Center(
-    child: Text(item['id_transaksi']),
-  ),),
+
                           Padding(
                               padding: const EdgeInsets.all(8),
                               child: Center(

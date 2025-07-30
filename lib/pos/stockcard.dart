@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'dart:convert';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 
 void main() => runApp(const MaterialApp(home: StockCard()));
 
@@ -351,6 +356,121 @@ pw.Widget buildBarcodeWidget(dynamic item, String fullBarcode, String qtyLabel) 
   );
 }
 
+Future<void> exportToExcelStyled(
+    List<dynamic> data,
+    String selectedBahan,
+    String selectedModel,
+    BuildContext context) async {
+  
+  final workbook = xlsio.Workbook();
+  final sheet = workbook.worksheets[0];
+  sheet.name = 'Stock Card';
+
+  sheet.pageSetup.orientation = xlsio.ExcelPageOrientation.landscape;
+  sheet.pageSetup.isCenterHorizontally = true;
+  sheet.pageSetup.topMargin = 0.5;
+  sheet.pageSetup.leftMargin = 0.5;
+
+  final headerStyle = workbook.styles.add('HeaderStyle');
+  headerStyle.backColor = '#3F51B5';
+  headerStyle.fontColor = '#FFFFFF';
+  headerStyle.bold = true;
+  headerStyle.hAlign = xlsio.HAlignType.center;
+
+  final summaryStyle = workbook.styles.add('SummaryStyle');
+  summaryStyle.backColor = '#FFFFFF';
+  summaryStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+
+  final detailHeaderStyle = workbook.styles.add('DetailHdr');
+  detailHeaderStyle.backColor = '#9FA8DA';
+  detailHeaderStyle.bold = true;
+  detailHeaderStyle.hAlign = xlsio.HAlignType.center;
+  detailHeaderStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+
+  final detailStyle = workbook.styles.add('DetailStyle');
+  detailStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+
+  void setTextWithStyle(xlsio.Worksheet s, int row, int col, String text, xlsio.Style style) {
+    final cell = s.getRangeByIndex(row, col);
+    cell.setText(text);
+    cell.cellStyle = style;
+  }
+
+  void setNumberWithStyle(xlsio.Worksheet s, int row, int col, double num, xlsio.Style style) {
+    final cell = s.getRangeByIndex(row, col);
+    cell.setNumber(num);
+    cell.cellStyle = style;
+  }
+
+  int row = 1;
+  setTextWithStyle(sheet, row, 1, 'Laporan Stock Card', summaryStyle);
+  row++;
+  sheet.getRangeByIndex(row, 1).setText('ID Bahan: $selectedBahan');
+  sheet.getRangeByIndex(row, 3).setText('Model: $selectedModel');
+  row += 2;
+
+  for (var item in data) {
+    final summary = item['summary'];
+    final detail = item['detail'] as List;
+
+    // Header Ringkasan
+    setTextWithStyle(sheet, row, 1, 'Ukuran', headerStyle);
+    setTextWithStyle(sheet, row, 2, 'Awal', headerStyle);
+    setTextWithStyle(sheet, row, 3, 'Masuk', headerStyle);
+    setTextWithStyle(sheet, row, 4, 'Keluar', headerStyle);
+    setTextWithStyle(sheet, row, 5, 'Sisa', headerStyle);
+    row++;
+
+    setTextWithStyle(sheet, row, 1, '${item['ukuran']}', summaryStyle);
+    setNumberWithStyle(sheet, row, 2, double.tryParse('${summary['stock_awal']}') ?? 0, summaryStyle);
+    setNumberWithStyle(sheet, row, 3, double.tryParse('${summary['masuk']}') ?? 0, summaryStyle);
+    setNumberWithStyle(sheet, row, 4, double.tryParse('${summary['keluar']}') ?? 0, summaryStyle);
+    setNumberWithStyle(sheet, row, 5, double.tryParse('${summary['sisa']}') ?? 0, summaryStyle);
+    row += 2;
+
+    setTextWithStyle(sheet, row, 1, 'Tanggal', detailHeaderStyle);
+    setTextWithStyle(sheet, row, 2, 'No. Transaksi', detailHeaderStyle);
+    setTextWithStyle(sheet, row, 3, 'Masuk', detailHeaderStyle);
+    setTextWithStyle(sheet, row, 4, 'Keluar', detailHeaderStyle);
+    setTextWithStyle(sheet, row, 5, 'Total', detailHeaderStyle);
+    row++;
+
+    for (var trx in detail) {
+      setTextWithStyle(sheet, row, 1, trx['tgl'], detailStyle);
+      setTextWithStyle(sheet, row, 2, trx['no_transaksi'], detailStyle);
+      setNumberWithStyle(sheet, row, 3, double.tryParse('${trx['masuk']}') ?? 0, detailStyle);
+      setNumberWithStyle(sheet, row, 4, double.tryParse('${trx['keluar']}') ?? 0, detailStyle);
+      setNumberWithStyle(sheet, row, 5, double.tryParse('${trx['total']}') ?? 0, detailStyle);
+      row++;
+    }
+
+    row += 2;
+  }
+
+  for (int i = 1; i <= 5; i++) {
+    sheet.autoFitColumn(i);
+  }
+
+  final bytes = workbook.saveAsStream();
+  workbook.dispose();
+
+final dir = await getExternalStorageDirectory();
+if (dir != null) {
+  final path = '${dir.path}/stock_card_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+  final file = File(path);
+  await file.writeAsBytes(bytes, flush: true);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Excel disimpan: $path')),
+  );
+} else {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Gagal mendapatkan direktori penyimpanan')),
+  );
+}
+
+}
+
+
   Future<void> fetchBahanModel() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idCabang = prefs.getString('id_cabang');
@@ -581,6 +701,28 @@ ElevatedButton(
     ],
   ),
 ),
+ElevatedButton(
+  onPressed: stockCardData.isNotEmpty
+      ? () => exportToExcelStyled(
+            stockCardData,
+            selectedBahan ?? '',
+            selectedModel ?? '',
+            context,  // jangan lupa kirim context juga
+          )
+      : null,
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green,
+    foregroundColor: Colors.white,
+  ),
+  child: const Row(
+    children: [
+      Icon(Icons.file_download, color: Colors.white),
+      SizedBox(width: 8),
+      Text('Export Excel'),
+    ],
+  ),
+),
+
                 ],
               ),
               const SizedBox(height: 24),
