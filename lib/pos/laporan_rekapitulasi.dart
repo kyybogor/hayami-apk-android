@@ -11,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sticky_headers/sticky_headers/widget.dart';
 
 void main() => runApp(const MaterialApp(home: RekapitulasiPage()));
 
@@ -171,24 +172,25 @@ for (var item in data) {
       'Status',
     ];
 
-    final dataRows = rekapList.map((item) {
-      return [
-        item['tgl_transaksi'].split(' ')[0],
-        (item['tgl_jatuh_tempo'] != null &&
-                item['tgl_jatuh_tempo'] != '0000-00-00')
-            ? item['tgl_jatuh_tempo'].split(' ')[0]
-            : '-',
-        item['id_transaksi'] ?? '-',
-        item['id_customer'] ?? '-',
-        NumberFormat("0.##").format(double.tryParse(item['lusin'] ?? '0') ?? 0),
-        'Rp ${currency.format(int.tryParse(item['subtotal'] ?? '0') ?? 0)}',
-        'Rp ${currency.format((double.tryParse(item['discon'] ?? '0') ?? 0).toInt())}',
-        'Rp ${currency.format((double.tryParse(item['total_invoice'] ?? '0') ?? 0).toInt())}',
-        (item['status'] != null && item['status'].toString().trim().isNotEmpty)
-            ? item['status']
-            : '-',
-      ];
-    }).toList();
+final dataRows = rekapList.map((item) {
+  return [
+    (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
+    (item['tgl_jatuh_tempo'] != null &&
+            item['tgl_jatuh_tempo'] != '0000-00-00')
+        ? (item['tgl_jatuh_tempo'] ?? '').toString().split(' ')[0]
+        : '-',
+    item['id_transaksi']?.toString() ?? '-',
+    item['id_customer']?.toString() ?? '-',
+    NumberFormat("0.##").format(double.tryParse(item['lusin']?.toString() ?? '0') ?? 0),
+    'Rp ${currency.format(int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0)}',
+    'Rp ${currency.format((double.tryParse(item['discon']?.toString() ?? '0') ?? 0).toInt())}',
+    'Rp ${currency.format((double.tryParse(item['total_invoice']?.toString() ?? '0') ?? 0).toInt())}',
+    (item['status'] != null && item['status'].toString().trim().isNotEmpty)
+        ? item['status'].toString()
+        : '-',
+  ];
+}).toList();
+
 
     dataRows.add([
       'TOTAL',
@@ -431,20 +433,14 @@ Future<void> exportToExcel(BuildContext context) async {
             const SizedBox(height: 16),
             Row(
               children: [
-                ElevatedButton(
-                  onPressed: fetchRekapitulasiData,
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo,
-                      foregroundColor: Colors.white),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.search),
-                      SizedBox(width: 8),
-                      Text('Cari'),
-                    ],
+                  ElevatedButton(
+                    onPressed: fetchRekapitulasiData,
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white),
+                    child: const Text('Cari'),
                   ),
-                ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: rekapList.isEmpty ? null : printPdf,
                   style: ElevatedButton.styleFrom(
@@ -458,7 +454,7 @@ Future<void> exportToExcel(BuildContext context) async {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed:
                       rekapList.isEmpty ? null : () => exportToExcel(context),
@@ -532,6 +528,8 @@ Future<void> exportToExcel(BuildContext context) async {
     );
   }
 
+
+
 Widget buildTable() {
   return LayoutBuilder(
     builder: (context, constraints) {
@@ -547,93 +545,91 @@ Widget buildTable() {
         fontSize = 12;
       }
 
-      return Table(
-        border: TableBorder.all(color: Colors.grey.shade400, width: 1),
-        columnWidths: {
-          for (int i = 0; i < 9; i++) i: FixedColumnWidth(colWidth),
-        },
-        children: [
-          // Header row
-          TableRow(
-            decoration: BoxDecoration(color: Colors.indigo),
+      return StickyHeader(
+        header: Container(
+          color: Colors.indigo,
+          child: Table(
+            border: TableBorder.all(color: Colors.grey.shade400, width: 1),
+            columnWidths: {
+              for (int i = 0; i < 9; i++) i: FixedColumnWidth(colWidth),
+            },
             children: [
-              for (var title in [
-                'Tanggal',
-                'Jatuh Tempo',
-                'Transaksi',
-                'Customer',
-                'Lusin',
-                'Subtotal',
-                'Diskon',
-                'Total',
-                'Status'
-              ])
-                Padding(
-                  padding: const EdgeInsets.all(6.0),
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              TableRow(
+                children: [
+                  for (var title in [
+                    'Tanggal',
+                    'Jatuh Tempo',
+                    'Transaksi',
+                    'Customer',
+                    'Lusin',
+                    'Subtotal',
+                    'Diskon',
+                    'Total',
+                    'Status'
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                ],
+              ),
             ],
           ),
-
-          // Data rows
-          ...rekapList.map((item) {
-            return TableRow(
-              children: [
-                buildCellText(
-                    item['tgl_transaksi'].split(' ')[0], fontSize),
-                buildCellText(
-                    item['tgl_jatuh_tempo'] == '0000-00-00'
-                        ? '-'
-                        : item['tgl_jatuh_tempo'],
-                    fontSize),
-                buildCellText(item['id_transaksi'], fontSize),
-                buildCellText(item['id_customer'], fontSize),
-buildCellText(
-  NumberFormat("0.##").format(toDouble(item['lusin'])),
-  fontSize,
-),
-buildCellText(
-  'Rp ${currency.format(toInt(item['subtotal']))}',
-  fontSize,
-),
-buildCellText(
-  'Rp ${currency.format(toInt(item['discon']))}',
-  fontSize,
-),
-buildCellText(
-  'Rp ${currency.format(toInt(item['total_invoice']))}',
-  fontSize,
-),
-
-                buildCellText(item['status'] ?? '-', fontSize),
-              ],
-            );
-          }).toList(),
-
-          // Total row
-          TableRow(
-            decoration: BoxDecoration(color: Colors.indigo.shade200),
+        ),
+        content: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Table(
+            border: TableBorder.all(color: Colors.grey.shade400, width: 1),
+            columnWidths: {
+              for (int i = 0; i < 9; i++) i: FixedColumnWidth(colWidth),
+            },
             children: [
-              buildCellText('TOTAL', fontSize),
-              buildCellText('', fontSize),
-              buildCellText('', fontSize),
-              buildCellText('', fontSize),
-              buildCellText(NumberFormat("0.##").format(totalLusin), fontSize),
-              buildCellText('Rp ${currency.format(totalSubtotal)}', fontSize),
-              buildCellText('Rp ${currency.format(totalDiskon)}', fontSize),
-              buildCellText('Rp ${currency.format(totalInvoice)}', fontSize),
-              buildCellText('', fontSize),
+              // Data rows
+              ...rekapList.map((item) {
+                return TableRow(
+                  children: [
+                    buildCellText(item['tgl_transaksi'].split(' ')[0], fontSize),
+                    buildCellText(
+                      item['tgl_jatuh_tempo'] == '0000-00-00' ? '-' : item['tgl_jatuh_tempo'],
+                      fontSize,
+                    ),
+                    buildCellText(item['id_transaksi'], fontSize),
+                    buildCellText(item['id_customer'], fontSize),
+                    buildCellText(NumberFormat("0.##").format(toDouble(item['lusin'])), fontSize),
+                    buildCellText('Rp ${currency.format(toInt(item['subtotal']))}', fontSize),
+                    buildCellText('Rp ${currency.format(toInt(item['discon']))}', fontSize),
+                    buildCellText('Rp ${currency.format(toInt(item['total_invoice']))}', fontSize),
+                    buildCellText(item['status'] ?? '-', fontSize),
+                  ],
+                );
+              }).toList(),
+
+              // Total row
+              TableRow(
+                decoration: BoxDecoration(color: Colors.indigo.shade200),
+                children: [
+                  buildCellText('TOTAL', fontSize, isBold: true),
+                  buildCellText('', fontSize),
+                  buildCellText('', fontSize),
+                  buildCellText('', fontSize),
+                  buildCellText(NumberFormat("0.##").format(totalLusin), fontSize),
+                  buildCellText('Rp ${currency.format(totalSubtotal)}', fontSize),
+                  buildCellText('Rp ${currency.format(totalDiskon)}', fontSize),
+                  buildCellText('Rp ${currency.format(totalInvoice)}', fontSize),
+                  buildCellText('', fontSize),
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       );
     },
   );
@@ -646,7 +642,7 @@ Widget buildCellText(String text, double fontSize, {bool isBold = false}) {
       text,
       style: TextStyle(
         fontSize: fontSize,
-        fontWeight: isBold ? FontWeight.bold : FontWeight.normal, 
+        fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
       ),
       textAlign: TextAlign.center,
     ),

@@ -35,6 +35,7 @@ dependencies:
   syncfusion_flutter_xlsio: ^29.2.11
   audioplayers: ^5.2.1
   image_picker: ^0.8.5+3
+  sticky_headers: ^0.3.0+2
 
 dev_dependencies:
   flutter_test:

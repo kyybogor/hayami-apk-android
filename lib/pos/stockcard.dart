@@ -679,7 +679,7 @@ String? idCabang = prefs.getString('id_cabang');
   ),
   child: const Text('Cari'),
 ),
-const SizedBox(width: 16),
+const SizedBox(width: 10),
 ElevatedButton(
   onPressed: stockCardData.isNotEmpty
     ? () => printAllStockData(
@@ -701,6 +701,7 @@ ElevatedButton(
     ],
   ),
 ),
+const SizedBox(width: 10),
 ElevatedButton(
   onPressed: stockCardData.isNotEmpty
       ? () => exportToExcelStyled(
@@ -718,7 +719,7 @@ ElevatedButton(
     children: [
       Icon(Icons.file_download, color: Colors.white),
       SizedBox(width: 8),
-      Text('Export Excel'),
+      Text('Print Excel'),
     ],
   ),
 ),

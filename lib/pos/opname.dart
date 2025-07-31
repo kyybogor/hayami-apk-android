@@ -15,6 +15,7 @@ class _OpnameState extends State<Opname> {
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _ukuranController = TextEditingController();
   final TextEditingController _uomController = TextEditingController();
+  final TextEditingController _barcodeController = TextEditingController();
 
   List<Map<String, dynamic>> _stockData = [];
   String? _idCabang;
@@ -42,11 +43,11 @@ class _OpnameState extends State<Opname> {
   }
 
   Future<void> fetchSuggestions() async {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idCabang = prefs.getString('id_cabang');
 
-    final response =
-        await http.get(Uri.parse('https://hayami.id/pos/stock.php?id_cabang=$idCabang'));
+    final response = await http
+        .get(Uri.parse('https://hayami.id/pos/stock.php?id_cabang=$idCabang'));
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       final List<dynamic> data = jsonResponse['data'];
@@ -115,7 +116,7 @@ class _OpnameState extends State<Opname> {
         _selectedNamaBarang = null;
         _selectedModel = null;
         _selectedUkuran = null;
-
+        _barcodeController.clear();
         _namaBarangController.clear();
         _modelController.clear();
         _ukuranController.clear();
@@ -143,18 +144,17 @@ class _OpnameState extends State<Opname> {
     );
   }
 
-Widget _buildCardInput({required Widget child}) {
-  return Card(
-    elevation: 0,
-    margin: EdgeInsets.symmetric(vertical: 5),
-    color: Colors.transparent,
-    child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: 5),
-      child: child,
-    ),
-  );
-}
-
+  Widget _buildCardInput({required Widget child}) {
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.symmetric(vertical: 5),
+      color: Colors.transparent,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 5),
+        child: child,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,14 +166,79 @@ Widget _buildCardInput({required Widget child}) {
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-         iconTheme: IconThemeData(
-    color: Colors.blue,  // Menetapkan warna untuk ikon pada AppBar
-  ),
+        iconTheme: IconThemeData(
+          color: Colors.blue,
+        ),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
+            _buildCardInput(
+              child: Autocomplete<String>(
+                optionsBuilder: (TextEditingValue value) {
+                  if (value.text.isEmpty) return const Iterable<String>.empty();
+                  return _stockData
+                      .map((item) => item['barcode'].toString())
+                      .toSet()
+                      .where((barcode) => barcode
+                          .toLowerCase()
+                          .contains(value.text.toLowerCase()));
+                },
+                onSelected: (selection) {
+                  final matchedItem = _stockData.firstWhere(
+                    (item) => item['barcode'] == selection,
+                    orElse: () => {},
+                  );
+
+                  if (matchedItem.isNotEmpty) {
+                    setState(() {
+                      _barcodeController.text = selection;
+
+                      _selectedNamaBarang = matchedItem['id_bahan'] ?? '';
+                      _namaBarangController.text = _selectedNamaBarang!;
+
+                      _selectedModel = matchedItem['model'] ?? '';
+                      _modelController.text = _selectedModel!;
+
+                      _selectedUkuran = matchedItem['ukuran'] ?? '';
+                      _ukuranController.text = _selectedUkuran!;
+
+                      _uomController.text = matchedItem['uom'] ?? '';
+                    });
+                  }
+                },
+                fieldViewBuilder: (context, textEditingController, focusNode,
+                    onFieldSubmitted) {
+                  textEditingController.text = _barcodeController.text;
+                  return TextField(
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: "Barcode",
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (val) {
+                      // Kosongkan fields kalau barcode diubah manual
+                      setState(() {
+                        _barcodeController.text = val;
+
+                        _selectedNamaBarang = null;
+                        _namaBarangController.clear();
+
+                        _selectedModel = null;
+                        _modelController.clear();
+
+                        _selectedUkuran = null;
+                        _ukuranController.clear();
+
+                        _uomController.clear();
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
             _buildCardInput(
               child: Autocomplete<String>(
                 optionsBuilder: (TextEditingValue value) {
@@ -194,6 +259,7 @@ Widget _buildCardInput({required Widget child}) {
                     _selectedUkuran = null;
                     _ukuranController.clear();
                     _uomController.clear();
+                    _barcodeController.clear();
                   });
                 },
                 fieldViewBuilder: (context, textEditingController, focusNode,
@@ -205,23 +271,24 @@ Widget _buildCardInput({required Widget child}) {
                     composing: TextRange.empty,
                   );
                   return TextField(
-  controller: textEditingController,
-  focusNode: focusNode,
-  decoration: InputDecoration(
-    labelText: "Nama Barang",  // Label tetap ada
-    border: OutlineInputBorder(),  // Border sederhana
-  ),
-  onChanged: (val) {
-    setState(() {
-      _selectedNamaBarang = val;
-      _selectedModel = null;
-      _modelController.clear();
-      _selectedUkuran = null;
-      _ukuranController.clear();
-      _uomController.clear();
-    });
-  },
-);
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: "Nama Barang",
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedNamaBarang = val;
+                        _selectedModel = null;
+                        _modelController.clear();
+                        _selectedUkuran = null;
+                        _ukuranController.clear();
+                        _uomController.clear();
+                        _barcodeController.clear();
+                      });
+                    },
+                  );
                 },
               ),
             ),
@@ -252,6 +319,7 @@ Widget _buildCardInput({required Widget child}) {
                     _selectedUkuran = null;
                     _ukuranController.clear();
                     _uomController.clear();
+                    _barcodeController.clear();
                   });
                 },
                 fieldViewBuilder: (context, textEditingController, focusNode,
@@ -263,21 +331,22 @@ Widget _buildCardInput({required Widget child}) {
                     composing: TextRange.empty,
                   );
                   return TextField(
-  controller: textEditingController,
-  focusNode: focusNode,
-  decoration: InputDecoration(
-    labelText: "Model",  // Label tetap ada
-    border: OutlineInputBorder(),  // Border sederhana
-  ),
-  onChanged: (val) {
-    setState(() {
-      _selectedModel = val;
-      _selectedUkuran = null;
-      _ukuranController.clear();
-      _uomController.clear();
-    });
-  },
-);
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: "Model",
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedModel = val;
+                        _selectedUkuran = null;
+                        _ukuranController.clear();
+                        _uomController.clear();
+                        _barcodeController.clear();
+                      });
+                    },
+                  );
                 },
               ),
             ),
@@ -313,6 +382,7 @@ Widget _buildCardInput({required Widget child}) {
                       orElse: () => {},
                     );
                     _uomController.text = match['uom'] ?? '';
+                    _barcodeController.clear();
                   });
                 },
                 fieldViewBuilder: (context, textEditingController, focusNode,
@@ -324,42 +394,43 @@ Widget _buildCardInput({required Widget child}) {
                     composing: TextRange.empty,
                   );
                   return TextField(
-  controller: textEditingController,
-  focusNode: focusNode,
-  decoration: InputDecoration(
-    labelText: "Ukuran",  // Label tetap ada
-    border: OutlineInputBorder(),  // Border sederhana
-  ),
-  onChanged: (val) {
-    setState(() {
-      _selectedUkuran = val;
-    });
-  },
-);
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: "Ukuran",
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedUkuran = val;
+                        _barcodeController.clear();
+                      });
+                    },
+                  );
                 },
               ),
             ),
             _buildCardInput(
               child: TextField(
-  controller: _uomController,
-  readOnly: true,  // Menandakan field ini hanya untuk tampilkan data
-  decoration: InputDecoration(
-    labelText: "UOM",  // Label tetap ada
-    border: OutlineInputBorder(),  // Border sederhana
-  ),
-),
+                controller: _uomController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: "UOM",
+                  border: OutlineInputBorder(),
+                ),
+              ),
             ),
             SizedBox(height: 20),
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
-  onPressed: _tambahStok,
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.indigo, // Warna latar belakang indigo
-    foregroundColor: Colors.white, // Warna teks putih
-  ),
-  child: const Text('Tambah'),
-),
+                onPressed: _tambahStok,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Tambah'),
+              ),
             ),
             SizedBox(height: 30),
             OpnameListFromApi(key: _opnameListKey),
@@ -420,11 +491,19 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
     await _fetchOpnameList(idUser);
   }
 
+  String formatNumber(double value) {
+    if (value % 1 == 0) {
+      return value.toInt().toString();
+    } else {
+      return value.toString();
+    }
+  }
+
   Future<void> _fetchOpnameList(String idUser) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idCabang = prefs.getString('id_cabang');
-    final url =
-        Uri.parse('https://hayami.id/pos/opname_list.php?id_inv_in=$idUser&id_cabang=$idCabang');
+    final url = Uri.parse(
+        'https://hayami.id/pos/opname_list.php?id_inv_in=$idUser&id_cabang=$idCabang');
 
     try {
       final response = await http.get(url);
@@ -434,15 +513,15 @@ class OpnameListFromApiState extends State<OpnameListFromApi> {
           final List<dynamic> data = jsonResponse['data'];
 
           String? invInIdFromApi;
-if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
-  invInIdFromApi = data[0]['inv_in_id'];
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.setString('inv_in_id', invInIdFromApi!);
+          if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
+            invInIdFromApi = data[0]['inv_in_id'];
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            await prefs.setString('inv_in_id', invInIdFromApi!);
 
-  setState(() {
-    _invInId = invInIdFromApi; // ⬅️ tambahkan baris ini
-  });
-}
+            setState(() {
+              _invInId = invInIdFromApi;
+            });
+          }
 
           setState(() {
             _opnameData = data.map((e) {
@@ -544,18 +623,20 @@ if (data.isNotEmpty && data[0].containsKey('inv_in_id')) {
 
     final url = Uri.parse('https://hayami.id/pos/opname.php');
 
-final payload = {
-  'data': _opnameData.map((e) => {
-        'inv_in_id': e['inv_in_id'], // ⬅️ Tambahkan ini
-        'id_product': e['id_product'],
-        'model': e['model'],
-        'ukuran': e['ukuran'],
-        'uom': e['uom'],
-        'stock_awal': double.tryParse('${e['stock_awal']}') ?? 0.0,
-        'qty_asli': e['qty_asli'],
-        'id_cabang': e['id_cabang'],
-      }).toList(),
-};
+    final payload = {
+      'data': _opnameData
+          .map((e) => {
+                'inv_in_id': e['inv_in_id'],
+                'id_product': e['id_product'],
+                'model': e['model'],
+                'ukuran': e['ukuran'],
+                'uom': e['uom'],
+                'stock_awal': double.tryParse('${e['stock_awal']}') ?? 0.0,
+                'qty_asli': e['qty_asli'],
+                'id_cabang': e['id_cabang'],
+              })
+          .toList(),
+    };
     try {
       final response = await http.post(
         url,
@@ -640,186 +721,232 @@ final payload = {
   }
 
   @override
-Widget build(BuildContext context) {
-  if (_loading) return Center(child: CircularProgressIndicator());
+  Widget build(BuildContext context) {
+    if (_loading) return Center(child: CircularProgressIndicator());
 
-  if (_opnameData.isEmpty)
-    return Center(child: Text('Belum ada data opname.'));
+    if (_opnameData.isEmpty)
+      return Center(child: Text('Belum ada data opname.'));
 
-  return LayoutBuilder(builder: (context, constraints) {
-    final totalWidth = constraints.maxWidth;
+    return LayoutBuilder(builder: (context, constraints) {
+      final totalWidth = constraints.maxWidth;
 
-    final widths = [
-      totalWidth * 0.13,
-      totalWidth * 0.27,
-      totalWidth * 0.10,
-      totalWidth * 0.10,
-      totalWidth * 0.10,
-      totalWidth * 0.10,
-      totalWidth * 0.10,
-      totalWidth * 0.10,
-    ];
+      final widths = [
+        totalWidth * 0.13,
+        totalWidth * 0.27,
+        totalWidth * 0.10,
+        totalWidth * 0.10,
+        totalWidth * 0.10,
+        totalWidth * 0.10,
+        totalWidth * 0.10,
+        totalWidth * 0.10,
+      ];
 
-    TableRow header = TableRow(
-      decoration: BoxDecoration(color: Colors.blue.shade800), // Ganti warna header jadi biru tua
-      children: [
-        _buildCell('Id Product', widths[0], isHeader: true),
-        _buildCell('Nama Product', widths[1], isHeader: true),
-        _buildCell('Ukuran', widths[2], isHeader: true),
-        _buildCell('Qty Awal', widths[3], isHeader: true),
-        _buildCell('Qty Asli', widths[4], isHeader: true),
-        _buildCell('Qty Opname', widths[5], isHeader: true),
-        _buildCell('UOM', widths[6], isHeader: true),
-        _buildCell('Hapus', widths[7], isHeader: true),
-      ],
-    );
-
-    List<TableRow> rows = [];
-    for (int i = 0; i < _opnameData.length; i++) {
-      final item = _opnameData[i];
-      final stockAwal = double.tryParse(item['stock_awal'] ?? '0') ?? 0;
-      final qtyAsli = item['qty_asli'] as double? ?? 0.0;
-      final qtyOpname = double.tryParse(item['stock_opname'] ?? '0') ?? 0;
-
-      if (!_controllers.containsKey(i)) {
-        _controllers[i] = TextEditingController(
-  text: qtyAsli.toInt().toString()
-);
-
-        _controllers[i]!.addListener(() {
-          final val = _controllers[i]!.text;
-          final parsed = double.tryParse(val);
-          if (parsed != null && _opnameData[i]['qty_asli'] != parsed) {
-            setState(() {
-              _opnameData[i]['qty_asli'] = parsed;
-            });
-            final invInId = _opnameData[i]['inv_in_id'];
-            if (invInId != null) {}
-          }
-        });
-      } else {
-final qtyAsliText = qtyAsli.toInt().toString();
-if (_controllers[i]!.text != qtyAsliText) {
-  _controllers[i]!.text = qtyAsliText;
-}
-
-      }
-
-      rows.add(TableRow(
-        decoration: BoxDecoration(
-          color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white, // Lighter row color
-        ),
+      TableRow header = TableRow(
+        decoration: BoxDecoration(color: Colors.blue.shade800),
         children: [
-          _buildCell(item['id_bahan'] ?? '', widths[0]),
-          _buildCell('${item['id_product']} - ${item['model']}', widths[1]),
-          _buildCell(item['ukuran'] ?? '', widths[2]),
-          _buildCell(stockAwal.toInt().toString(), widths[3]),
-          _buildInputCell(i, widths[4]),
-          _buildCell(qtyOpname.toInt().toString(), widths[5]),
-          _buildCell(item['uom'] ?? '', widths[6]),
-          _buildDeleteCell(i, widths[7]),
+          _buildCell('Id Product', widths[0], isHeader: true),
+          _buildCell('Nama Product', widths[1], isHeader: true),
+          _buildCell('Ukuran', widths[2], isHeader: true),
+          _buildCell('Qty Awal', widths[3], isHeader: true),
+          _buildCell('Qty Asli', widths[4], isHeader: true),
+          _buildCell('Qty Opname', widths[5], isHeader: true),
+          _buildCell('UOM', widths[6], isHeader: true),
+          _buildCell('Hapus', widths[7], isHeader: true),
         ],
-      ));
-    }
+      );
 
-    return Column(
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Container(
-            margin: EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300), // Lighter border
-              borderRadius: BorderRadius.circular(12), // Rounded corners for the table
-            ),
-            child: Table(
-              border: TableBorder.symmetric(
-                inside: BorderSide(color: Colors.grey.shade200),
-              ),
-              columnWidths: {
-                for (int i = 0; i < widths.length; i++) i: FixedColumnWidth(widths[i]),
-              },
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              children: [header, ...rows],
-            ),
-          ),
-        ),
-        SizedBox(height: 20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ElevatedButton.icon(
-  onPressed: () {
-    _simpanDanOtorisasi();
-  },
-  icon: Icon(Icons.save, color: Colors.white),
-  label: Text(
-    "Simpan & Otorisasi",
-    style: TextStyle(color: Colors.white), // Menambahkan warna putih pada teks
-  ),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.blue.shade800, // Tombol jadi biru tua
-    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-    textStyle: TextStyle(fontSize: 16), // Ukuran font tetap di sini
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-    ),
-  ),
-),
-        ),
-      ],
-    );
-  });
-}
+      List<TableRow> rows = [];
+      for (int i = 0; i < _opnameData.length; i++) {
+        final item = _opnameData[i];
+        final stockAwal = double.tryParse(item['stock_awal'] ?? '0') ?? 0;
+        final qtyAsli = item['qty_asli'] as double? ?? 0.0;
+        final qtyOpname = double.tryParse(item['stock_opname'] ?? '0') ?? 0;
 
-Widget _buildCell(String text, double width, {bool isHeader = false}) {
-  return Container(
-    width: width,
-    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-    alignment: Alignment.centerLeft,
-    child: Text(
-      text,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-        fontSize: 14,
-        color: isHeader ? Colors.white : Colors.black87, // Header text jadi putih
-      ),
-    ),
-  );
-}
+        if (!_controllers.containsKey(i)) {
+          _controllers[i] = TextEditingController(
+            text: formatNumber(qtyAsli),
+          );
 
-Widget _buildInputCell(int index, double width) {
-  return Container(
-    width: width,
-    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-    child: TextFormField(
-      controller: _controllers[index],
-      keyboardType: TextInputType.numberWithOptions(decimal: true),
-      style: TextStyle(fontSize: 14),
-      decoration: InputDecoration(
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8), // More rounded input field
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-      ),
-      onFieldSubmitted: (val) {
-        final parsed = double.tryParse(val);
-        if (parsed != null) {
-          setState(() {
-            _opnameData[index]['qty_asli'] = parsed;
-          });
-          final invInId = _opnameData[index]['inv_in_id'];
-          if (invInId != null) {
-            _updateQtyAsliToServer(invInId, parsed);
+          if (!_controllers.containsKey(i)) {
+            _controllers[i] = TextEditingController(
+              text: qtyAsli.toInt().toString(),
+            );
+
+            _controllers[i]!.addListener(() {
+              final val = _controllers[i]!.text;
+              final parsed = double.tryParse(val);
+              if (parsed != null && _opnameData[i]['qty_asli'] != parsed) {
+                setState(() {
+                  _opnameData[i]['qty_asli'] = parsed;
+                });
+                final invInId = _opnameData[i]['inv_in_id'];
+                if (invInId != null) {}
+              }
+            });
+          } else {
+            final qtyAsliText = formatNumber(qtyAsli);
+
+            final controller = _controllers[i]!;
+
+            final isUserEditing = controller.selection.isValid &&
+                !controller.selection.isCollapsed;
+
+            if (!isUserEditing) {
+              if (controller.text != qtyAsliText) {
+                controller.text = qtyAsliText;
+                controller.selection = TextSelection.fromPosition(
+                    TextPosition(offset: controller.text.length));
+              }
+            }
           }
         }
-      },
-    ),
-  );
-}
+
+        rows.add(TableRow(
+          decoration: BoxDecoration(
+            color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
+          ),
+          children: [
+            _buildCell(item['id_bahan'] ?? '', widths[0]),
+            _buildCell('${item['id_product']} - ${item['model']}', widths[1]),
+            _buildCell(item['ukuran'] ?? '', widths[2]),
+            _buildCell(stockAwal.toInt().toString(), widths[3]),
+            _buildInputCell(i, widths[4]),
+            _buildCell(qtyOpname.toInt().toString(), widths[5]),
+            _buildCell(item['uom'] ?? '', widths[6]),
+            _buildDeleteCell(i, widths[7]),
+          ],
+        ));
+      }
+
+      return Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              margin: EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Table(
+                border: TableBorder.symmetric(
+                  inside: BorderSide(color: Colors.grey.shade200),
+                ),
+                columnWidths: {
+                  for (int i = 0; i < widths.length; i++)
+                    i: FixedColumnWidth(widths[i]),
+                },
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                children: [header, ...rows],
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                _simpanDanOtorisasi();
+              },
+              icon: Icon(Icons.save, color: Colors.white),
+              label: Text(
+                "Simpan & Otorisasi",
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade800,
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                textStyle: TextStyle(fontSize: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildCell(String text, double width, {bool isHeader = false}) {
+    return Container(
+      width: width,
+      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+          fontSize: 14,
+          color: isHeader ? Colors.white : Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputCell(int index, double width) {
+    return Container(
+      width: width,
+      padding: EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+      child: TextFormField(
+        controller: _controllers[index],
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        style: TextStyle(fontSize: 14),
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+        ),
+        onFieldSubmitted: (val) async {
+          final parsed = double.tryParse(val);
+          if (parsed != null) {
+            final qtyAwal =
+                double.tryParse('${_opnameData[index]['stock_awal']}') ?? 0.0;
+
+            if (parsed < qtyAwal) {
+              await showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: Text('Peringatan'),
+                  content:
+                      Text('Maaf qty asli tidak boleh kurang dari qty awal'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('OK'),
+                    )
+                  ],
+                ),
+              );
+              final oldValue =
+                  formatNumber(_opnameData[index]['qty_asli'] ?? 0.0);
+
+              _controllers[index]!.text = oldValue;
+              _controllers[index]!.selection = TextSelection.fromPosition(
+                TextPosition(offset: _controllers[index]!.text.length),
+              );
+            } else {
+              setState(() {
+                _opnameData[index]['qty_asli'] = parsed;
+              });
+              final invInId = _opnameData[index]['inv_in_id'];
+              if (invInId != null) {
+                _updateQtyAsliToServer(invInId, parsed);
+              }
+            }
+          } else {
+            final oldValue = _opnameData[index]['qty_asli']?.toString() ?? '0';
+            _controllers[index]!.text = oldValue;
+          }
+        },
+      ),
+    );
+  }
 
   Widget _buildDeleteCell(int index, double width) {
     return Container(

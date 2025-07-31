@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sticky_headers/sticky_headers/widget.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 
 void main() => runApp(const MaterialApp(home: RekapHutangPage()));
@@ -505,7 +506,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                         foregroundColor: Colors.white),
                     child: const Text('Cari'),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 10),
                   ElevatedButton(
                     onPressed: () {
                       if (hasilData.isEmpty) {
@@ -528,7 +529,7 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 10),
                   ElevatedButton(
                     onPressed: () {
                       if (hasilData.isEmpty) {
@@ -568,161 +569,57 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                         border: Border.all(
                             color: Colors.grey, width: 1), // border luar penuh
                       ),
-                      child: DataTable(
-  columnSpacing: 10,
-  headingRowColor: MaterialStateProperty.all(Colors.indigo),
-  border: TableBorder(
-    horizontalInside: BorderSide(width: 1, color: Colors.grey),
-    verticalInside: BorderSide(width: 1, color: Colors.grey),
+child: StickyHeader(
+  header: Container(
+    decoration: BoxDecoration(
+      color: Colors.indigo,
+      border: Border(
+        bottom: BorderSide(color: Colors.grey.shade400),
+        top: BorderSide(color: Colors.grey.shade400),
+      ),
+    ),
+    child: Row(
+      children: const [
+        _HeaderCell('Tanggal'),
+        _HeaderCell('Tagihan'),
+        _HeaderCell('No.Transaksi'),
+        _HeaderCell('Customer'),
+        _HeaderCell('Lusin'),
+        _HeaderCell('Total'),
+        _HeaderCell('Terbayar'),
+        _HeaderCell('Outstanding'),
+        _HeaderCell('Status'),
+      ],
+    ),
   ),
-  columns: [
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Tanggal',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
+  content: Column(
+    children: hasilData.map((data) {
+      return Container(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade300),
           ),
         ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Tagihan',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
+        child: Row(
+          children: [
+            _TableCell(data['tanggal']),
+            _TableCell(data['tagihan']),
+            _TableCell(data['noTransaksi']),
+            _TableCell(data['customer']),
+            _TableCell(data['lusin'].toString()),
+            _TableCell(NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(data['total'])),
+            _TableCell(NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(data['terbayar'])),
+            _TableCell(NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(data['outstanding'])),
+            _TableCell(data['status']),
+          ],
         ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'No.Transaksi',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
-        ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Customer',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
-        ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Lusin',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
-        ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Total',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
-        ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Terbayar',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
-        ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Outstanding',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
-        ),
-      ),
-    ),
-    DataColumn(
-      label: Expanded(
-        child: Center(
-          child: Text(
-            'Status',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white, // Menetapkan warna teks menjadi putih
-            ),
-          ),
-        ),
-      ),
-    ),
-  ],
-  rows: hasilData.map((data) {
-    return DataRow(cells: [
-      DataCell(Center(child: Text(data['tanggal']))),
-      DataCell(Center(child: Text(data['tagihan']))),
-      DataCell(Center(child: Text(data['noTransaksi']))),
-      DataCell(Center(child: Text(data['customer']))),
-      DataCell(Center(child: Text(data['lusin'].toString()))),
-      DataCell(Center(
-          child: Text(NumberFormat.currency(
-                  locale: 'id',
-                  symbol: 'Rp ',
-                  decimalDigits: 0)
-              .format(data['total'])))),
-      DataCell(Center(
-          child: Text(NumberFormat.currency(
-                  locale: 'id',
-                  symbol: 'Rp ',
-                  decimalDigits: 0)
-              .format(data['terbayar'])))),
-      DataCell(Center(
-          child: Text(NumberFormat.currency(
-                  locale: 'id',
-                  symbol: 'Rp ',
-                  decimalDigits: 0)
-              .format(data['outstanding'])))),
-      DataCell(Center(child: Text(data['status']))),
-    ]);
-  }).toList(),
+      );
+    }).toList(),
+  ),
 ),
+
+
+
                     );
                   },
                 ),
@@ -748,6 +645,62 @@ class _RekapHutangPageState extends State<RekapHutangPage> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderCell extends StatelessWidget {
+  final String label;
+  const _HeaderCell(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        decoration: BoxDecoration(
+          border: Border(
+            right: BorderSide(color: Colors.grey.shade400),
+          ),
+        ),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TableCell extends StatelessWidget {
+  final String value;
+  const _TableCell(this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          border: Border(
+            right: BorderSide(color: Colors.grey.shade300),
+          ),
+        ),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value),
           ),
         ),
       ),
