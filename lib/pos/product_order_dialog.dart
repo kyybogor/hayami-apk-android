@@ -156,18 +156,18 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
+                // Expanded(
+                //   flex: 3,
+                //   child: Align(
+                //     alignment: Alignment.center,
+                //     child: Text(
+                //       'Qty',
+                //       style: TextStyle(fontWeight: FontWeight.bold),
+                //     ),
+                //   ),
+                // ),
                 Expanded(
                   flex: 3,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Qty',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
                   child: Center(
                     child: Text(
                       'Lusin',
@@ -176,7 +176,7 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                   ),
                 ),
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: Center(
                     child: Text(
                       'Pcs',
@@ -228,153 +228,165 @@ class _ProductOrderDialogContentState extends State<ProductOrderDialogContent> {
                   children: [
                     Expanded(flex: 3, child: Text(size)),
                     Expanded(flex: 2, child: Text(formatLusinPcs(stock))),
-                    Expanded(
-                      flex: 3,
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: (lsQty > 0 || pcsQty > 0)
-                                ? null
-                                : () {
-                                    setState(() {
-                                      final currentQty = double.tryParse(
-                                              qtyControllers[size]?.text ??
-                                                  '0') ??
-                                          0;
-                                      final newQty =
-                                          (currentQty - 1).clamp(0, stock);
-                                      qtyControllers[size]?.text =
-                                          newQty.toStringAsFixed(0);
-                                      if (newQty > 0) {
-                                        lusinControllers[size]?.text = '0';
-                                        pcsControllers[size]?.text = '0';
-                                      }
-                                    });
-                                  },
-                          ),
-                          SizedBox(
-                            width: 28,
-                            child: TextField(
-                              controller: qtyControllers[size],
-                              keyboardType: TextInputType.number,
-                              readOnly: true,
-                              textAlign: TextAlign.center,
-                              decoration: const InputDecoration(isDense: true),
-                              enabled: lsQty == 0 && pcsQty == 0,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: (lsQty > 0 || pcsQty > 0)
-                                ? null
-                                : () {
-                                    setState(() {
-                                      final currentQty = double.tryParse(
-                                              qtyControllers[size]?.text ??
-                                                  '0') ??
-                                          0;
-                                      final newQty =
-                                          (currentQty + 1).clamp(0, stock);
-                                      qtyControllers[size]?.text =
-                                          newQty.toStringAsFixed(0);
-                                      if (newQty > 0) {
-                                        lusinControllers[size]?.text = '0';
-                                        pcsControllers[size]?.text = '0';
-                                      }
-                                    });
-                                  },
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Center(
-                        child: SizedBox(
-                          width: 40,
-                          child: TextField(
-                            controller: lusinControllers[size],
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                hintText: 'ls', isDense: true),
-                            textAlign: TextAlign.center,
-                            enabled: (double.tryParse(
-                                        qtyControllers[size]?.text ?? '0') ??
-                                    0) ==
-                                0,
-                            onChanged: (val) {
-                              setState(() {
-                                final inputLusin = int.tryParse(val) ?? 0;
-                                final pcs = int.tryParse(
-                                        pcsControllers[size]?.text ?? '0') ??
-                                    0;
-                                final total = inputLusin * 12 + pcs;
+                    // Expanded(
+                    //   flex: 3,
+                    //   child: Row(
+                    //     children: [
+                    //       IconButton(
+                    //         icon: const Icon(Icons.remove, size: 16),
+                    //         padding: EdgeInsets.zero,
+                    //         constraints: const BoxConstraints(),
+                    //         onPressed: (lsQty > 0 || pcsQty > 0)
+                    //             ? null
+                    //             : () {
+                    //                 setState(() {
+                    //                   final currentQty = double.tryParse(
+                    //                           qtyControllers[size]?.text ??
+                    //                               '0') ??
+                    //                       0;
+                    //                   final newQty =
+                    //                       (currentQty - 1).clamp(0, stock);
+                    //                   qtyControllers[size]?.text =
+                    //                       newQty.toStringAsFixed(0);
+                    //                   if (newQty > 0) {
+                    //                     lusinControllers[size]?.text = '0';
+                    //                     pcsControllers[size]?.text = '0';
+                    //                   }
+                    //                 });
+                    //               },
+                    //       ),
+                    //       SizedBox(
+                    //         width: 28,
+                    //         child: TextField(
+                    //           controller: qtyControllers[size],
+                    //           keyboardType: TextInputType.number,
+                    //           readOnly: true,
+                    //           textAlign: TextAlign.center,
+                    //           decoration: const InputDecoration(isDense: true),
+                    //           enabled: lsQty == 0 && pcsQty == 0,
+                    //         ),
+                    //       ),
+                    //       IconButton(
+                    //         icon: const Icon(Icons.add, size: 16),
+                    //         padding: EdgeInsets.zero,
+                    //         constraints: const BoxConstraints(),
+                    //         onPressed: (lsQty > 0 || pcsQty > 0)
+                    //             ? null
+                    //             : () {
+                    //                 setState(() {
+                    //                   final currentQty = double.tryParse(
+                    //                           qtyControllers[size]?.text ??
+                    //                               '0') ??
+                    //                       0;
+                    //                   final newQty =
+                    //                       (currentQty + 1).clamp(0, stock);
+                    //                   qtyControllers[size]?.text =
+                    //                       newQty.toStringAsFixed(0);
+                    //                   if (newQty > 0) {
+                    //                     lusinControllers[size]?.text = '0';
+                    //                     pcsControllers[size]?.text = '0';
+                    //                   }
+                    //                 });
+                    //               },
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+Expanded(
+  flex: 3,
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      IconButton(
+        icon: const Icon(Icons.remove, size: 16),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: (double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0) > 0
+            ? null
+            : () {
+                int current = int.tryParse(lusinControllers[size]?.text ?? '0') ?? 0;
+                if (current > 0) {
+                  current--;
+                  lusinControllers[size]?.text = current.toString();
+                  qtyControllers[size]?.text = '0';
+                  setState(() {});
+                }
+              },
+      ),
+      Text(
+        lusinControllers[size]?.text ?? '0',
+        style: const TextStyle(fontSize: 14),
+      ),
+      IconButton(
+        icon: const Icon(Icons.add, size: 16),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: (double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0) > 0
+            ? null
+            : () {
+                int lusin = int.tryParse(lusinControllers[size]?.text ?? '0') ?? 0;
+                int pcs = int.tryParse(pcsControllers[size]?.text ?? '0') ?? 0;
+                final total = (lusin + 1) * 12 + pcs;
+                if (total <= stock) {
+                  lusin++;
+                  lusinControllers[size]?.text = lusin.toString();
+                  qtyControllers[size]?.text = '0';
+                  setState(() {});
+                }
+              },
+      ),
+    ],
+  ),
+),
+Expanded(
+  flex: 3,
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      IconButton(
+        icon: const Icon(Icons.remove, size: 16),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: (double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0) > 0
+            ? null
+            : () {
+                int current = int.tryParse(pcsControllers[size]?.text ?? '0') ?? 0;
+                if (current > 0) {
+                  current--;
+                  pcsControllers[size]?.text = current.toString();
+                  qtyControllers[size]?.text = '0';
+                  setState(() {});
+                }
+              },
+      ),
+      Text(
+        pcsControllers[size]?.text ?? '0',
+        style: const TextStyle(fontSize: 14),
+      ),
+      IconButton(
+        icon: const Icon(Icons.add, size: 16),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: (double.tryParse(qtyControllers[size]?.text ?? '0') ?? 0) > 0
+            ? null
+            : () {
+                int lusin = int.tryParse(lusinControllers[size]?.text ?? '0') ?? 0;
+                int pcs = int.tryParse(pcsControllers[size]?.text ?? '0') ?? 0;
 
-                                if (total > stock) {
-                                  final maxLusin = ((stock - pcs) ~/ 12)
-                                      .clamp(0, stock ~/ 12);
-                                  lusinControllers[size]?.text =
-                                      maxLusin.toString();
-                                } else {
-                                  if (inputLusin > 0 || pcs > 0) {
-                                    qtyControllers[size]?.text = '0';
-                                  }
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Center(
-                        child: SizedBox(
-                          width: 40,
-                          child: TextField(
-                            controller: pcsControllers[size],
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                hintText: 'pcs', isDense: true),
-                            textAlign: TextAlign.center,
-                            enabled: (double.tryParse(
-                                        qtyControllers[size]?.text ?? '0') ??
-                                    0) ==
-                                0,
-                            onChanged: (val) {
-                              setState(() {
-                                int pcs = int.tryParse(val) ?? 0;
-                                if (pcs > 11) pcs = 11;
-
-                                final int lusin = int.tryParse(
-                                        lusinControllers[size]?.text ?? '0') ??
-                                    0;
-                                final int maxQty = stock.toInt();
-                                final int total = lusin * 12 + pcs;
-
-                                if (total > maxQty) {
-                                  final int maxPcs =
-                                      (maxQty - lusin * 12).clamp(0, 11);
-                                  pcsControllers[size]?.text =
-                                      maxPcs.toString();
-                                } else {
-                                  pcsControllers[size]?.text = pcs.toString();
-                                }
-
-                                if (lusin > 0 || pcs > 0) {
-                                  qtyControllers[size]?.text = '0';
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
+                if (pcs < 11) {
+                  final total = lusin * 12 + pcs + 1;
+                  if (total <= stock) {
+                    pcs++;
+                    pcsControllers[size]?.text = pcs.toString();
+                    qtyControllers[size]?.text = '0';
+                    setState(() {});
+                  }
+                }
+              },
+      ),
+    ],
+  ),
+),
                     Expanded(
                         flex: 2,
                         child: Center(
