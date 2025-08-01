@@ -5,7 +5,6 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 void main() => runApp(const MaterialApp(home: LaporanRetur()));
 
 class LaporanRetur extends StatefulWidget {
@@ -21,6 +20,7 @@ class _LaporanReturState extends State<LaporanRetur> {
   String? selectedBahan;
   String? selectedCustomer;
   List<dynamic> bahanList = [];
+  List<dynamic> stockList = [];
   List<Map<String, dynamic>> customerList = [];
   bool isLoading = false;
 
@@ -32,13 +32,19 @@ class _LaporanReturState extends State<LaporanRetur> {
 
   late TextEditingController bahanController;
   late TextEditingController customerController;
+  late TextEditingController barcodeController;
 
   @override
   void initState() {
     super.initState();
     bahanController = TextEditingController();
     customerController = TextEditingController();
+    barcodeController = TextEditingController();
 
+      barcodeController.addListener(() {
+    setState(() {}); // supaya UI refresh ketika barcode berubah
+  });
+  
     bahanController.addListener(() {
       if (bahanController.text.isEmpty && selectedBahan != null) {
         setState(() => selectedBahan = null);
@@ -53,17 +59,19 @@ class _LaporanReturState extends State<LaporanRetur> {
 
     fetchBahanModel();
     fetchCustomerList();
+    fetchStockData();
   }
 
   @override
   void dispose() {
     bahanController.dispose();
     customerController.dispose();
+    barcodeController.dispose();
     super.dispose();
   }
 
   Future<void> fetchCustomerList() async {
-    final url = 'https://hayami.id/pos/customer.php';
+    final url = 'https://hayami./pos/customer.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -109,7 +117,7 @@ class _LaporanReturState extends State<LaporanRetur> {
             .where((item) => item.toLowerCase().contains(query.toLowerCase()))
             .toList();
 
-    return ['-- Pilih Bahan --', ...suggestions];
+    return ['', ...suggestions];
   }
 
   List<String> getCustomerOptions(String query) {
@@ -122,48 +130,84 @@ class _LaporanReturState extends State<LaporanRetur> {
             .where((item) => item.toLowerCase().contains(query.toLowerCase()))
             .toList();
 
-    return ['-- Pilih Customer --', ...suggestions];
+    return ['', ...suggestions];
   }
 
-  Future<void> fetchLaporanRetur() async {
-    final from = DateFormat('yyyy-MM-dd').format(fromDate);
-    final to = DateFormat('yyyy-MM-dd').format(toDate);
+  Future<void> fetchStockData() async {
     final prefs = await SharedPreferences.getInstance();
     final idCabang = prefs.getString('id_cabang') ?? '';
-    String url =
-        'https://hayami.id/pos/laporan_retur.php?start_date=$from&end_date=$to&id_cabang=$idCabang';
-    if (selectedBahan != null && selectedBahan!.isNotEmpty) {
-      url += '&id_bahan=${Uri.encodeComponent(selectedBahan!)}';
-    }
-    if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
-      url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';
-    }
-
-    setState(() {
-      isLoading = true;
-      laporanRetur = [];
-      totalReturCustomer = 0;
-      totalReturGudang = 0;
-      grandTotal = 0;
-    });
-
+    final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        setState(() {
-          laporanRetur = jsonData['data'] ?? [];
-          totalReturCustomer = jsonData['total_retur_customer'] ?? 0;
-          totalReturGudang = jsonData['total_retur_gudang'] ?? 0;
-          grandTotal = jsonData['grand_total'] ?? 0;
-        });
+        if (jsonData['status'] == 'success') {
+          setState(() {
+            stockList = jsonData['data'];
+          });
+        }
+      } else {
+        debugPrint('Failed to fetch stock: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error fetching laporan retur: $e');
+      debugPrint('Error fetching stock data: $e');
     }
-
-    setState(() => isLoading = false);
   }
+
+  List<String> getBarcodeSuggestions(String query) {
+    return stockList
+        .map((item) => item['barcode']?.toString() ?? '')
+        .where((barcode) => barcode.toLowerCase().contains(query.toLowerCase()))
+        .toSet()
+        .toList();
+  }
+
+Future<void> fetchLaporanRetur() async {
+  final from = DateFormat('yyyy-MM-dd').format(fromDate);
+  final to = DateFormat('yyyy-MM-dd').format(toDate);
+  final prefs = await SharedPreferences.getInstance();
+  final idCabang = prefs.getString('id_cabang') ?? '';
+
+  String url =
+      'https://hayami.id/pos/laporan_retur.php?start_date=$from&end_date=$to&id_cabang=$idCabang';
+
+  if (selectedBahan != null && selectedBahan!.isNotEmpty) {
+    url += '&id_bahan=${Uri.encodeComponent(selectedBahan!)}';
+  }
+
+  if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
+    url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';
+  }
+
+  if (barcodeController.text.isNotEmpty) {
+    url += '&barcode=${Uri.encodeComponent(barcodeController.text)}';
+  }
+
+  setState(() {
+    isLoading = true;
+    laporanRetur = [];
+    totalReturCustomer = 0;
+    totalReturGudang = 0;
+    grandTotal = 0;
+  });
+
+  try {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      setState(() {
+        laporanRetur = jsonData['data'] ?? [];
+        totalReturCustomer = jsonData['total_retur_customer'] ?? 0;
+        totalReturGudang = jsonData['total_retur_gudang'] ?? 0;
+        grandTotal = jsonData['grand_total'] ?? 0;
+      });
+    }
+  } catch (e) {
+    debugPrint('Error fetching laporan retur: $e');
+  }
+
+  setState(() => isLoading = false);
+}
 
   Widget buildDetailTable(List details, String idTransaksi, String idCustomer) {
     final currencyFormat = NumberFormat('#,###', 'id_ID');
@@ -181,42 +225,53 @@ class _LaporanReturState extends State<LaporanRetur> {
       },
       children: [
         TableRow(
-  decoration: const BoxDecoration(color: Colors.indigo),
-  children: const [
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("Tanggal", style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("ID Transaksi", style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("Nama Barang", style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("Ukuran", style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("Qty", style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("UOM", style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("Price", style: TextStyle(color: Colors.white))),
-    ),
-    Padding(
-      padding: EdgeInsets.all(8),
-      child: Center(child: Text("Total", style: TextStyle(color: Colors.white))),
-    ),
-  ],
-),
+          decoration: const BoxDecoration(color: Colors.indigo),
+          children: const [
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child:
+                      Text("Tanggal", style: TextStyle(color: Colors.white))),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: Text("ID Transaksi",
+                      style: TextStyle(color: Colors.white))),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: Text("Nama Barang",
+                      style: TextStyle(color: Colors.white))),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: Text("Ukuran", style: TextStyle(color: Colors.white))),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: Text("Qty", style: TextStyle(color: Colors.white))),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: Text("UOM", style: TextStyle(color: Colors.white))),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: Text("Price", style: TextStyle(color: Colors.white))),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: Text("Total", style: TextStyle(color: Colors.white))),
+            ),
+          ],
+        ),
         ...details.map((item) {
           return TableRow(
             children: [
@@ -322,7 +377,7 @@ class _LaporanReturState extends State<LaporanRetur> {
             const Text('Laporan Retur', style: TextStyle(color: Colors.blue)),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.blue),
-                leading: IconButton(
+        leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.blue),
           onPressed: () {
             Navigator.pop(context);
@@ -409,7 +464,7 @@ class _LaporanReturState extends State<LaporanRetur> {
                             optionsBuilder: (TextEditingValue val) {
                               final bahanOptions = getBahanOptions(val.text);
                               final List<String> results = [
-                                '-- Pilih Bahan --',
+                                '',
                                 ...bahanOptions
                               ];
                               return results.where((option) => option
@@ -417,7 +472,7 @@ class _LaporanReturState extends State<LaporanRetur> {
                                   .contains(val.text.toLowerCase()));
                             },
                             onSelected: (val) {
-                              if (val == '-- Pilih Bahan --') {
+                              if (val == '') {
                                 setState(() {
                                   selectedBahan = null;
                                   bahanController.text = '';
@@ -435,8 +490,8 @@ class _LaporanReturState extends State<LaporanRetur> {
                                 });
                               }
                             },
-                            initialValue: TextEditingValue(
-                                text: selectedBahan ?? '-- Pilih Bahan --'),
+                            initialValue:
+                                TextEditingValue(text: selectedBahan ?? ''),
                             fieldViewBuilder: (context, textEditingController,
                                 focusNode, onEditingComplete) {
                               if (bahanController.text !=
@@ -465,7 +520,7 @@ class _LaporanReturState extends State<LaporanRetur> {
                               final customerOptions =
                                   getCustomerOptions(val.text);
                               final List<String> results = [
-                                '-- Pilih Customer --',
+                                '',
                                 ...customerOptions
                               ];
                               return results.where((option) => option
@@ -473,7 +528,7 @@ class _LaporanReturState extends State<LaporanRetur> {
                                   .contains(val.text.toLowerCase()));
                             },
                             onSelected: (val) {
-                              if (val == '-- Pilih Customer --') {
+                              if (val == '') {
                                 setState(() {
                                   selectedCustomer = null;
                                   customerController.text = '';
@@ -494,7 +549,7 @@ class _LaporanReturState extends State<LaporanRetur> {
                             initialValue: TextEditingValue(
                                 text: selectedCustomer != null
                                     ? customerController.text
-                                    : '-- Pilih Customer --'),
+                                    : ''),
                             fieldViewBuilder: (context, textEditingController,
                                 focusNode, onEditingComplete) {
                               if (customerController.text !=
@@ -515,6 +570,47 @@ class _LaporanReturState extends State<LaporanRetur> {
                           ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') {
+                    return const Iterable<String>.empty();
+                  }
+                  return getBarcodeSuggestions(textEditingValue.text);
+                },
+                fieldViewBuilder: (BuildContext context,
+                    TextEditingController textEditingController,
+                    FocusNode focusNode,
+                    VoidCallback onFieldSubmitted) {
+                  if (barcodeController.text != textEditingController.text) {
+                    barcodeController.value = textEditingController.value;
+                  }
+
+                  return TextField(
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(
+                      labelText: 'Barcode',
+                      border: OutlineInputBorder(),
+                    ),
+                  );
+                },
+                onSelected: (String selection) {
+                  barcodeController.text = selection;
+                  final selectedItem = stockList.firstWhere(
+                    (item) => item['barcode'] == selection,
+                    orElse: () => {},
+                  );
+
+                  // Lakukan sesuatu, misalnya isi ID Bahan dan lainnya:
+                  if (selectedItem.isNotEmpty) {
+                    setState(() {
+                      bahanController.text = selectedItem['id_bahan'] ?? '';
+                      // ...tambahkan controller lain jika perlu
+                    });
+                  }
+                },
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -555,9 +651,7 @@ class _LaporanReturState extends State<LaporanRetur> {
                             color: Colors.indigo.shade200,
                             child: Text(
                               'Total: Rp ${currencyFormat.format(item['total'])}',
-                              style: const TextStyle(
-                                  color: Colors.white
-                                  ),
+                              style: const TextStyle(color: Colors.white),
                             ),
                           ),
                         ],

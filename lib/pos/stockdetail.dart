@@ -28,6 +28,7 @@ class _StockdetailState extends State<Stockdetail> {
   String? selectedBahan;
   String? selectedModel;
   String? selectedUkuran;
+  String? barcodeInput;
   List<dynamic> bahanList = [];
   Map<String, dynamic>? stockDetail;
   List<dynamic> filteredStock = [];
@@ -187,6 +188,45 @@ class _StockdetailState extends State<Stockdetail> {
     );
   }
 
+Future<void> fetchDataFromBarcode(String barcode) async {
+  if (bahanList.isEmpty) {
+    return;
+  }
+
+  final foundItem = bahanList.firstWhere(
+    (item) => item['barcode'] == barcode,
+    orElse: () => null,
+  );
+
+  if (foundItem != null) {
+    setState(() {
+      selectedBahan = foundItem['id_bahan'];
+      selectedModel = foundItem['model'];
+      selectedUkuran = foundItem['ukuran'].toString();
+    });
+
+    // Tidak memanggil fetchDetailStock() di sini
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Barcode tidak ditemukan')),
+    );
+  }
+}
+
+List<String> getBarcodeOptions(String query) {
+  final allBarcodes = bahanList
+      .map((e) => e['barcode'].toString())
+      .where((barcode) => barcode.isNotEmpty)
+      .toSet()
+      .toList();
+
+  return allBarcodes
+      .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+      .toList();
+}
+
+
+
   Future<void> fetchDetailStock() async {
     setState(() {
       isLoading = true;
@@ -208,7 +248,7 @@ class _StockdetailState extends State<Stockdetail> {
 
     // Menyusun URL dengan parameter yang tepat
     String url =
-        'http://192.168.1.25/pos/detail_stock.php?id_cabang=$idCabang&id_bahan=${Uri.encodeComponent(selectedBahan!)}';
+        'https://hayami.id/pos/detail_stock.php?id_cabang=$idCabang&id_bahan=${Uri.encodeComponent(selectedBahan!)}';
 
     // Jika model tidak null, tambahkan parameter model ke URL
     if (selectedModel != null && selectedModel!.isNotEmpty) {
@@ -295,14 +335,16 @@ class _StockdetailState extends State<Stockdetail> {
                           selectedUkuran = null;
                         });
                       },
-                      fieldViewBuilder: (context, controller, focusNode, _) =>
-                          TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                            labelText: 'ID Bahan',
-                            border: OutlineInputBorder()),
-                      ),
+fieldViewBuilder: (context, controller, focusNode, _) =>
+    TextField(
+  controller: controller,
+  focusNode: focusNode,
+  enabled: barcodeInput == null || barcodeInput!.isEmpty,
+  decoration: const InputDecoration(
+      labelText: 'ID Bahan',
+      border: OutlineInputBorder()),
+),
+
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -321,6 +363,7 @@ class _StockdetailState extends State<Stockdetail> {
                           TextField(
                         controller: controller,
                         focusNode: focusNode,
+                        enabled: barcodeInput == null || barcodeInput!.isEmpty,
                         onChanged: (text) {
                           if (text.isEmpty) {
                             setState(() {
@@ -349,6 +392,7 @@ class _StockdetailState extends State<Stockdetail> {
                           TextField(
                         controller: controller,
                         focusNode: focusNode,
+                        enabled: barcodeInput == null || barcodeInput!.isEmpty,
                         onChanged: (text) {
                           if (text.isEmpty) {
                             setState(() {
@@ -364,16 +408,54 @@ class _StockdetailState extends State<Stockdetail> {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+Autocomplete<String>(
+  optionsBuilder: (textEditingValue) {
+    if (textEditingValue.text.length < 3) {
+      return const Iterable<String>.empty();
+    }
+    return getBarcodeOptions(textEditingValue.text);
+  },
+  onSelected: (selection) {
+    setState(() {
+      barcodeInput = selection;
+    });
+    fetchDataFromBarcode(selection);
+  },
+  fieldViewBuilder:
+      (context, controller, focusNode, onEditingComplete) =>
+          TextField(
+    controller: controller,
+    focusNode: focusNode,
+    onChanged: (value) {
+      setState(() {
+        barcodeInput = value;
+      });
+    },
+    onSubmitted: (value) {
+      if (value.isNotEmpty) {
+        fetchDataFromBarcode(value);
+      }
+    },
+    decoration: const InputDecoration(
+      labelText: 'Barcode',
+      border: OutlineInputBorder(),
+    ),
+  ),
+),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  ElevatedButton(
-                    onPressed: selectedBahan != null ? fetchDetailStock : null,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
-                        foregroundColor: Colors.white),
-                    child: const Text('Cari'),
-                  ),
+ElevatedButton(
+  onPressed: (selectedBahan != null) 
+      ? fetchDetailStock 
+      : null,
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo,
+    foregroundColor: Colors.white,
+  ),
+  child: const Text('Cari'),
+),
                   const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: generateExcel,

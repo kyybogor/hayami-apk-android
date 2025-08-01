@@ -212,7 +212,7 @@ Future<void> handleBarcodePrint({
 }) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
 String? idCabang = prefs.getString('id_cabang');
-  final url = 'http://192.168.1.25/pos/stock.php?id_cabang=$idCabang';
+  final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -481,7 +481,7 @@ if (dir != null) {
   Future<void> fetchBahanModel() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idCabang = prefs.getString('id_cabang');
-    final url = 'http://192.168.1.25/pos/stock.php?id_cabang=$idCabang';
+    final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -501,6 +501,15 @@ if (dir != null) {
     final allBahan = bahanList.map((e) => e['id_bahan'].toString()).toSet().toList();
     return allBahan.where((item) => item.toLowerCase().contains(query.toLowerCase())).toList();
   }
+
+  List<String> getBarcodeOptions(String query) {
+  if (query.isEmpty) return [];
+  return bahanList
+      .where((item) => (item['barcode'] ?? '').toString().contains(query))
+      .map((item) => item['barcode'].toString())
+      .toList();
+}
+
 
   List<String> getModelOptions(String query) {
     if (selectedBahan == null) return [];
@@ -524,8 +533,8 @@ if (dir != null) {
 
   final Uri url = Uri.parse(
     barcodeController.text.isNotEmpty
-        ? 'http://192.168.1.25/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&barcode=${Uri.encodeComponent(barcodeController.text)}&id_cabang=$idCabang'
-        : 'http://192.168.1.25/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}&id_cabang=$idCabang',
+        ? 'https://hayami.id/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&barcode=${Uri.encodeComponent(barcodeController.text)}&id_cabang=$idCabang'
+        : 'https://hayami.id/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}&id_cabang=$idCabang',
   );
 
   setState(() => isLoading = true);
@@ -639,25 +648,47 @@ print('📦 Body: ${response.body}');
 // BARCODE
 Row(
   children: [
-    Expanded(
-      child: TextField(
-        controller: barcodeController,
-        decoration: const InputDecoration(
-          labelText: 'Barcode',
-          border: OutlineInputBorder(),
-        ),
-        onChanged: (value) {
-          if (value.isNotEmpty) {
+    Flexible(
+      child: SizedBox(
+        height: 60,
+        child: Autocomplete<String>(
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            return getBarcodeOptions(textEditingValue.text);
+          },
+          onSelected: (String selection) {
             setState(() {
+              barcodeController.text = selection;
               selectedBahan = null;
               selectedModel = null;
             });
-          }
-        },
+          },
+          fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+            barcodeController = controller;
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: const InputDecoration(
+                labelText: 'Barcode',
+                border: OutlineInputBorder(),
+              ),
+onChanged: (value) {
+  setState(() {
+    if (value.isNotEmpty) {
+      selectedBahan = null;
+      selectedModel = null;
+    } else {
+    }
+  });
+},
+
+            );
+          },
+        ),
       ),
     ),
   ],
 ),
+
 const SizedBox(height: 8),
 
 // ID BAHAN dan MODEL

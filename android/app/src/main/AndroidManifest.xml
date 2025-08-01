@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <!-- Untuk versi Android yang lebih lama, WRITE_EXTERNAL_STORAGE mungkin masih dibutuhkan -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:targetSdkVersion="28"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <!-- Menyediakan izin untuk menggunakan galeri dan kamera -->
     <uses-permission android:name="android.permission.CAMERA"/>
