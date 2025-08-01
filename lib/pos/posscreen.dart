@@ -119,6 +119,7 @@ class _PosscreenState extends State<Posscreen> {
   final TextEditingController splitAmountController = TextEditingController();
   final TextEditingController barcodeController = TextEditingController();
   final FocusNode barcodeFocusNode = FocusNode();
+  String barcodeQuery = '';
 
   @override
   void initState() {
@@ -1561,18 +1562,20 @@ Future<void> handleCustomerIdChange(String id) async {
 Widget productGrid() {
   final Map<String, List<dynamic>> grouped = {};
 
-  // 🔍 Filter berdasarkan searchQuery DAN selectedBahan
+  // 🔍 Filter berdasarkan searchQuery, selectedBahan, dan barcodeQuery
   final filtered = allProducts.where((item) {
     final tipe = item['id_bahan']?.toLowerCase() ?? '';
     final model = item['model']?.toLowerCase() ?? '';
     final query = searchQuery.toLowerCase();
+    final barcode = item['barcode']?.toLowerCase() ?? '';
+    final barcodeMatch = barcode.contains(barcodeQuery.toLowerCase());
 
     final cocokSearch = tipe.contains(query) || model.contains(query);
     final cocokDropdown = selectedBahan == null ||
         selectedBahan!.isEmpty ||
         item['id_bahan'] == selectedBahan;
 
-    return cocokSearch && cocokDropdown;
+    return cocokSearch && cocokDropdown && (barcodeQuery.isEmpty || barcodeMatch);
   }).toList();
 
   for (var item in filtered) {
@@ -1591,12 +1594,18 @@ Widget productGrid() {
     children: items.map((entry) {
       final representative = entry.value.first;
       final newImage = (representative['image'] ?? '').trim();
-final imgUrl = newImage.isNotEmpty
-    ? 'https://hayami.id/apps/erp/${newImage.replaceAll(' ', '%20')}'
-    : 'https://via.placeholder.com/150';
+      final imgUrl = newImage.isNotEmpty
+          ? 'https://hayami.id/apps/erp/${newImage.replaceAll(' ', '%20')}'
+          : 'https://via.placeholder.com/150';
+
+      // Menampilkan produk hanya berdasarkan ukuran yang sesuai dengan barcode
+      final filteredSizes = entry.value.where((item) {
+        final stock = calculateStock(item);
+        return stock > 0;
+      }).toList();
+
       return GestureDetector(
-        onTap: () =>
-            showProductOrderDialog(context, representative, entry.value),
+        onTap: () => showProductOrderDialog(context, representative, filteredSizes),
         child: Card(
           elevation: 2,
           child: Padding(
@@ -1605,10 +1614,7 @@ final imgUrl = newImage.isNotEmpty
               children: [
                 Text(
                   representative['id_bahan'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 Text(
@@ -1643,9 +1649,9 @@ final imgUrl = newImage.isNotEmpty
                     child: ListView.builder(
                       shrinkWrap: true,
                       physics: const ClampingScrollPhysics(),
-                      itemCount: entry.value.length,
+                      itemCount: filteredSizes.length,
                       itemBuilder: (context, index) {
-                        final item = entry.value[index];
+                        final item = filteredSizes[index];
                         final stock = calculateStock(item);
                         if (stock <= 0) return const SizedBox.shrink();
 
@@ -1679,7 +1685,6 @@ final imgUrl = newImage.isNotEmpty
     }).toList(),
   );
 }
-
   double calculateGrandTotal({
     required List<OrderItem> items,
     required Customer? customer,
@@ -2240,57 +2245,72 @@ Row(
           : Column(
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          value: selectedBahan,
-                          decoration: const InputDecoration(
-                            labelText: 'Pilih Bahan',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                          ),
-                          items: bahanList.map((bahan) {
-                            return DropdownMenuItem<String>(
-                              value: bahan,
-                              child: Text(
-                                bahan,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: filterByBahan,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          style: const TextStyle(fontSize: 14),
-                          decoration: const InputDecoration(
-                            hintText: 'Search by Tipe or Model',
-                            prefixIcon: Icon(Icons.search, size: 20),
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                          ),
-                          onChanged: (value) =>
-                              setState(() => searchQuery = value),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  child: Row(
+    children: [
+      // Input Barcode di sebelah kiri dengan ukuran lebar dan tinggi yang bisa diatur
+      SizedBox(
+        width: 125,  // Sesuaikan lebar sesuai kebutuhan
+        height: 45,  // Sesuaikan tinggi sesuai kebutuhan
+        child: TextField(
+          style: const TextStyle(fontSize: 14),
+          decoration: const InputDecoration(
+            hintText: 'Barcode',
+            prefixIcon: Icon(Icons.qr_code_scanner, size: 20),
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          onChanged: (value) => setState(() => barcodeQuery = value),
+        ),
+      ),
+      const SizedBox(width: 8),
+      // Dropdown Pilih Bahan di sebelah kanan input barcode
+      Expanded(
+        flex: 3,
+        child: DropdownButtonFormField<String>(
+          isExpanded: true,
+          value: selectedBahan,
+          decoration: const InputDecoration(
+            labelText: 'Pilih Bahan',
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          items: bahanList.map((bahan) {
+            return DropdownMenuItem<String>(
+              value: bahan,
+              child: Text(
+                bahan,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: filterByBahan,
+        ),
+      ),
+      const SizedBox(width: 8),
+      // Search Field untuk Tipe atau Model di sebelah kanan Dropdown
+      Expanded(
+        flex: 2,
+        child: TextField(
+          style: const TextStyle(fontSize: 14),
+          decoration: const InputDecoration(
+            hintText: 'Search by Model',
+            prefixIcon: Icon(Icons.search, size: 20),
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          onChanged: (value) => setState(() => searchQuery = value),
+        ),
+      ),
+    ],
+  ),
+),
                 Expanded(
                   child: Row(
-                    children: [
+                    children: [ 
                       Expanded(flex: 3, child: productGrid()),
                       Expanded(flex: 2, child: cartSection()),
                     ],
