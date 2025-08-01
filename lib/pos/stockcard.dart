@@ -30,12 +30,19 @@ class _StockCardState extends State<StockCard> {
   List<dynamic> stockCardData = [];
   bool isLoading = false;
   bool isPrinting = false;
+  TextEditingController barcodeController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    fetchBahanModel();
-  }
+@override
+void initState() {
+  super.initState();
+  fetchBahanModel();
+
+  barcodeController.addListener(() {
+    setState(() {
+      // ini hanya untuk trigger rebuild agar enable/disable field bahan/model
+    });
+  });
+}
 Future<void> printAllStockData({
   required List<dynamic> stockCardData,
   required String selectedBahan,
@@ -205,7 +212,7 @@ Future<void> handleBarcodePrint({
 }) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
 String? idCabang = prefs.getString('id_cabang');
-  final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
+  final url = 'http://192.168.1.25/pos/stock.php?id_cabang=$idCabang';
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -426,7 +433,7 @@ Future<void> exportToExcelStyled(
     setNumberWithStyle(sheet, row, 3, double.tryParse('${summary['masuk']}') ?? 0, summaryStyle);
     setNumberWithStyle(sheet, row, 4, double.tryParse('${summary['keluar']}') ?? 0, summaryStyle);
     setNumberWithStyle(sheet, row, 5, double.tryParse('${summary['sisa']}') ?? 0, summaryStyle);
-    row += 2;
+    row ++;
 
     setTextWithStyle(sheet, row, 1, 'Tanggal', detailHeaderStyle);
     setTextWithStyle(sheet, row, 2, 'No. Transaksi', detailHeaderStyle);
@@ -474,7 +481,7 @@ if (dir != null) {
   Future<void> fetchBahanModel() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idCabang = prefs.getString('id_cabang');
-    final url = 'https://hayami.id/pos/stock.php?id_cabang=$idCabang';
+    final url = 'http://192.168.1.25/pos/stock.php?id_cabang=$idCabang';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -506,33 +513,42 @@ if (dir != null) {
   }
 
   Future<void> fetchStockCard() async {
-    if (selectedBahan == null || selectedModel == null) return;
+  final from = DateFormat('yyyy-MM-dd').format(fromDate);
+  final to = DateFormat('yyyy-MM-dd').format(toDate);
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? idCabang = prefs.getString('id_cabang');
 
-    final from = DateFormat('yyyy-MM-dd').format(fromDate);
-    final to = DateFormat('yyyy-MM-dd').format(toDate);
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-String? idCabang = prefs.getString('id_cabang');
-    final url =
-        'https://hayami.id/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}&id_cabang=$idCabang';
+  // Validasi input
+  if (barcodeController.text.isEmpty &&
+      (selectedBahan == null || selectedModel == null)) return;
 
-    setState(() => isLoading = true);
+  final Uri url = Uri.parse(
+    barcodeController.text.isNotEmpty
+        ? 'http://192.168.1.25/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&barcode=${Uri.encodeComponent(barcodeController.text)}&id_cabang=$idCabang'
+        : 'http://192.168.1.25/pos/stock_card.php?tanggal_from=$from&tanggal_to=$to&id_bahan=${Uri.encodeComponent(selectedBahan!)}&model=${Uri.encodeComponent(selectedModel!)}&id_cabang=$idCabang',
+  );
 
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        setState(() {
-          stockCardData = jsonData;
-        });
-      } else {
-        setState(() => stockCardData = []);
-      }
-    } catch (e) {
+  setState(() => isLoading = true);
+
+  try {
+    final response = await http.get(url);
+    print('🔎 URL: $url');
+print('📡 Status: ${response.statusCode}');
+print('📦 Body: ${response.body}');
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      setState(() {
+        stockCardData = jsonData;
+      });
+    } else {
       setState(() => stockCardData = []);
     }
-
-    setState(() => isLoading = false);
+  } catch (e) {
+    setState(() => stockCardData = []);
   }
+
+  setState(() => isLoading = false);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -620,54 +636,85 @@ String? idCabang = prefs.getString('id_cabang');
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Autocomplete<String>(
-                      optionsBuilder: (TextEditingValue textEditingValue) {
-                        return getBahanOptions(textEditingValue.text);
-                      },
-                      onSelected: (String selection) {
-                        setState(() {
-                          selectedBahan = selection;
-                          selectedModel = null;
-                        });
-                      },
-                      fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                        return TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          decoration: const InputDecoration(
-                            labelText: 'ID Bahan',
-                            border: OutlineInputBorder(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Autocomplete<String>(
-                      optionsBuilder: (TextEditingValue textEditingValue) {
-                        return getModelOptions(textEditingValue.text);
-                      },
-                      onSelected: (String selection) {
-                        setState(() => selectedModel = selection);
-                      },
-                      fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                        return TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          decoration: const InputDecoration(
-                            labelText: 'Model',
-                            border: OutlineInputBorder(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+// BARCODE
+Row(
+  children: [
+    Expanded(
+      child: TextField(
+        controller: barcodeController,
+        decoration: const InputDecoration(
+          labelText: 'Barcode',
+          border: OutlineInputBorder(),
+        ),
+        onChanged: (value) {
+          if (value.isNotEmpty) {
+            setState(() {
+              selectedBahan = null;
+              selectedModel = null;
+            });
+          }
+        },
+      ),
+    ),
+  ],
+),
+const SizedBox(height: 8),
+
+// ID BAHAN dan MODEL
+Row(
+  children: [
+    Expanded(
+      child: Autocomplete<String>(
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          return getBahanOptions(textEditingValue.text);
+        },
+        onSelected: (String selection) {
+          setState(() {
+            selectedBahan = selection;
+            barcodeController.clear(); // Kosongkan barcode saat ID Bahan diisi
+          });
+        },
+        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+          return TextField(
+            controller: controller,
+            focusNode: focusNode,
+            enabled: barcodeController.text.isEmpty,
+            decoration: const InputDecoration(
+              labelText: 'ID Bahan',
+              border: OutlineInputBorder(),
+            ),
+          );
+        },
+      ),
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: Autocomplete<String>(
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          return getModelOptions(textEditingValue.text);
+        },
+        onSelected: (String selection) {
+          setState(() {
+            selectedModel = selection;
+            barcodeController.clear(); // Kosongkan barcode saat Model diisi
+          });
+        },
+        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+          return TextField(
+            controller: controller,
+            focusNode: focusNode,
+            enabled: barcodeController.text.isEmpty,
+            decoration: const InputDecoration(
+              labelText: 'Model',
+              border: OutlineInputBorder(),
+            ),
+          );
+        },
+      ),
+    ),
+  ],
+),
+
               const SizedBox(height: 16),
               Row(
                 children: [

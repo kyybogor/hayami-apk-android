@@ -80,65 +80,57 @@ class _BarangmasukState extends State<Barangmasuk> {
     }
   }
 
-  Future<void> fetchInvoices() async {
-    final prefs = await SharedPreferences.getInstance();
-    final idCabang = prefs.getString('id_cabang') ?? '';
+Future<void> fetchInvoices() async {
+  final prefs = await SharedPreferences.getInstance();
+  final rawIdCabang = prefs.getString('id_cabang') ?? '';
+  final cleanIdCabang = rawIdCabang.replaceAll('\u00A0', ' ').trim();
+  print("🛠 ID Cabang (raw): '$rawIdCabang'");
+  print("🛠 ID Cabang (clean): '$cleanIdCabang'");
 
-    try {
-      final response = await http.get(
-        Uri.parse('https://hayami.id/pos/masuk.php?id_cabang=$idCabang'),
-      );
+  if (cleanIdCabang.isEmpty) {
+    print("❌ id_cabang belum disimpan di SharedPreferences");
+    setState(() {
+      isLoading = false;
+    });
+    return;
+  }
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final List<dynamic> invoicesData = data['data'];
+  final url = Uri.https('hayami.id', '/pos/masuk.php', {'id_cabang': cleanIdCabang});
+  print("🛠 Request URL: $url");
 
-        invoices = invoicesData.map<Map<String, dynamic>>((item) {
-          return {
-            "id": item["id_transaksi"] ?? '-',
-            "name": item["keterangan"] ?? '-',
-            "date": item["tgl_transaksi"] ?? '-',
-            "status": item["status"] ?? 'Unknown', // Pastikan status ada
-          };
-        }).toList();
+  try {
+    final response = await http.get(url);
+    print("📦 Response Body: ${response.body}");
 
-        // Hapus duplikat berdasarkan id_transaksi (opsional)
-        final seen = <String>{};
-        invoices = invoices.where((invoice) {
-          final id = invoice["id"];
-          if (seen.contains(id)) {
-            return false;
-          } else {
-            seen.add(id);
-            return true;
-          }
-        }).toList();
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      final List<dynamic> invoicesData = data['data'] ?? [];
 
-        // Urutkan tanggal
-        invoices.sort((a, b) {
-          try {
-            final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
-            final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
-            return dateA.compareTo(dateB);
-          } catch (e) {
-            return 0;
-          }
-        });
+      print("✅ Invoices Ditemukan: ${invoicesData.length}");
 
-        setState(() {
-          filteredInvoices = invoices;
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Gagal mengambil data');
-      }
-    } catch (e) {
-      print("Error: $e");
+      invoices = invoicesData.map<Map<String, dynamic>>((item) {
+        return {
+          "id": item["id_transaksi"] ?? '-',
+          "name": item["keterangan"] ?? '-',
+          "date": item["tgl_transaksi"] ?? '-',
+          "status": item["status"] ?? 'Unknown',
+        };
+      }).toList();
+
       setState(() {
+        filteredInvoices = invoices;
         isLoading = false;
       });
+    } else {
+      throw Exception('Gagal mengambil data: ${response.statusCode}');
     }
+  } catch (e) {
+    print("❗ Error saat fetchInvoices: $e");
+    setState(() {
+      isLoading = false;
+    });
   }
+}
 
   void filterByMonthYear() {
     setState(() {
@@ -148,11 +140,9 @@ class _BarangmasukState extends State<Barangmasuk> {
           if (dateStr == null || dateStr.isEmpty || dateStr == '-')
             return false;
 
-          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
-          final matchMonth = selectedMonth == 'Semua' ||
-              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-          final matchYear = selectedYear == 'Semua' ||
-              invoiceDate.year.toString() == selectedYear;
+final matchMonth = true;
+final matchYear = true;
+
 
           return matchMonth && matchYear;
         } catch (e) {
