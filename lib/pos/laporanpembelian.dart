@@ -32,13 +32,26 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
 
   @override
   Future<void> fetchInvoices() async {
-        final prefs = await SharedPreferences.getInstance();
-    final idCabang = prefs.getString('id_cabang') ?? '';
+  final prefs = await SharedPreferences.getInstance();
+  final rawIdCabang = prefs.getString('id_cabang') ?? '';
+  final cleanIdCabang = rawIdCabang.replaceAll('\u00A0', ' ').trim();
+  print("🛠 ID Cabang (raw): '$rawIdCabang'");
+  print("🛠 ID Cabang (clean): '$cleanIdCabang'");
+
+  if (cleanIdCabang.isEmpty) {
+    print("❌ id_cabang belum disimpan di SharedPreferences");
+    setState(() {
+      isLoading = false;
+    });
+    return;
+  }
+
+  final url = Uri.https('hayami.id', '/pos/masuk.php', {'id_cabang': cleanIdCabang});
+  print("🛠 Request URL: $url");
 
   try {
-    final response = await http.get(
-      Uri.parse('https://hayami.id/pos/masuk.php?id_cabang=$idCabang'),
-    );
+    final response = await http.get(url);
+    print("📦 Response Body: ${response.body}");
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);

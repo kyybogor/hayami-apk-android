@@ -71,7 +71,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://hayami.id/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
+            'https://hayami.id/pos_testing/detail_keluar.php?id_transaksi=$idTransaksi'),
       );
 
       if (response.statusCode == 200) {
@@ -97,7 +97,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
   }
 
   Future<List<PaymentMethod>> fetchPaymentMethods() async {
-    final url = Uri.parse('https://hayami.id/pos/akun.php');
+    final url = Uri.parse('https://hayami.id/pos_testing/akun.php');
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -128,7 +128,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     String? idUser = prefs.getString('id_user') ?? 'system';
     String idCabang = prefs.getString('id_cabang') ?? 'default_cabang';
 
-    final url = Uri.parse('https://hayami.id/pos/bayar.php');
+    final url = Uri.parse('https://hayami.id/pos_testing/bayar.php');
 
     String jumlahBayarPlain = jumlahBayar.replaceAll('.', '');
 
@@ -416,236 +416,216 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     return formatter.format(number);
   }
 
-  Future<void> generateAndPrintStrukPdf({
-    required List<OrderItem> cartItems,
-    required double grandTotal,
-    double? totalDiskon,
-    double? newDiscount,
-    required double totalLusin,
-    required dynamic selectedPaymentAccount,
-    required List<Map<String, dynamic>> splitPayments,
-    required String collectedBy,
-    String? idTransaksi,
-  }) async {
-    final double diskonCustomer = totalDiskon ?? 0;
-    final double diskonTambahan = newDiscount ?? 0;
-    final double totalDiskonFinal = diskonCustomer + diskonTambahan;
+Future<void> generateAndPrintStrukPdf({
+  required List<OrderItem> cartItems,
+  required double grandTotal,
+  double? totalDiskon,
+  double? newDiscount,
+  required double totalLusin,
+  required dynamic selectedPaymentAccount,
+  required List<Map<String, dynamic>> splitPayments,
+  required String collectedBy,
+  String? idTransaksi,
+}) async {
+  // 1. Ambil nama_cabang dari SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  final String? rawNamaCabang = prefs.getString('id_cabang') ?? 'TKA-JATINEGARA-JAKARTA';
 
-    final pdf = pw.Document();
-    final tglTransaksi =
-        invoiceDetail['tgl_transaksi'] ?? '0000-00-00 00:00:00';
-    final dateTime = DateTime.tryParse(tglTransaksi);
-    final dateFormatter = DateFormat('dd MMM yyyy');
-    final timeFormatter = DateFormat('HH:mm');
-    final currencyFormatter =
-        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
-
-    final ByteData logoBytes =
-        await rootBundle.load('assets/image/hayamilogo.png');
-    final Uint8List logoImage = logoBytes.buffer.asUint8List();
-
-    final akunPembayaran =
-        invoiceDetail['akun']?.toString().toUpperCase().trim() ?? '';
-    String paymentMethod = akunPembayaran;
-
-    if (akunPembayaran == "SPLIT" && splitPayments.isNotEmpty) {
-      paymentMethod += ' (Split Payments)';
-    }
-
-    final double computedLusin =
-        cartItems.fold(0.0, (sum, item) => sum + (item.quantity / 12));
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(20),
-        build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(child: pw.Image(pw.MemoryImage(logoImage), height: 50)),
-              pw.SizedBox(height: 6),
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text('Hayami Indonesia',
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 18)),
-                    pw.Text('Pasar Mester Jatinegara Lt.1 Blok AKS No:144-145.',
-                        style: pw.TextStyle(fontSize: 18)),
-                    pw.Text('NPWP: 86.783.673.6-033.000',
-                        style: pw.TextStyle(fontSize: 18)),
-                    pw.Text('Jakarta Timur, DKI Jakarta, 13310',
-                        style: pw.TextStyle(fontSize: 18)),
-                    pw.Text('087788155246', style: pw.TextStyle(fontSize: 15)),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 6),
-              pw.Divider(thickness: 0.5),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(dateFormatter.format(dateTime!),
-                      style: pw.TextStyle(fontSize: 18)),
-                  pw.Text(timeFormatter.format(dateTime!),
-                      style: pw.TextStyle(fontSize: 18)),
-                ],
-              ),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Order ID', style: pw.TextStyle(fontSize: 18)),
-                  pw.Text(idTransaksi ?? 'SO/xxxx/yyyy',
-                      style: pw.TextStyle(fontSize: 18)),
-                ],
-              ),
-              pw.SizedBox(height: 3),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Collected By', style: pw.TextStyle(fontSize: 18)),
-                  pw.Text(invoiceDetail['dibuat_oleh'] ?? 'Unknown',
-                      style: pw.TextStyle(fontSize: 18)),
-                ],
-              ),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Metode Pembayaran',
-                      style: pw.TextStyle(fontSize: 18)),
-                  pw.Text(paymentMethod,
-                      style: pw.TextStyle(
-                          fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                ],
-              ),
-              pw.SizedBox(height: 6),
-              pw.Divider(thickness: 0.5),
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                      flex: 5,
-                      child: pw.Text('Nama Barang',
-                          style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 18))),
-                  pw.Expanded(
-                    flex: 2,
-                    child: pw.Padding(
-                      padding: const pw.EdgeInsets.only(left: 6),
-                      child: pw.Text('Ukuran',
-                          style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 18)),
-                    ),
-                  ),
-                  pw.Expanded(
-                      flex: 2,
-                      child: pw.Text('Qty',
-                          textAlign: pw.TextAlign.center,
-                          style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 18))),
-                  pw.Expanded(
-                      flex: 3,
-                      child: pw.Text('Harga',
-                          textAlign: pw.TextAlign.right,
-                          style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold, fontSize: 18))),
-                ],
-              ),
-              pw.Divider(thickness: 0.3),
-              ...cartItems.map((item) {
-                return pw.Column(
-                  children: [
-                    pw.Row(
-                      children: [
-                        pw.Expanded(
-                            flex: 5,
-                            child: pw.Text(
-                                '${item.idTipe} - ${item.productName}',
-                                style: pw.TextStyle(fontSize: 18))),
-                        pw.Expanded(
-                          flex: 2,
-                          child: pw.Padding(
-                            padding: const pw.EdgeInsets.only(left: 12),
-                            child: pw.Text(item.size,
-                                style: pw.TextStyle(fontSize: 18)),
-                          ),
-                        ),
-                        pw.Expanded(
-                            flex: 2,
-                            child: pw.Text(item.quantity.toStringAsFixed(2),
-                                textAlign: pw.TextAlign.center,
-                                style: pw.TextStyle(fontSize: 18))),
-                        pw.Expanded(
-                            flex: 3,
-                            child: pw.Text(currencyFormatter.format(item.total),
-                                textAlign: pw.TextAlign.right,
-                                style: pw.TextStyle(fontSize: 18))),
-                      ],
-                    ),
-                    pw.Divider(thickness: 0.3),
-                  ],
-                );
-              }),
-              pw.SizedBox(height: 4),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Total Lusin',
-                      style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 15)),
-                  pw.Text(computedLusin.toStringAsFixed(2),
-                      style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 15)),
-                ],
-              ),
-              if (totalDiskonFinal > 0)
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Total Diskon',
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 18,
-                            color: PdfColors.red)),
-                    pw.Text(currencyFormatter.format(totalDiskonFinal),
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 18,
-                            color: PdfColors.red)),
-                  ],
-                ),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Grand Total',
-                      style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 18)),
-                  pw.Text(currencyFormatter.format(grandTotal),
-                      style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold, fontSize: 18)),
-                ],
-              ),
-              pw.SizedBox(height: 10),
-              pw.Text('Notes:',
-                  style: pw.TextStyle(
-                      fontSize: 15, fontWeight: pw.FontWeight.bold)),
-              pw.Text('Barang yang sudah dibeli tidak dapat dikembalikan.',
-                  style: pw.TextStyle(fontSize: 15)),
-              pw.SizedBox(height: 8),
-              pw.Center(
-                child: pw.Text('Terima kasih!',
-                    style: pw.TextStyle(
-                        fontSize: 15, fontStyle: pw.FontStyle.italic)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save());
+  // Normalize nama cabang (hilangkan karakter aneh/non-breaking space)
+  String normalizeNamaCabang(String input) {
+    return input
+        .replaceAll(String.fromCharCode(0x00A0), ' ') // U+00A0 → spasi biasa
+        .replaceAll('+', ' ')
+        .trim();
   }
+
+  final namaCabang = normalizeNamaCabang(rawNamaCabang ?? '');
+
+  print('Nama cabang yang dipakai: [$namaCabang]');
+
+  // 2. Fetch data cabang dari API
+  final uri = Uri.http('192.168.1.10', '/pos/cabang.php', {
+    'nama_cabang': namaCabang,
+  });
+  final cabangResponse = await http.get(uri);
+
+  print('URL yang dipanggil: $uri');
+  print('Response cabang: ${cabangResponse.body}');
+
+  String alamat = '';
+  String city = '';
+  String npwp = '';
+  String telp = '';
+
+  if (cabangResponse.statusCode == 200) {
+    final cabangData = json.decode(cabangResponse.body);
+    if (cabangData['status'] == 'success' && cabangData['data'].isNotEmpty) {
+      final cabang = cabangData['data'][0];
+
+      String safeValue(dynamic value) {
+        if (value == null || value.toString().trim().isEmpty) {
+          return '-';
+        }
+        return value.toString().trim();
+      }
+
+      alamat = safeValue(cabang['alamat']);
+      city = safeValue(cabang['city']);
+      npwp = safeValue(cabang['npwp']);
+      telp = safeValue(cabang['nomor_telepon']);
+    }
+  } else {
+    throw Exception('Gagal mengambil data cabang');
+  }
+
+
+  // 3. Format tanggal, waktu, dan uang
+  final double diskonCustomer = totalDiskon ?? 0;
+  final double diskonTambahan = newDiscount ?? 0;
+  final double totalDiskonFinal = diskonCustomer + diskonTambahan;
+
+  final pdf = pw.Document();
+  final tglTransaksi = invoiceDetail['tgl_transaksi'] ?? '0000-00-00 00:00:00';
+  final dateTime = DateTime.tryParse(tglTransaksi);
+  final dateFormatter = DateFormat('dd MMM yyyy');
+  final timeFormatter = DateFormat('HH:mm');
+  final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+
+  final ByteData logoBytes = await rootBundle.load('assets/image/hayamilogo.png');
+  final Uint8List logoImage = logoBytes.buffer.asUint8List();
+
+  final akunPembayaran = invoiceDetail['akun']?.toString().toUpperCase().trim() ?? '';
+  String paymentMethod = akunPembayaran;
+  if (akunPembayaran == "SPLIT" && splitPayments.isNotEmpty) {
+    paymentMethod += ' (Split Payments)';
+  }
+
+  final double computedLusin = cartItems.fold(0.0, (sum, item) => sum + (item.quantity / 12));
+
+  // 4. Generate PDF page
+  pdf.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(20),
+      build: (context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Center(child: pw.Image(pw.MemoryImage(logoImage), height: 50)),
+            pw.SizedBox(height: 6),
+            pw.Center(
+              child: pw.Column(
+                children: [
+                  pw.Text('Hayami Indonesia', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                  pw.Text(alamat, style: pw.TextStyle(fontSize: 18)),
+                  pw.Text(npwp, style: pw.TextStyle(fontSize: 18)),
+                  pw.Text(city, style: pw.TextStyle(fontSize: 18)),
+                  pw.Text(telp, style: pw.TextStyle(fontSize: 18)),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 6),
+            pw.Divider(thickness: 0.5),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(dateFormatter.format(dateTime!), style: pw.TextStyle(fontSize: 18)),
+                pw.Text(timeFormatter.format(dateTime!), style: pw.TextStyle(fontSize: 18)),
+              ],
+            ),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Order ID', style: pw.TextStyle(fontSize: 18)),
+                pw.Text(idTransaksi ?? 'SO/xxxx/yyyy', style: pw.TextStyle(fontSize: 18)),
+              ],
+            ),
+            pw.SizedBox(height: 3),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Collected By', style: pw.TextStyle(fontSize: 18)),
+                pw.Text(invoiceDetail['dibuat_oleh'] ?? 'Unknown', style: pw.TextStyle(fontSize: 18)),
+              ],
+            ),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Metode Pembayaran', style: pw.TextStyle(fontSize: 18)),
+                pw.Text(paymentMethod, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              ],
+            ),
+            pw.SizedBox(height: 6),
+            pw.Divider(thickness: 0.5),
+            pw.Row(
+              children: [
+                pw.Expanded(flex: 5, child: pw.Text('Nama Barang', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18))),
+                pw.Expanded(flex: 2, child: pw.Padding(
+                  padding: const pw.EdgeInsets.only(left: 6),
+                  child: pw.Text('Ukuran', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                )),
+                pw.Expanded(flex: 2, child: pw.Text('Qty', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18))),
+                pw.Expanded(flex: 3, child: pw.Text('Harga', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18))),
+              ],
+            ),
+            pw.Divider(thickness: 0.3),
+            ...cartItems.map((item) {
+              return pw.Column(
+                children: [
+                  pw.Row(
+                    children: [
+                      pw.Expanded(flex: 5, child: pw.Text('${item.idTipe} - ${item.productName}', style: pw.TextStyle(fontSize: 18))),
+                      pw.Expanded(flex: 2, child: pw.Padding(
+                        padding: const pw.EdgeInsets.only(left: 12),
+                        child: pw.Text(item.size, style: pw.TextStyle(fontSize: 18)),
+                      )),
+                      pw.Expanded(flex: 2, child: pw.Text(item.quantity.toStringAsFixed(2), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 18))),
+                      pw.Expanded(flex: 3, child: pw.Text(currencyFormatter.format(item.total), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 18))),
+                    ],
+                  ),
+                  pw.Divider(thickness: 0.3),
+                ],
+              );
+            }),
+            pw.SizedBox(height: 4),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Total Lusin', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                pw.Text(computedLusin.toStringAsFixed(2), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+            if (totalDiskonFinal > 0)
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Total Diskon', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18, color: PdfColors.red)),
+                  pw.Text(currencyFormatter.format(totalDiskonFinal), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18, color: PdfColors.red)),
+                ],
+              ),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Grand Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                pw.Text(currencyFormatter.format(grandTotal), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text('Notes:', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Barang yang sudah dibeli tidak dapat dikembalikan.', style: pw.TextStyle(fontSize: 18)),
+            pw.SizedBox(height: 8),
+            pw.Center(
+              child: pw.Text('Terima kasih!', style: pw.TextStyle(fontSize: 18, fontStyle: pw.FontStyle.italic)),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+}
+
 
   @override
   Widget build(BuildContext context) {

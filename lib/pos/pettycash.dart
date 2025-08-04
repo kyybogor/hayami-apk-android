@@ -27,8 +27,11 @@ class _PettycashState extends State<Pettycash> {
   Future<void> fetchData() async {
     String start = DateFormat('yyyy-MM-dd').format(dariTanggal);
     String end = DateFormat('yyyy-MM-dd').format(sampaiTanggal);
+        final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
+
     final url = Uri.parse(
-        'https://hayami.id//pos/petty_cash.php?start=$start&end=$end');
+        'https://hayami.id/pos/petty_cash.php?start=$start&end=$end&id_cabang=$idCabang');
 
     final response = await http.get(url);
     if (response.statusCode == 200) {
