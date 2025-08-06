@@ -357,7 +357,7 @@ TextFormField(
                             const Text("Bukti Sebelumnya:"),
                             const SizedBox(height: 5),
                             Image.network(
-                              'https://hayami.id//pos/${data['bukti_petty']}',
+                              'https://hayami.id/pos/${data['bukti_petty']}',
                               height: 120,
                               fit: BoxFit.cover,
                             ),
@@ -508,7 +508,7 @@ TextFormField(
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idUser = prefs.getString('id_user');
 
-    var uri = Uri.parse("https://hayami.id//pos/edit_petty.php");
+    var uri = Uri.parse("https://hayami.id/pos/edit_petty.php");
     var request = http.MultipartRequest("POST", uri);
 
     request.fields['id_petty'] = idPetty;
@@ -559,7 +559,7 @@ TextFormField(
       return;
     }
 
-    var uri = Uri.parse("https://hayami.id//pos/tambah_petty.php");
+    var uri = Uri.parse("https://hayami.id/pos/tambah_petty.php");
     var request = http.MultipartRequest("POST", uri);
 
     request.fields['tipe'] = tipe == 'In Cash' ? 'in_cash' : 'out_cash';

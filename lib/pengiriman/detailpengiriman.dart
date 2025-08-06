@@ -231,13 +231,13 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.download),
-                      label: const Text('Download Gambar'),
-                      onPressed: () {
-                        downloadAndSaveImage(imageUrl);
-                      },
-                    ),
+                    // ElevatedButton.icon(
+                    //   icon: const Icon(Icons.download),
+                    //   label: const Text('Download Gambar'),
+                    //   onPressed: () {
+                    //     downloadAndSaveImage(imageUrl);
+                    //   },
+                    // ),
                   ],
                 ),
               )

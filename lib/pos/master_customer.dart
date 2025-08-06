@@ -49,20 +49,33 @@ class Customer {
 
 // ✅ SERVICE
 Future<List<Customer>> fetchCustomers() async {
+  final prefs = await SharedPreferences.getInstance();
+  final String? idCabang = prefs.getString('id_cabang');
+
+  if (idCabang == null || idCabang.isEmpty) {
+    throw Exception('id_cabang tidak ditemukan di SharedPreferences');
+  }
   final response = await http.get(
-    Uri.parse('https://hayami.id//pos/customer.php'),
+    Uri.parse('https://hayami.id/pos/customer.php'),
   );
 
   if (response.statusCode == 200) {
     final Map<String, dynamic> jsonData = json.decode(response.body);
     if (jsonData['status'] == 'success') {
       final List<dynamic> customerList = jsonData['data'];
-      return customerList.map((item) => Customer.fromJson(item)).toList();
+      final allCustomers = customerList
+          .map((item) => Customer.fromJson(item))
+          .toList();
+      final filteredCustomers = allCustomers
+          .where((customer) => customer.idCabang == idCabang)
+          .toList();
+
+      return filteredCustomers;
     } else {
       throw Exception('Status bukan success');
     }
   } else {
-    throw Exception('Gagal mengambil data');
+    throw Exception('Gagal mengambil data dari server');
   }
 }
 
@@ -281,7 +294,7 @@ void _showAddCustomerDialog() {
 }
 
 Future<void> _deleteCustomer(String idCustomer) async {
-  final url = 'https://hayami.id//pos/hapus_customer.php?id_customer=$idCustomer';
+  final url = 'https://hayami.id/pos/hapus_customer.php?id_customer=$idCustomer';
 
   try {
     final response = await http.get(Uri.parse(url));
@@ -327,7 +340,7 @@ Future<Map<String, dynamic>> _addCustomer(
       SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idCabang = prefs.getString('id_cabang');
 
-  final url = Uri.parse('https://hayami.id//pos/tambah_customer.php');
+  final url = Uri.parse('https://hayami.id/pos/tambah_customer.php');
   final response = await http.post(
     url,
     body: {
@@ -413,7 +426,7 @@ Future<Map<String, dynamic>> _addCustomer(
                   ),
                   SizedBox(width: 10),
                   ElevatedButton(
-  onPressed: () {
+onPressed: () async {
     if (namaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Nama wajib diisi')),
@@ -421,16 +434,19 @@ Future<Map<String, dynamic>> _addCustomer(
       return;
     }
 
-    final updatedCustomer = Customer(
-      kode: idController.text,
-      nama: namaController.text,
-      kota: kotaController.text,
-      alamat: alamatController.text,
-      telp: telpController.text,
-      email: emailController.text,
-      diskon: diskonController.text,
-       idCabang: 'yourIdCabangHere',
-    );
+final prefs = await SharedPreferences.getInstance();
+final idCabang = prefs.getString('id_cabang') ?? '';
+
+final updatedCustomer = Customer(
+  kode: idController.text,
+  nama: namaController.text,
+  kota: kotaController.text,
+  alamat: alamatController.text,
+  telp: telpController.text,
+  email: emailController.text,
+  diskon: diskonController.text,
+  idCabang: idCabang, // ← dari SharedPreferences
+);
 
     updateCustomer(updatedCustomer);  // Update data ke server
     Navigator.of(context).pop();
@@ -452,7 +468,7 @@ Future<Map<String, dynamic>> _addCustomer(
 }
 
 Future<void> updateCustomer(Customer customer) async {
-  final url = Uri.parse('https://hayami.id//pos/edit_customer.php');
+  final url = Uri.parse('https://hayami.id/pos/edit_customer.php');
 
   // Siapkan data untuk dikirim
   final Map<String, String> data = {

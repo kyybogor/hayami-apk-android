@@ -71,7 +71,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://hayami.id/pos_testing/detail_keluar.php?id_transaksi=$idTransaksi'),
+            'https://hayami.id/pos/detail_keluar.php?id_transaksi=$idTransaksi'),
       );
 
       if (response.statusCode == 200) {
@@ -97,7 +97,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
   }
 
   Future<List<PaymentMethod>> fetchPaymentMethods() async {
-    final url = Uri.parse('https://hayami.id/pos_testing/akun.php');
+    final url = Uri.parse('https://hayami.id/pos/akun.php');
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -128,7 +128,7 @@ class _DetailpenjualanState extends State<Detailpenjualan> {
     String? idUser = prefs.getString('id_user') ?? 'system';
     String idCabang = prefs.getString('id_cabang') ?? 'default_cabang';
 
-    final url = Uri.parse('https://hayami.id/pos_testing/bayar.php');
+    final url = Uri.parse('https://hayami.id/pos/bayar.php');
 
     String jumlahBayarPlain = jumlahBayar.replaceAll('.', '');
 
@@ -444,7 +444,7 @@ Future<void> generateAndPrintStrukPdf({
   print('Nama cabang yang dipakai: [$namaCabang]');
 
   // 2. Fetch data cabang dari API
-  final uri = Uri.http('192.168.1.10', '/pos/cabang.php', {
+  final uri = Uri.https('hayami.id', '/pos/cabang.php', {
     'nama_cabang': namaCabang,
   });
   final cabangResponse = await http.get(uri);

@@ -460,7 +460,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
                       Navigator.pop(context);
 
                       final Uri url = Uri.parse(
-                          'https://hayami.id//pos/closing.php?id_cabang=$idCabang&id_user=$idUser');
+                          'https://hayami.id/pos/closing.php?id_cabang=$idCabang&id_user=$idUser');
 
                       try {
                         final response = await http.get(url);

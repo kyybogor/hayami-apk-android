@@ -35,7 +35,7 @@ String safeValue(dynamic v) {
 }
 
 try {
-  final resp = await http.get(Uri.parse('http://192.168.1.10/pos/cabang.php'));
+  final resp = await http.get(Uri.parse('https://hayami.id/pos/cabang.php'));
   if (resp.statusCode == 200) {
     final jsonResponse = json.decode(resp.body);
     if (jsonResponse['status'] == 'success' && jsonResponse['data'] != null) {

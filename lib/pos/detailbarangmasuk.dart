@@ -311,115 +311,110 @@ Future<void> generateExcelReport(
   }
 }
 
-  Future<void> generateAndPrintBarcodePdf(
-      List<Map<String, dynamic>> items, int qtyPerBarcode) async {
-    final pdf = pw.Document();
-    int totalPages = 0;
+Future<void> generateAndPrintBarcodePdf(
+    List<Map<String, dynamic>> items, int qtyPerBarcode) async {
+  final pdf = pw.Document();
+  int totalPages = 0;
 
-    // Define the number of columns and rows per page
-    const int maxColumns = 3; // Jumlah kolom per halaman
-    const double spacing = 10; // Jarak antar barcode
+  const int maxColumns = 3;
+  const double spacing = 10;
 
-    // Define initial position for the first barcode
-    double currentX = 0;
-    double currentY = 0;
+  for (var item in items) {
+    final rawBarcode = item['barcode'] ?? '';
+    if (rawBarcode.isEmpty) continue;
 
-    for (var item in items) {
-      final rawBarcode = item['barcode'] ?? '';
-      final barcodeBase =
-          rawBarcode.replaceAll(RegExp(r'[^0-9]'), '').padLeft(7, '0');
+    final barcodeBase = rawBarcode.padLeft(5, '0');
+    if (barcodeBase.length != 5) continue;
 
-      if (barcodeBase.length != 7) continue; // Skip jika barcode tidak valid
+    print('Cetak barcode: $barcodeBase (Qty: $qtyPerBarcode)');
 
-      final stockLusin = double.tryParse(item['jumlah'] ?? '0') ?? 0;
-      final stockPcs = (stockLusin * 12).toInt(); // Ubah lusin menjadi pcs
+    final stockLusin = double.tryParse(item['jumlah'] ?? '0') ?? 0;
+    final stockPcs = (stockLusin).toInt();
 
-      // Menghitung jumlah barcode yang perlu dicetak
-      int remaining = stockPcs;
-      int barcodeCount = (remaining / qtyPerBarcode)
-          .ceil(); // Jumlah barcode yang perlu dicetak
+    int remaining = stockPcs;
+    int barcodeCount = (remaining / qtyPerBarcode).ceil();
 
-      // Membuat halaman baru
+    final List<pw.Widget> barcodeWidgets = [];
+
+    for (int i = 0; i < barcodeCount; i++) {
+      final qty = remaining >= qtyPerBarcode ? qtyPerBarcode : remaining;
+      final qtyString = qty.toString().padLeft(2, '0');
+      final fullBarcode = '$barcodeBase$qtyString';
+
+      remaining -= qty;
+
+      barcodeWidgets.add(
+        pw.Container(
+          width: (PdfPageFormat.a4.availableWidth - spacing * (maxColumns - 1)) / maxColumns,
+          padding: const pw.EdgeInsets.all(4),
+          child: pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Text(
+                '${item['nama_barang'] ?? ''} x$qty',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                '${item['model'] ?? ''} ${item['ukuran'] ?? ''}',
+                style: pw.TextStyle(fontSize: 10),
+              ),
+              pw.SizedBox(height: 8),
+              pw.BarcodeWidget(
+                barcode: pw.Barcode.code128(),
+                data: fullBarcode,
+                width: 150,
+                height: 50,
+                drawText: false,
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                fullBarcode,
+                style: pw.TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Bagi ke dalam halaman jika terlalu banyak
+    const int itemsPerPage = 21; // 7 baris * 3 kolom per halaman
+    for (int i = 0; i < barcodeWidgets.length; i += itemsPerPage) {
       pdf.addPage(
         pw.Page(
           build: (pw.Context context) {
-            return pw.Column(
-              children: [
-                // Menggunakan Container untuk memusatkan elemen secara horizontal
-                pw.Container(
-                  alignment: pw.Alignment.center, // Center secara horizontal
-                  child: pw.Wrap(
-                    direction: pw.Axis.horizontal,
-                    spacing: spacing, // Jarak horizontal antar barcode
-                    runSpacing: spacing, // Jarak vertikal antar barcode
-                    children: List.generate(barcodeCount, (index) {
-                      final qty = remaining >= qtyPerBarcode
-                          ? qtyPerBarcode
-                          : remaining;
-                      final qtyString = qty
-                          .toString()
-                          .padLeft(2, '0'); // Menambahkan dua digit untuk qty
-                      final fullBarcode =
-                          "$barcodeBase$qtyString"; // Gabungkan barcode dengan qty
-
-                      remaining -= qty;
-
-                      return pw.Column(
-                        children: [
-                          // Bagian atas: ID_BAHAN dan qty
-                          pw.Text(
-                            '${item['nama_barang'] ?? ''}  x$qty',
-                            textAlign: pw.TextAlign.center,
-                            style: pw.TextStyle(
-                                fontSize: 10, fontWeight: pw.FontWeight.bold),
-                          ),
-                          pw.SizedBox(height: 2),
-                          // Baris kedua: Model dan Ukuran
-                          pw.Text(
-                            '${item['model'] ?? ''} ${item['ukuran'] ?? ''}',
-                            style: pw.TextStyle(fontSize: 10),
-                          ),
-                          pw.SizedBox(height: 8),
-                          // Barcode
-                          pw.BarcodeWidget(
-                            barcode: pw.Barcode.code128(),
-                            data: fullBarcode,
-                            width: 150,
-                            height: 50,
-                            drawText: false,
-                          ),
-                          pw.SizedBox(height: 4),
-                          // Nomor barcode di bawah gambar
-                          pw.Text(
-                            fullBarcode,
-                            style: pw.TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
-              ],
+            return pw.Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: barcodeWidgets.sublist(
+                i,
+                (i + itemsPerPage > barcodeWidgets.length)
+                    ? barcodeWidgets.length
+                    : i + itemsPerPage,
+              ),
             );
           },
         ),
       );
-
-      totalPages++; // Hitung total halaman yang dicetak
+      totalPages++;
     }
-
-    if (totalPages == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Tidak ada barcode valid untuk dicetak.")),
-      );
-      return;
-    }
-
-    // Proses pencetakan PDF
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
   }
+
+  if (totalPages == 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Tidak ada barcode valid untuk dicetak.")),
+    );
+    return;
+  }
+
+  await Printing.layoutPdf(
+    onLayout: (PdfPageFormat format) async => pdf.save(),
+  );
+}
+
 
   Future<void> fetchProduct() async {
     setState(() {
@@ -437,9 +432,13 @@ Future<void> generateExcelReport(
         if (jsonData['status'] == 'success') {
           final List<dynamic> produkList = jsonData['data'];
 
+          final prefs = await SharedPreferences.getInstance();
+final String idCabang = prefs.getString('id_cabang') ?? '1';
+
+
           // Mengambil data stock
           final stockResponse =
-              await http.get(Uri.parse('https://hayami.id/pos/stock.php'));
+              await http.get(Uri.parse('https://hayami.id/pos/stock.php?id_cabang=$idCabang'));
           final List<dynamic> stockList =
               json.decode(stockResponse.body)['data'];
 
@@ -578,6 +577,9 @@ Future<void> handleApprove() async {
           setState(() {
             widget.invoice['status'] = 's';
           });
+          print("Status code: ${response.statusCode}");
+print("Body: ${response.body}");
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => Barangmasuk()),

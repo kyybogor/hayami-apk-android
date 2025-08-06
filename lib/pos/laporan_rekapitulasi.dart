@@ -73,7 +73,7 @@ int toInt(dynamic val) {
 }
 
   Future<void> fetchCustomerList() async {
-    const url = 'https://hayami.id//hayami/customer.php';
+    const url = 'https://hayami.id/hayami/customer.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -105,7 +105,7 @@ int toInt(dynamic val) {
     final idCabang = prefs.getString('id_cabang') ?? '';
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
-    String url = 'https://hayami.id//pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
+    String url = 'https://hayami.id/pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
 
     if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
       url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';
