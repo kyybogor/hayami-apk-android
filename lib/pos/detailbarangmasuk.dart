@@ -320,11 +320,11 @@ Future<void> generateAndPrintBarcodePdf(
   const double spacing = 10;
 
   for (var item in items) {
-    final rawBarcode = item['barcode'] ?? '';
-    if (rawBarcode.isEmpty) continue;
+final rawBarcode = item['barcode'] ?? '';
+if (rawBarcode.isEmpty) continue;
+if (rawBarcode.startsWith('0')) continue;
 
-    final barcodeBase = rawBarcode.padLeft(5, '0');
-    if (barcodeBase.length != 5) continue;
+final barcodeBase = rawBarcode;
 
     print('Cetak barcode: $barcodeBase (Qty: $qtyPerBarcode)');
 
