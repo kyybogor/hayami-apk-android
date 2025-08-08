@@ -34,6 +34,7 @@ class _BarangmasukState extends State<Barangmasuk> {
 
   Future<void> _initAsync() async {
     await checkProsesBarangMasuk();
+    await updateProsesBarangMasuk();
     await fetchInvoices();
   }
 
@@ -62,6 +63,7 @@ class _BarangmasukState extends State<Barangmasuk> {
 
     try {
       final response = await http.get(url);
+      print("📦 Response Body: ${url}");
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -70,7 +72,39 @@ class _BarangmasukState extends State<Barangmasuk> {
           print("API Error: ${data['message'] ?? 'Terjadi kesalahan'}");
         } else {
           print("API Success: ${data['message'] ?? 'Berhasil'}");
-          // Jika perlu, proses data['processed'] di sini
+        }
+      } else {
+        throw Exception('Gagal memuat data proses_barang_masuk.php');
+      }
+    } catch (e) {
+      print("Error saat cek proses_barang_masuk: $e");
+    }
+  }
+
+
+    Future<void> updateProsesBarangMasuk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
+
+    if (idCabang.isEmpty) {
+      print("id_cabang belum disimpan di SharedPreferences");
+      return;
+    }
+
+    final url = Uri.parse(
+        'https://hayami.id/pos/update_masuk.php?idCabang=$idCabang');
+
+    try {
+      final response = await http.get(url);
+      print("📦 Response Body: ${url}");
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+
+        if (data['status'] == 'error') {
+          print("API Error: ${data['message'] ?? 'Terjadi kesalahan'}");
+        } else {
+          print("API Success: ${data['message'] ?? 'Berhasil'}");
         }
       } else {
         throw Exception('Gagal memuat data proses_barang_masuk.php');
@@ -99,8 +133,8 @@ Future<void> fetchInvoices() async {
   print("🛠 Request URL: $url");
 
   try {
-    final response = await http.get(url);
-    print("📦 Response Body: ${response.body}");
+    final response = await http.get(url); 
+    print("📦 Response Body: ${response.body}"); 
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
@@ -216,38 +250,43 @@ final matchYear = true;
   }
 
   String formatStatus(String status) {
-    try {
-      if (status == 'd') {
-        return 'Draft'; // Status "d" menjadi "Draft"
-      } else if (status == 's') {
-        return 'Aprove'; // Status "s" menjadi "Aprove"
-      } else {
-        return status.isEmpty
-            ? 'Unknown'
-            : status; // Jika tidak cocok, tampilkan status asli atau "Unknown"
-      }
-    } catch (e) {
-      return 'Unknown'; // Jika ada error, kembalikan "Unknown"
+  try {
+    if (status == 'd') {
+      return 'Draft'; // Status "d" menjadi "Draft"
+    } else if (status == 's') {
+      return 'Aprove'; // Status "s" menjadi "Aprove"
+    } else if (status == 'v') {
+      return 'Void'; // Status "v" menjadi "Void"
+    } else {
+      return status.isEmpty ? 'Unknown' : status; // Jika tidak cocok, tampilkan status asli atau "Unknown"
     }
+  } catch (e) {
+    return 'Unknown'; // Jika ada error, kembalikan "Unknown"
   }
+}
 
   Color getStatusColor(String status) {
-    if (status == 'd') {
-      return Colors.pink; // Teks merah untuk Draft
-    } else if (status == 's') {
-      return Colors.green[800]!; // Teks hijau tua untuk Aprove
-    }
-    return Colors.black; // Default warna hitam
+  if (status == 'd') {
+    return Colors.pink; // Teks merah untuk Draft
+  } else if (status == 's') {
+    return Colors.green[800]!; // Teks hijau tua untuk Aprove
+  } else if (status == 'v') {
+    return Colors.grey; // Teks abu-abu untuk Void
   }
+  return Colors.black; // Default warna hitam
+}
+
 
   Color getBackgroundColor(String status) {
-    if (status == 'd') {
-      return Colors.pink.shade50; // Background merah muda untuk Draft
-    } else if (status == 's') {
-      return Colors.green.shade100; // Background hijau muda untuk Aprove
-    }
-    return Colors.transparent; // Tidak ada background khusus
+  if (status == 'd') {
+    return Colors.pink.shade50; // Background merah muda untuk Draft
+  } else if (status == 's') {
+    return Colors.green.shade100; // Background hijau muda untuk Aprove
+  } else if (status == 'v') {
+    return Colors.grey.shade200; // Background abu-abu muda untuk Void
   }
+  return Colors.transparent; // Tidak ada background khusus
+}
 
   @override
   void dispose() {

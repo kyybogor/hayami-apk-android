@@ -103,20 +103,29 @@ void _login() async {
   }
 }
 
-  Future<void> _saveUserPrefs(Map<String, dynamic> user) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('id_user', user['id_user'] ?? '');
-    await prefs.setString('nm_user', user['nm_user'] ?? '');
-    await prefs.setString('jabatan', user['jabatan'] ?? '');
-    await prefs.setString('email_user', user['email_user'] ?? '');
-    await prefs.setString('no_telp', user['no_telp'] ?? ''); 
-    await prefs.setString('alamat', user['alamat'] ?? '');
-    await prefs.setString('karyawan', user['karyawan'] ?? '');
-    await prefs.setString('grup', user['grup'] ?? '');
-    await prefs.setString('id_cabang', user['id_cabang'] ?? '');
-    await prefs.setString('id_gudang', user['id_gudang'] ?? '');
-    await prefs.setString('sts', user['sts'] ?? '');
-  }
+Future<void> _saveUserPrefs(Map<String, dynamic> user) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  await prefs.setString('id_user', user['id_user'] ?? '');
+  await prefs.setString('nm_user', user['nm_user'] ?? '');
+  await prefs.setString('jabatan', user['jabatan'] ?? '');
+  await prefs.setString('email_user', user['email_user'] ?? '');
+  await prefs.setString('no_telp', user['no_telp'] ?? '');
+  await prefs.setString('alamat', user['alamat'] ?? '');
+  await prefs.setString('karyawan', user['karyawan'] ?? '');
+  await prefs.setString('grup', user['grup'] ?? '');
+
+  // ✅ Clean id_cabang sebelum disimpan
+  final rawIdCabang = user['id_cabang'] ?? '';
+  final cleanIdCabang = rawIdCabang.replaceAll('\u00A0', ' ').trim();
+  await prefs.setString('id_cabang', cleanIdCabang);
+
+  await prefs.setString('id_gudang', user['id_gudang'] ?? '');
+  await prefs.setString('sts', user['sts'] ?? '');
+
+  print("✅ id_cabang saved (cleaned): '$cleanIdCabang'");
+}
+
 
   @override
   Widget build(BuildContext context) {

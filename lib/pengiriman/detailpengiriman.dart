@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+
 
 const platform = MethodChannel('com.hayami.galleryscanner');
 
@@ -70,23 +72,34 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
     }
   }
 
-  Future<bool> requestPermission() async {
-    if (Platform.isAndroid) {
-      if (await Permission.manageExternalStorage.isGranted) {
-        return true;
-      } else {
+Future<bool> requestPermission() async {
+  if (Platform.isAndroid) {
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+
+    if (sdkInt >= 30) {
+      // Android 11+
+      final status = await Permission.manageExternalStorage.status;
+      if (!status.isGranted) {
         final result = await Permission.manageExternalStorage.request();
-        if (result.isGranted) {
-          return true;
-        } else {
-          await openAppSettings();
+        if (!result.isGranted) {
+          await openAppSettings(); // Arahkan ke pengaturan
           return false;
         }
       }
     } else {
-      return true;
+      // Android < 11
+      final status = await Permission.storage.status;
+      if (!status.isGranted) {
+        final result = await Permission.storage.request();
+        if (!result.isGranted) {
+          return false;
+        }
+      }
     }
   }
+  return true;
+}
 
   Future<void> scanFile(String path) async {
     try {
@@ -130,7 +143,7 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
         await scanFile(file.path);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gambar tersimpan di $downloadPath/$fileName')),
+          SnackBar(content: Text('Gambar berhasil disimpan')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -231,13 +244,13 @@ class _DetailPengirimanPageState extends State<DetailPengirimanPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // ElevatedButton.icon(
-                    //   icon: const Icon(Icons.download),
-                    //   label: const Text('Download Gambar'),
-                    //   onPressed: () {
-                    //     downloadAndSaveImage(imageUrl);
-                    //   },
-                    // ),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.download),
+                      label: const Text('Download Gambar'),
+                      onPressed: () {
+                        downloadAndSaveImage(imageUrl);
+                      },
+                    ),
                   ],
                 ),
               )
