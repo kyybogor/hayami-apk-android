@@ -357,65 +357,70 @@ class _AssetsPageState extends State<AssetsPage> {
               if (filteredData.isNotEmpty)
   Column(
     children: [
+      // Header dan body menggunakan SingleChildScrollView
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 0,
-          headingRowHeight: 36,
-          dataRowHeight: 34,
-          headingTextStyle: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-            color: Colors.white,
-          ),
-          headingRowColor: MaterialStateProperty.all(Colors.indigo),
-          border: TableBorder.all(color: Colors.grey.shade200),
-          columns: [
-            DataColumn(label: SizedBox(width: col1, child: const Center(child: Text("ID Bahan")))),
-            DataColumn(label: SizedBox(width: col2, child: const Center(child: Text("Model")))),
-            DataColumn(label: SizedBox(width: col3, child: const Center(child: Text("Ukuran")))),
-            DataColumn(label: SizedBox(width: col4, child: const Center(child: Text("Stock")))),
-            DataColumn(label: SizedBox(width: col5, child: const Center(child: Text("Harga")))),
-            DataColumn(label: SizedBox(width: col6, child: const Center(child: Text("Total")))),
-          ],
-          rows: const [],
-        ),
-      ),
-
-      SizedBox(
-        height: MediaQuery.of(context).size.height * 0.5,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            child: DataTable(
-              columnSpacing: 0,
-              headingRowHeight: 0,
-              dataRowHeight: 34,
-              dataTextStyle: const TextStyle(fontSize: 12),
-              border: TableBorder.all(color: Colors.grey.shade200),
-              columns: [
-                DataColumn(label: SizedBox(width: col1)),
-                DataColumn(label: SizedBox(width: col2)),
-                DataColumn(label: SizedBox(width: col3)),
-                DataColumn(label: SizedBox(width: col4)),
-                DataColumn(label: SizedBox(width: col5)),
-                DataColumn(label: SizedBox(width: col6)),
-              ],
-              rows: filteredData.map((item) {
-                return DataRow(
-                  cells: [
-                    DataCell(SizedBox(width: col1, child: Center(child: Text(item["id_bahan"].toString())))),
-                    DataCell(SizedBox(width: col2, child: Center(child: Text(item["model"].toString())))),
-                    DataCell(SizedBox(width: col3, child: Center(child: Text(item["ukuran"].toString())))),
-                    DataCell(SizedBox(width: col4, child: Center(child: Text(item["stock"].toString())))),
-                    DataCell(SizedBox(width: col5, child: Center(child: Text(formatCurrency(item["harga"]))))),
-                    DataCell(SizedBox(width: col6, child: Center(child: Text(formatCurrency(item["totalHarga"]))))),
-                  ],
-                );
-              }).toList(),
+        child: Column(
+          children: [
+            // Header yang tetap berada di atas
+            Container(
+              color: Colors.indigo,
+              child: DataTable(
+                columnSpacing: 0,
+                headingRowHeight: 36,
+                headingTextStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Colors.white,
+                ),
+                headingRowColor: MaterialStateProperty.all(Colors.indigo),
+                border: TableBorder.all(color: Colors.grey.shade200),
+                columns: [
+                  DataColumn(label: SizedBox(width: col1, child: const Center(child: Text("ID Bahan")))),
+                  DataColumn(label: SizedBox(width: col2, child: const Center(child: Text("Model")))),
+                  DataColumn(label: SizedBox(width: col3, child: const Center(child: Text("Ukuran")))),
+                  DataColumn(label: SizedBox(width: col4, child: const Center(child: Text("Stock")))),
+                  DataColumn(label: SizedBox(width: col5, child: const Center(child: Text("Harga")))),
+                  DataColumn(label: SizedBox(width: col6, child: const Center(child: Text("Total")))),
+                ],
+                rows: [],
+              ),
             ),
-          ),
+            // Body yang bisa di-scroll secara vertikal dan horizontal
+            SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columnSpacing: 0,
+                  headingRowHeight: 0, // Menyembunyikan header pada body
+                  dataRowHeight: 34,
+                  dataTextStyle: const TextStyle(fontSize: 12),
+                  border: TableBorder.all(color: Colors.grey.shade200),
+                  columns: [
+                    DataColumn(label: SizedBox(width: col1)),
+                    DataColumn(label: SizedBox(width: col2)),
+                    DataColumn(label: SizedBox(width: col3)),
+                    DataColumn(label: SizedBox(width: col4)),
+                    DataColumn(label: SizedBox(width: col5)),
+                    DataColumn(label: SizedBox(width: col6)),
+                  ],
+                  rows: filteredData.map((item) {
+                    return DataRow(
+                      cells: [
+                        DataCell(SizedBox(width: col1, child: Center(child: Text(item["id_bahan"].toString())))),
+                        DataCell(SizedBox(width: col2, child: Center(child: Text(item["model"].toString())))),
+                        DataCell(SizedBox(width: col3, child: Center(child: Text(item["ukuran"].toString())))),
+                        DataCell(SizedBox(width: col4, child: Center(child: Text(item["stock"].toString())))),
+                        DataCell(SizedBox(width: col5, child: Center(child: Text(formatCurrency(item["harga"]))))),
+                        DataCell(SizedBox(width: col6, child: Center(child: Text(formatCurrency(item["totalHarga"]))))),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ],
