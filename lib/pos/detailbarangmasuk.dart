@@ -478,6 +478,10 @@ final String idCabang = prefs.getString('id_cabang') ?? '1';
   }
 
 Future<void> handleApprove() async {
+  setState(() {
+    isApproving = true; // Menandakan proses dimulai dan tombol dinonaktifkan
+  });
+
   final idTransaksi = widget.invoice['id']?.toString() ?? '';
   final prefs = await SharedPreferences.getInstance();
   final idCabang = prefs.getString('id_cabang') ?? '';
@@ -501,7 +505,12 @@ Future<void> handleApprove() async {
     ),
   );
 
-  if (shouldApprove != true) return;  // Jika user memilih 'Tidak', batalkan proses
+  if (shouldApprove != true) {
+    setState(() {
+      isApproving = false; // Kembalikan tombol setelah cancel
+    });
+    return;  // Jika user memilih 'Tidak', batalkan proses
+  }
 
   // Siapkan data barang yang dikirim ke backend
   final List<Map<String, dynamic>> barangDikirim = barang.map((item) {
@@ -537,6 +546,7 @@ Future<void> handleApprove() async {
         if (data['status'] == 'success') {
           setState(() {
             widget.invoice['status'] = 's'; // Update status invoice
+            isApproving = false;  // Tombol diaktifkan kembali setelah berhasil
           });
 
           Navigator.pushReplacement(
@@ -548,22 +558,34 @@ Future<void> handleApprove() async {
             const SnackBar(content: Text("Barang berhasil di-approve")),
           );
         } else {
+          setState(() {
+            isApproving = false; // Tombol diaktifkan kembali jika gagal
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Gagal: ${data['message']}")),
           );
         }
       } catch (e) {
         debugPrint("Response bukan JSON: ${response.body}");
+        setState(() {
+          isApproving = false; // Tombol diaktifkan kembali setelah error
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Format JSON tidak valid: $e")),
         );
       }
     } else {
+      setState(() {
+        isApproving = false; // Tombol diaktifkan kembali setelah gagal
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Gagal terhubung ke server.")),
       );
     }
   } catch (e) {
+    setState(() {
+      isApproving = false; // Tombol diaktifkan kembali jika terjadi error
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Terjadi error: $e")),
     );
