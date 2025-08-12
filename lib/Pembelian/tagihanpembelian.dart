@@ -100,7 +100,7 @@ class _TagihanPembelianPageState extends State<TagihanPembelianPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.blue),
         title: const Text("Tagihan Pembelian",
             style: TextStyle(color: Colors.blue)),
         centerTitle: true,

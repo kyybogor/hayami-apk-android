@@ -134,6 +134,7 @@ Future<void> fetchInvoices() async {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,
+            color: Colors.blue,
           ),
           onPressed: () {
             Navigator.pushReplacement(

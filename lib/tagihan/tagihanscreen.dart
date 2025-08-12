@@ -119,8 +119,8 @@ class _TagihanPageState extends State<TagihanPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text("Tagihan", style: TextStyle(color: Colors.blue)),
+        iconTheme: const IconThemeData(color: Colors.blue),
+        title: const Text("Tagiha", style: TextStyle(color: Colors.blue)),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

@@ -246,7 +246,7 @@ Future<bool> requestPermission() async {
                     const SizedBox(height: 8),
                     ElevatedButton.icon(
                       icon: const Icon(Icons.download),
-                      label: const Text('Download Gambar'),
+                      label: const Text('Download Resi'),
                       onPressed: () {
                         downloadAndSaveImage(imageUrl);
                       },

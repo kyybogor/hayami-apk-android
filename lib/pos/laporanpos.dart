@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hayami_app/pos/assets.dart';
 import 'package:hayami_app/pos/laporan_rekapitulasi.dart';
 import 'package:hayami_app/pos/laporan_retur.dart';
 import 'package:hayami_app/pos/laporanpembelian.dart';
@@ -47,6 +48,12 @@ class Laporanpos extends StatelessWidget {
     "icon": Icons.bar_chart, // Icon for sales recap
     "color": Colors.purple,
     "page": const RekapitulasiPage(),
+  },
+  {
+    "label": "Total Assets",
+    "icon": Icons.bar_chart, // Icon for sales recap
+    "color": Colors.purple,
+    "page": const AssetsPage(),
   }
     ];
 

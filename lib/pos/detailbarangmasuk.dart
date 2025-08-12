@@ -30,41 +30,13 @@ class _DetailbarangmasukState extends State<Detailbarangmasuk> {
   Map<int, TextEditingController> stockControllers = {};
   final Map<int, TextEditingController> lusinControllers = {};
   final Map<int, TextEditingController> pcsControllers = {};
+  bool isApproving = false;
 
   @override
   void initState() {
     super.initState();
     fetchProduct();
   }
-
-// Fungsi untuk handle input lusin
-void handleLusinInput(int index, String value) {
-  if (value.isNotEmpty && double.tryParse(value) != null) {
-    double lusin = double.parse(value);
-    int lusinInt = lusin.toInt();  // Konversi ke integer
-
-    setState(() {
-      barang[index]['stock_asli_converted_lusin'] = lusinInt;
-    });
-
-    // Jangan set controller.text di sini
-  }
-}
-
-
-// Fungsi untuk handle input pcs
-void handlePcsInput(int index, String value) {
-  if (value.isNotEmpty && double.tryParse(value) != null) {
-    double pcs = double.parse(value);
-    int pcsInt = pcs.toInt();  // Konversi ke integer
-
-    setState(() {
-      barang[index]['stock_asli_converted_pcs'] = pcsInt;
-    });
-
-    // Jangan set controller.text di sini
-  }
-}
 
   void showPrintBarcodeDialog() {
     final selectedItems = <Map<String, dynamic>>[]; // Barang yang dipilih
@@ -159,7 +131,9 @@ Future<void> generateExcelReport(
   BuildContext context,
   String idTransaksi,
 ) async {
-  final url = 'https://hayami.id/pos/detail_masuk.php';
+  final prefs = await SharedPreferences.getInstance();
+  final idCabang = prefs.getString('id_cabang') ?? '';
+  final url = 'https://hayami.id/pos/detail_masuk.php?id_cabang=$idCabang'; 
   final response = await http.get(Uri.parse(url));
 
   if (response.statusCode != 200) {
@@ -420,10 +394,13 @@ final barcodeBase = rawBarcode;
     setState(() {
       isLoading = true;
     });
+    final prefs = await SharedPreferences.getInstance();
+    final idCabang = prefs.getString('id_cabang') ?? '';
+
 
     final idTransaksi = widget.invoice['id']?.toString() ?? '';
     final url = Uri.parse(
-        "https://hayami.id/pos/masuk_detail.php?id_transaksi=$idTransaksi");
+        "https://hayami.id/pos/masuk_detail.php?id_transaksi=$idTransaksi&id_cabang=$idCabang");
 
     try {
       final response = await http.get(url);
@@ -505,22 +482,6 @@ Future<void> handleApprove() async {
   final prefs = await SharedPreferences.getInstance();
   final idCabang = prefs.getString('id_cabang') ?? '';
 
-  // Validasi apakah semua barang sudah memiliki qty asli
-  bool isValid = barang.every((item) {
-    final lusin = item['stock_asli_converted_lusin'] ?? 0;
-    final pcs = item['stock_asli_converted_pcs'] ?? 0;
-    return (lusin * 12 + pcs) > 0;
-  });
-
-  if (!isValid) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Lengkapi input qty asli seluruh barang sebelum approve."),
-      ),
-    );
-    return;
-  }
-
   // Konfirmasi user
   final shouldApprove = await showDialog<bool>(
     context: context,
@@ -540,7 +501,7 @@ Future<void> handleApprove() async {
     ),
   );
 
-  if (shouldApprove != true) return;
+  if (shouldApprove != true) return;  // Jika user memilih 'Tidak', batalkan proses
 
   // Siapkan data barang yang dikirim ke backend
   final List<Map<String, dynamic>> barangDikirim = barang.map((item) {
@@ -551,7 +512,7 @@ Future<void> handleApprove() async {
       'model': item['model'],
       'ukuran': item['ukuran'],
       'harga': item['harga'],
-      'stock': (lusin * 12 + pcs),
+      'stock': (double.tryParse(item['jumlah']?.toString() ?? '0') ?? 0) * 12, // Menghitung qty otomatis
       'image': item['image'] ?? '',
     };
   }).toList();
@@ -575,15 +536,14 @@ Future<void> handleApprove() async {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
           setState(() {
-            widget.invoice['status'] = 's';
+            widget.invoice['status'] = 's'; // Update status invoice
           });
-          print("Status code: ${response.statusCode}");
-print("Body: ${response.body}");
 
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => Barangmasuk()),
           );
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Barang berhasil di-approve")),
           );
@@ -654,72 +614,6 @@ ListView.builder(
               Text("Model: ${item['model']}"),
             Text("Ukuran: ${item['ukuran']}"),
             Text("${item['jumlah']} ${item['uom']}"),
-
-            if (widget.invoice['status']?.toString() == 'd') ...[
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Input untuk Lusin (ls)
-                  Flexible(
-  child: SizedBox(
-    width: 110,
-    child: TextField(
-      controller: lusinControllers[index],
-      keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        hintText: "Lusin (ls)",
-        border: OutlineInputBorder(),
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      ),
-      onChanged: (value) {
-        handleLusinInput(index, value); // Fungsi untuk handle input lusin
-      },
-      onEditingComplete: () {
-        final value = lusinControllers[index]?.text ?? "";
-        if (double.tryParse(value) != null) {
-          lusinControllers[index]?.text = "${int.parse(value)} ls";
-          lusinControllers[index]?.selection = TextSelection.fromPosition(
-            TextPosition(offset: lusinControllers[index]!.text.length),
-          );
-        }
-      },
-    ),
-  ),
-),
-                  const SizedBox(width: 8),
-                  // Input untuk Pcs (pcs)
-                  Flexible(
-                    child: SizedBox(
-                      width: 110,
-                      child: TextField(
-                        controller: pcsControllers[index],
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          hintText: "Pcs",
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                        ),
-                        onChanged: (value) {
-                          handlePcsInput(index, value); // Fungsi untuk handle input pcs
-                        },
-                        onEditingComplete: () {
-  final value = pcsControllers[index]?.text ?? "";
-  if (double.tryParse(value) != null) {
-    pcsControllers[index]?.text = "${int.parse(value)} pcs";
-    pcsControllers[index]?.selection = TextSelection.fromPosition(
-      TextPosition(offset: pcsControllers[index]!.text.length),
-    );
-  }
-},
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
         trailing: Text(
@@ -733,28 +627,30 @@ ListView.builder(
           ),
           if (widget.invoice['status']?.toString() == 'd')
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: handleApprove,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo, // Warna latar belakang biru
-                    foregroundColor: Colors.white, // Warna teks putih
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16), // Padding vertikal
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(8), // Sudut tombol melengkung
-                    ),
-                  ),
-                  child: const Text(
-                    'Approve',
-                    style: TextStyle(fontSize: 16), // Ukuran font tetap 16
-                  ),
-                ),
-              ),
+  padding: const EdgeInsets.all(16.0),
+  child: SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: isApproving ? null : handleApprove,  // Nonaktifkan tombol saat proses
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.indigo, // Warna latar belakang biru
+        foregroundColor: Colors.white, // Warna teks putih
+        padding: const EdgeInsets.symmetric(vertical: 16), // Padding vertikal
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8), // Sudut tombol melengkung
+        ),
+      ),
+      child: isApproving  // Tampilkan loading saat proses
+          ? const CircularProgressIndicator(
+              color: Colors.white, // Indikator loading putih
+            )
+          : const Text(
+              'Approve',
+              style: TextStyle(fontSize: 16), // Ukuran font tetap 16
             ),
+    ),
+  ),
+),
           if (widget.invoice['status']?.toString() == 's')
             Padding(
               padding: const EdgeInsets.all(16.0),

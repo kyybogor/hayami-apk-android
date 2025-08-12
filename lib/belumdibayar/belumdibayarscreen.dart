@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hayami_app/belumdibayar/detailbelumdibayar.dart';
-import 'package:hayami_app/tagihan/tambahtagihan.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -22,6 +21,9 @@ class _BelumDibayarState extends State<BelumDibayar> {
   String selectedMonth = DateFormat('MM').format(DateTime.now());
   String selectedYear = DateFormat('yyyy').format(DateTime.now());
 
+  String startMonth = DateFormat('MM').format(DateTime.now());
+  String endMonth = DateFormat('MM').format(DateTime.now());
+
   @override
   void initState() {
     super.initState();
@@ -30,76 +32,93 @@ class _BelumDibayarState extends State<BelumDibayar> {
   }
 
   Future<void> fetchInvoices() async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
-      );
+  try {
+    final response = await http.get(
+      Uri.parse('https://hayami.id/apps/erp/api-android/api/gdo1.php'),
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
 
-        final openInvoices = data
-            .where((item) =>
-                item["status"] != null &&
-                item["status"].toString().toLowerCase() == 'open')
-            .toList();
+      final openInvoices = data
+          .where((item) =>
+              item["status"] != null &&
+              item["status"].toString().toLowerCase() == 'open')
+          .toList();
 
-        invoices = openInvoices.map<Map<String, dynamic>>((item) {
-          String? dibuatTgl = item["tgl"];
-          return {
-            "id": item["id_do1"] ?? '-',
-            "name": (item["id_cust"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["id_cust"],
-            "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["id_group"],
-            "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["no_inv"],
-            "date":
-                dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
-            "due": (item["tgltop"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["tgltop"],
-            "alamat": (item["address"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["address"],
-            "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
-                ? '-'
-                : item["grandttl"],
-            "disc": (item["disc"] ?? '0.00').toString(),
-            "ppn": (item["ppn"] ?? '0.00').toString(),
-            "tax": (item["tax"] ?? '0.00').toString(),
-            "status": 'Belum Dibayar',
-          };
-        }).toList();
+      invoices = openInvoices.map<Map<String, dynamic>>((item) {
+        String? dibuatTgl = item["tgl"];
+        return {
+          "id": item["id_do1"] ?? '-',
+          "name": (item["id_cust"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["id_cust"],
+          "instansi": (item["id_group"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["id_group"],
+          "invoice": (item["no_inv"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["no_inv"],
+          "date": dibuatTgl?.toString().trim().isEmpty ?? true ? null : dibuatTgl,
+          "due": (item["tgltop"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["tgltop"],
+          "alamat": (item["address"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["address"],
+          "amount": (item["grandttl"] ?? '').toString().trim().isEmpty
+              ? '-'
+              : item["grandttl"],
+          "disc": (item["disc"] ?? '0.00').toString(),
+          "ppn": (item["ppn"] ?? '0.00').toString(),
+          "tax": (item["tax"] ?? '0.00').toString(),
+          "status": 'Belum Dibayar',
+        };
+      }).toList();
 
-        // Urutkan dari tanggal terlama ke terbaru
-        invoices.sort((a, b) {
-          try {
-            final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
-            final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
-            return dateA.compareTo(dateB);
-          } catch (e) {
-            return 0;
-          }
-        });
+      // Filter langsung untuk bulan & tahun sekarang
+      final now = DateTime.now();
+      final String thisMonth = now.month.toString().padLeft(2, '0');
+      final String thisYear = now.year.toString();
 
-        setState(() {
-          filteredInvoices = invoices;
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Gagal mengambil data');
-      }
-    } catch (e) {
-      print("Error: $e");
+      filteredInvoices = invoices.where((invoice) {
+        try {
+          final dateStr = invoice["date"];
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-') return false;
+
+          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+          return invoiceDate.month.toString().padLeft(2, '0') == thisMonth &&
+                 invoiceDate.year.toString() == thisYear;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+
+      // Urutkan dari tanggal paling kecil
+      filteredInvoices.sort((a, b) {
+        try {
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+          return dateA.compareTo(dateB);
+        } catch (e) {
+          return 0;
+        }
+      });
+
       setState(() {
         isLoading = false;
       });
+    } else {
+      throw Exception('Gagal mengambil data');
     }
+  } catch (e) {
+    print("Error: $e");
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
 
   void filterByMonthYear() {
     setState(() {
@@ -157,6 +176,44 @@ class _BelumDibayarState extends State<BelumDibayar> {
       }).toList();
 
       // Tambahkan sort tanggal dari terlama
+      filteredInvoices.sort((a, b) {
+        try {
+          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+          return dateA.compareTo(dateB);
+        } catch (e) {
+          return 0;
+        }
+      });
+    });
+  }
+
+  //fungsi memilih bulan awal dan akhir
+  void filterByMonthRange() {
+    setState(() {
+      final int start = int.tryParse(startMonth) ?? 1;
+      final int end = int.tryParse(endMonth) ?? 12;
+      final int selectedYr = int.tryParse(selectedYear) ?? DateTime.now().year;
+
+      filteredInvoices = invoices.where((invoice) {
+        try {
+          final dateStr = invoice["date"];
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-')
+            return false;
+
+          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+          final invoiceMonth = invoiceDate.month;
+          final invoiceYear = invoiceDate.year;
+
+          return (invoiceYear == selectedYr &&
+              invoiceMonth >= start &&
+              invoiceMonth <= end);
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+
+      // Urutkan tetap dari tanggal terkecil ke terbesar
       filteredInvoices.sort((a, b) {
         try {
           final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
@@ -228,79 +285,111 @@ class _BelumDibayarState extends State<BelumDibayar> {
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
-              child: Row(
+              child: Column(
                 children: [
-                  Flexible(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: selectedMonth,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.calendar_today),
-                        labelText: "Bulan",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.blue.shade50,
-                      ),
-                      items: [
-                        'Semua',
-                        ...List.generate(12,
-                            (index) => (index + 1).toString().padLeft(2, '0')),
-                      ].map((month) {
-                        return DropdownMenuItem(
-                          value: month,
-                          child: Text(
-                            month == 'Semua'
-                                ? 'Semua Bulan'
-                                : DateFormat('MMMM')
-                                    .format(DateTime(0, int.parse(month))),
+                  Row(
+                    children: [
+                      Flexible(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          value: startMonth,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.calendar_today),
+                            labelText: "Dari Bulan",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.blue.shade50,
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            selectedMonth = value;
-                          });
-                          filterByMonthYear();
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: selectedYear,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.date_range),
-                        labelText: "Tahun",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                          items: List.generate(
+                            12,
+                            (index) => (index + 1).toString().padLeft(2, '0'),
+                          ).map((month) {
+                            return DropdownMenuItem(
+                              value: month,
+                              child: Text(DateFormat('MMMM')
+                                  .format(DateTime(0, int.parse(month)))),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                startMonth = value;
+                              });
+                              filterByMonthRange();
+                            }
+                          },
                         ),
-                        filled: true,
-                        fillColor: Colors.blue.shade50,
                       ),
-                      items: ['Semua', '2023', '2024', '2025'].map((year) {
-                        return DropdownMenuItem(
-                          value: year,
-                          child: Text(year == 'Semua' ? 'Semua Tahun' : year),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            selectedYear = value;
-                          });
-                          filterByMonthYear();
-                        }
-                      },
+                      const SizedBox(width: 8),
+                      Flexible(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          value: endMonth,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.calendar_month),
+                            labelText: "Sampai Bulan",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.blue.shade50,
+                          ),
+                          items: List.generate(
+                            12,
+                            (index) => (index + 1).toString().padLeft(2, '0'),
+                          ).map((month) {
+                            return DropdownMenuItem(
+                              value: month,
+                              child: Text(DateFormat('MMMM')
+                                  .format(DateTime(0, int.parse(month)))),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                endMonth = value;
+                              });
+                              filterByMonthRange();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedYear,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.date_range),
+                      labelText: "Tahun",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.blue.shade50,
                     ),
+                    items: ['Semua', '2023', '2024', '2025'].map((year) {
+                      return DropdownMenuItem(
+                        value: year,
+                        child: Text(year == 'Semua' ? 'Semua Tahun' : year),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedYear = value;
+                        });
+                        filterByMonthRange();
+                      }
+                    },
                   ),
                 ],
               ),
@@ -359,29 +448,6 @@ class _BelumDibayarState extends State<BelumDibayar> {
                                   fetchInvoices();
                                   dataChanged = true;
                                 }
-                              },
-                              onLongPress: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text("Hapus Data"),
-                                    content: const Text(
-                                        "Yakin ingin menghapus data ini?"),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text("Batal"),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          // Tambahkan logika hapus jika diperlukan
-                                        },
-                                        child: const Text("Hapus"),
-                                      ),
-                                    ],
-                                  ),
-                                );
                               },
                             );
                           },
