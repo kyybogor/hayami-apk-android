@@ -120,7 +120,7 @@ class _TagihanPageState extends State<TagihanPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.blue),
-        title: const Text("Tagiha", style: TextStyle(color: Colors.blue)),
+        title: const Text("Tagihan", style: TextStyle(color: Colors.blue)),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
