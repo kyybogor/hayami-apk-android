@@ -7,6 +7,7 @@ import 'package:hayami_app/pos/cart_db_helper.dart';
 import 'package:hayami_app/pos/cart_screen.dart';
 import 'package:hayami_app/pos/customer_db_helper.dart';
 import 'package:hayami_app/pos/print.dart';
+import 'package:hayami_app/pos/saleshelper.dart';
 import 'package:hayami_app/pos/stock_db_helper.dart';
 import 'package:hayami_app/pos/struk.dart';
 import 'package:hayami_app/pos/transaksi_helper.dart';
@@ -111,7 +112,8 @@ class _PosscreenState extends State<Posscreen> {
   List<Map<String, dynamic>> paymentAccounts = [];
   String? selectedPaymentAccount; // ✅ dipakai oleh Dropdown
   Map<String, dynamic>? selectedPaymentAccountMap;
-  String selectedSales = 'Sales 1';
+  List<dynamic> salesList = [];
+  String? selectedSales;
   final TextEditingController cashController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   List<Map<String, dynamic>> splitPayments = [];
@@ -120,12 +122,14 @@ class _PosscreenState extends State<Posscreen> {
   final TextEditingController barcodeController = TextEditingController();
   final FocusNode barcodeFocusNode = FocusNode();
   String barcodeQuery = '';
+  bool isProcessing = false; 
+  DateTime? lastClickTime;
 
   @override
   void initState() {
     super.initState();
     TransaksiHelper.instance.trySyncIfOnline();
-    
+    fetchSales();
     CartDBHelper.instance.syncPendingDrafts();
     fetchProducts();
     fetchPaymentAccounts();
@@ -265,8 +269,6 @@ setState(() {
 });
 
 }
-
-
   void resetTransaction() {
     setState(() {
       cartItems.clear();
@@ -307,10 +309,53 @@ String generateLocalId() {
     final formatter = NumberFormat.decimalPattern('id');
     return formatter.format(number);
   }
-
   Future<void> playSuccessSound() async {
   final player = AudioPlayer();
   await player.play(AssetSource('image/sound.mp3'));
+}
+
+Future<void> fetchSales() async {
+  final salesHelper = SalesHelper();
+  try {
+    final url = Uri.parse('https://hayami.id/pos/sales.php');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+
+      // Simpan ke SQLite
+      await salesHelper.insertOrUpdateSales(
+        data.map((s) => {
+          'id_sales': s['id_sales'].toString(),
+          'nm_sales': s['nm_sales'].toString(),
+          'credit_limit': s['credit_limit'].toString(),
+          'no_telp': s['no_telp'].toString(),
+          'email': s['email'].toString(),
+          'region': s['region'].toString(),
+          'dibuat_oleh': s['dibuat_oleh'].toString(),
+          'dibuat_tgl': s['dibuat_tgl'].toString(),
+        }).toList(),
+      );
+
+      setState(() {
+        salesList = data;
+        if (salesList.isNotEmpty) {
+          selectedSales ??= salesList.first['nm_sales']; // pakai nama
+        }
+      });
+    } else {
+      throw Exception('Server Error');
+    }
+  } catch (e) {
+    // Kalau offline → ambil dari SQLite
+    final localData = await salesHelper.getAllSales();
+    setState(() {
+      salesList = localData;
+      if (salesList.isNotEmpty) {
+        selectedSales ??= salesList.first['nm_sales']; // pakai nama
+      }
+    });
+  }
 }
 
   Future<void> showTransactionDialog(
@@ -453,28 +498,27 @@ String generateLocalId() {
 fieldRow(
   label: 'Sales',
   child: DropdownButtonFormField<String>(
-    value: selectedSales,
+    value: salesList.any((s) => s['nm_sales'] == selectedSales)
+        ? selectedSales
+        : null,
     decoration: const InputDecoration(
       border: OutlineInputBorder(),
       isDense: true,
       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     ),
-    items: ['Sales 1', 'Sales 2', 'Sales 3'].map(
-      (sales) {
-        return DropdownMenuItem<String>(
-          value: sales,
-          child: Text(sales),
-        );
-      },
-    ).toList(),
+    items: salesList.map((sales) {
+      return DropdownMenuItem<String>(
+        value: sales['nm_sales'], // pakai nama sebagai value
+        child: Text(sales['nm_sales']),
+      );
+    }).toList(),
     onChanged: (val) {
       setState(() {
-        selectedSales = val!;
+        selectedSales = val; // simpan nama sales
       });
     },
   ),
 ),
-
                     const SizedBox(height: 10),
                     fieldRow(
                       label: 'Cash',
@@ -719,41 +763,64 @@ fieldRow(
                     ),
 TextButton(
   onPressed: () async {
-    // 1. Validasi SPLIT
-    double totalSplit = 0;
-    for (var item in splitPayments) {
-      final jumlah = double.tryParse(
-          item['jumlah'].toString().replaceAll('.', '').replaceAll(',', '')) ??
-          0;
-      totalSplit += jumlah;
+    // ==== Debounce 1 detik ====
+    final now = DateTime.now();
+    if (lastClickTime != null &&
+        now.difference(lastClickTime!).inMilliseconds < 1000) {
+      return; // abaikan klik kalau masih < 1 detik dari klik terakhir
     }
+    lastClickTime = now;
 
-    if (selectedPaymentAccount == 'SPLIT' && totalSplit != grandTotal) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text("Peringatan"),
-          content: Text(
-              "Total split harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+    if (isProcessing) return;
+
+    setState(() {
+      isProcessing = true;
+    });
 
     try {
+      // ==== PROSES TAKE PAYMENT ====
+      double totalSplit = 0;
+      for (var item in splitPayments) {
+        final jumlah = double.tryParse(
+              item['jumlah']
+                  .toString()
+                  .replaceAll('.', '')
+                  .replaceAll(',', ''),
+            ) ??
+            0;
+        totalSplit += jumlah;
+      }
+
+      if (selectedPaymentAccount == 'SPLIT' && totalSplit != grandTotal) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Peringatan"),
+            content: Text(
+              "Total split harus sama dengan Grand Total (${formatRupiah(grandTotal.toInt())})",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+        setState(() {
+          isProcessing = false;
+        });
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       final String namaUser = prefs.getString('nm_user') ?? "admin";
       final String idCabang = prefs.getString('id_cabang') ?? "C1";
 
-      // Generate ID transaksi dan invoice
-      final String idTransaksi = await TransaksiHelper.instance.generateIDTransaksi();
-      final String idInvoice = await TransaksiHelper.instance.generateIDInvoice();
+      final String idTransaksi =
+          await TransaksiHelper.instance.generateIDTransaksi();
+      final String idInvoice =
+          await TransaksiHelper.instance.generateIDInvoice();
 
       String? akunType;
       double sisaBayar = 0;
@@ -832,7 +899,8 @@ TextButton(
         };
 
         await TransaksiHelper.instance.saveTransaksiToSQLite(data);
-        await TransaksiHelper.instance.savePembayaranSplitToSQLite(splitPayments ?? []);
+        await TransaksiHelper.instance
+            .savePembayaranSplitToSQLite(splitPayments ?? []);
 
         await StockDBHelper.reduceStockOffline(
           item.idTipe,
@@ -851,29 +919,31 @@ TextButton(
         grandTotal: grandTotal,
         totalDiskon: totalDiskonCustomer,
         newDiscount: newDiscount,
-        totalLusin: cartItems.fold(0.0, (sum, item) => sum + (item.quantity / 12)),
+        totalLusin:
+            cartItems.fold(0.0, (sum, item) => sum + (item.quantity / 12)),
         selectedPaymentAccount: selectedPaymentAccountMap ?? {},
         splitPayments: splitPayments,
         collectedBy: namaUser,
         idTransaksi: idTransaksi,
       );
 
-      // Simpan pembayaran split ke SQLite
-      
-      // Sinkronisasi transaksi jika online
       await TransaksiHelper.instance.trySyncIfOnline();
-
-      // Reset transaksi dan fetch produk
       resetTransaction();
       await fetchProducts();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Gagal menyimpan transaksi: $e")),
       );
+    } finally {
+      setState(() {
+        isProcessing = false;
+      });
     }
   },
   style: TextButton.styleFrom(
-    backgroundColor: selectedPaymentAccount == null || selectedPaymentAccount!.isEmpty
+    backgroundColor: isProcessing ||
+            selectedPaymentAccount == null ||
+            selectedPaymentAccount!.isEmpty
         ? Colors.grey
         : Colors.indigo,
     foregroundColor: Colors.white,
@@ -882,9 +952,10 @@ TextButton(
     ),
     minimumSize: const Size(100, 40),
   ),
-  child: const Text('Take Payment'),
+  child: isProcessing
+      ? const CircularProgressIndicator(color: Colors.white)
+      : const Text('Take Payment'),
 ),
-
 
                     TextButton(
 onPressed: () async {

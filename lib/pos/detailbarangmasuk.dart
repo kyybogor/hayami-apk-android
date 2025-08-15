@@ -303,7 +303,7 @@ final barcodeBase = rawBarcode;
     print('Cetak barcode: $barcodeBase (Qty: $qtyPerBarcode)');
 
     final stockLusin = double.tryParse(item['jumlah'] ?? '0') ?? 0;
-    final stockPcs = (stockLusin).toInt();
+    final stockPcs = (stockLusin*12).toInt();
 
     int remaining = stockPcs;
     int barcodeCount = (remaining / qtyPerBarcode).ceil();

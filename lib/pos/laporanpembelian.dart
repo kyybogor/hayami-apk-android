@@ -25,83 +25,89 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-    selectedMonth = DateFormat('MM').format(DateTime.now());
-    selectedYear = DateFormat('yyyy').format(DateTime.now());
     fetchInvoices();
   }
 
-  @override
   Future<void> fetchInvoices() async {
-  final prefs = await SharedPreferences.getInstance();
-  final rawIdCabang = prefs.getString('id_cabang') ?? '';
-  final cleanIdCabang = rawIdCabang.replaceAll('\u00A0', ' ').trim();
-  print("🛠 ID Cabang (raw): '$rawIdCabang'");
-  print("🛠 ID Cabang (clean): '$cleanIdCabang'");
-
-  if (cleanIdCabang.isEmpty) {
-    print("❌ id_cabang belum disimpan di SharedPreferences");
     setState(() {
-      isLoading = false;
+      isLoading = true;
     });
-    return;
-  }
 
-  final url = Uri.https('hayami.id', '/pos/masuk.php', {'id_cabang': cleanIdCabang});
-  print("🛠 Request URL: $url");
+    final prefs = await SharedPreferences.getInstance();
+    final rawIdCabang = prefs.getString('id_cabang') ?? 'TKB-HAYAMI OFFICIAL-JAKARTA PUSAT';
+    final cleanIdCabang = rawIdCabang.replaceAll('\u00A0', ' ').trim();
+    print("🛠 ID Cabang (raw): '$rawIdCabang'");
+    print("🛠 ID Cabang (clean): '$cleanIdCabang'");
 
-  try {
-    final response = await http.get(url);
-    print("📦 Response Body: ${response.body}");
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final List<dynamic> invoicesData = data['data'];
-
-      // Filter data berdasarkan status "s"
-      invoices = invoicesData.where((item) {
-        return item['status'] == 's'; // Hanya ambil data dengan status "s"
-      }).map<Map<String, dynamic>>((item) {
-        return {
-          "id": item["id_transaksi"] ?? '-',
-          "name": item["id_supplier"] ?? '-',
-          "date": item["tgl_transaksi"] ?? '-',
-          "total": item["total"] ?? '0',  // Ambil total transaksi
-        };
-      }).toList();
-
-      // Urutkan berdasarkan tanggal
-      invoices.sort((a, b) {
-        try {
-          final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
-          final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
-          return dateA.compareTo(dateB);
-        } catch (e) {
-          return 0;
-        }
-      });
-
+    if (cleanIdCabang.isEmpty) {
+      print("❌ id_cabang belum disimpan di SharedPreferences");
       setState(() {
-        filteredInvoices = invoices;
         isLoading = false;
       });
-    } else {
-      throw Exception('Gagal mengambil data');
+      return;
     }
-  } catch (e) {
-    print("Error: $e");
-    setState(() {
-      isLoading = false;
-    });
+
+    final url = Uri.https(
+      'hayami.id',
+      '/pos/masuk.php',
+      {'id_cabang': cleanIdCabang},
+    );
+    print("🛠 Request URL: $url");
+
+    try {
+      final response = await http.get(url);
+      print("📦 Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> invoicesData = data['data'];
+
+        // Filter hanya status "s"
+        invoices = invoicesData.where((item) {
+          return item['status'] == 's';
+        }).map<Map<String, dynamic>>((item) {
+          return {
+            "id": item["id_transaksi"] ?? '-',
+            "name": item["id_supplier"] ?? '-',
+            "date": item["tgl_transaksi"] ?? '-',
+            "total": item["total"] ?? '0',
+            "keterangan": item["keterangan"] ?? '-',
+            "qty": item["qty"] ?? '0',
+            "uom": item["uom"] ?? '-',
+          };
+        }).toList();
+
+        // Urutkan berdasarkan tanggal
+        invoices.sort((a, b) {
+          try {
+            final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
+            final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+            return dateA.compareTo(dateB);
+          } catch (_) {
+            return 0;
+          }
+        });
+
+        setState(() {
+          filteredInvoices = invoices;
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (e) {
+      print("Error: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
-}
 
   void _onSearchChanged() {
     String keyword = _searchController.text.toLowerCase();
     setState(() {
       filteredInvoices = invoices.where((invoice) {
-        final idMatch =
-            invoice["id"].toString().toLowerCase().contains(keyword); // Pencarian berdasarkan id_transaksi
-        return idMatch;
+        return invoice["id"].toString().toLowerCase().contains(keyword);
       }).toList();
     });
   }
@@ -122,7 +128,10 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text("Laporan Barang Masuk", style: TextStyle(color: Colors.blue)),
+          title: const Text(
+            "Laporan Barang Masuk",
+            style: TextStyle(color: Colors.blue),
+          ),
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -164,34 +173,41 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
                               title: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(invoice["id"] ?? '-'), // id_transaksi
+                                  Text(invoice["id"] ?? '-'),
                                   Text(
                                     invoice["name"] ?? '-',
-                                    style: TextStyle(fontSize: 18), // Mengatur ukuran font menjadi lebih kecil
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                  Text(
+                                    invoice["keterangan"] ?? '-',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.black54),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    "Qty: ${invoice["qty"]} ${invoice["uom"]}",
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.black54),
                                   ),
                                 ],
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(invoice["date"] ?? '-'),
-                                ],
-                              ),
+                              subtitle: Text(invoice["date"] ?? '-'),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // Kartu hijau yang menampilkan total transaksi
                                   Card(
                                     color: Colors.green.shade100,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
                                       child: Text(
                                         "${NumberFormat.currency(symbol: "Rp ").format(double.parse(invoice["total"]))}",
                                         style: TextStyle(
-                                          color: Colors.green[800], // Teks hijau
+                                          color: Colors.green[800],
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
                                         ),
@@ -199,24 +215,26 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                  const Icon(Icons.arrow_forward_ios,
+                                      size: 16, color: Colors.grey),
                                 ],
                               ),
                               onTap: () async {
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => Detaillaporanpembelian(invoice: invoice),
+                                    builder: (context) =>
+                                        Detaillaporanpembelian(invoice: invoice),
                                   ),
                                 );
                               },
                             );
                           },
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-          }
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
