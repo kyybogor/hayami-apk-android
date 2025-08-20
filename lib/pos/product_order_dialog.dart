@@ -479,9 +479,12 @@ Expanded(
                           );
                         }
 
+                        final productName = widget.representative['model'].toString();
+
                         final existingItemIndex = updatedCart.indexWhere(
-                          (e) => e.idTipe == idTipe && e.size == size,
+                          (e) => e.idTipe == idTipe && e.size == size && e.productName == productName,
                         );
+
 
                         double currentQtyInCart = 0.0;
                         if (existingItemIndex != -1) {
