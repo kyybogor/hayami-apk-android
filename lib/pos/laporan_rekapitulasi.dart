@@ -59,18 +59,18 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
   }
 
   double toDouble(dynamic val) {
-  if (val is double) return val;
-  if (val is int) return val.toDouble();
-  if (val is String) return double.tryParse(val) ?? 0;
-  return 0;
-}
+    if (val is double) return val;
+    if (val is int) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0;
+    return 0;
+  }
 
-int toInt(dynamic val) {
-  if (val is int) return val;
-  if (val is double) return val.toInt();
-  if (val is String) return double.tryParse(val)?.toInt() ?? 0;
-  return 0;
-}
+  int toInt(dynamic val) {
+    if (val is int) return val;
+    if (val is double) return val.toInt();
+    if (val is String) return double.tryParse(val)?.toInt() ?? 0;
+    return 0;
+  }
 
   Future<void> fetchCustomerList() async {
     const url = 'https://hayami.id/hayami/customer.php';
@@ -100,12 +100,21 @@ int toInt(dynamic val) {
     return ['-- Pilih Customer --', ...filtered];
   }
 
+  String formatStatus(dynamic status) {
+    final val = status?.toString().trim() ?? '';
+    if (val == 'Belum Lunas') {
+      return val;
+    }
+    return 'Lunas';
+  }
+
   Future<void> fetchRekapitulasiData() async {
     final prefs = await SharedPreferences.getInstance();
     final idCabang = prefs.getString('id_cabang') ?? '';
     final from = DateFormat('yyyy-MM-dd').format(fromDate);
     final to = DateFormat('yyyy-MM-dd').format(toDate);
-    String url = 'https://hayami.id/pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
+    String url =
+        'https://hayami.id/pos/rekapitulasi.php?start=$from&end=$to&id_cabang=$idCabang';
 
     if (selectedCustomer != null && selectedCustomer!.isNotEmpty) {
       url += '&id_customer=${Uri.encodeComponent(selectedCustomer!)}';
@@ -128,19 +137,14 @@ int toInt(dynamic val) {
         double lus = 0;
         int sub = 0, dis = 0, inv = 0;
 
-
-
-
 // Lalu gunakan:
 
-for (var item in data) {
-  lus += toDouble(item['lusin']);
-  sub += toInt(item['subtotal']);
-  dis += toInt(item['discon']);
-  inv += toInt(item['total_invoice']);
-}
-
-
+        for (var item in data) {
+          lus += toDouble(item['lusin']);
+          sub += toInt(item['subtotal']);
+          dis += toInt(item['discon']);
+          inv += toInt(item['total_invoice']);
+        }
 
         setState(() {
           rekapList = data;
@@ -170,27 +174,27 @@ for (var item in data) {
       'Diskon',
       'Total',
       'Status',
+      'Metode', // kolom baru
     ];
 
-final dataRows = rekapList.map((item) {
-  return [
-    (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
-    (item['tgl_jatuh_tempo'] != null &&
-            item['tgl_jatuh_tempo'] != '0000-00-00')
-        ? (item['tgl_jatuh_tempo'] ?? '').toString().split(' ')[0]
-        : '-',
-    item['id_transaksi']?.toString() ?? '-',
-    item['id_customer']?.toString() ?? '-',
-    NumberFormat("0.##").format(double.tryParse(item['lusin']?.toString() ?? '0') ?? 0),
-    'Rp ${currency.format(int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0)}',
-    'Rp ${currency.format((double.tryParse(item['discon']?.toString() ?? '0') ?? 0).toInt())}',
-    'Rp ${currency.format((double.tryParse(item['total_invoice']?.toString() ?? '0') ?? 0).toInt())}',
-    (item['status'] != null && item['status'].toString().trim().isNotEmpty)
-        ? item['status'].toString()
-        : '-',
-  ];
-}).toList();
-
+    final dataRows = rekapList.map((item) {
+      return [
+        (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
+        (item['tgl_jatuh_tempo'] != null &&
+                item['tgl_jatuh_tempo'] != '0000-00-00')
+            ? (item['tgl_jatuh_tempo'] ?? '').toString().split(' ')[0]
+            : '-',
+        item['id_transaksi']?.toString() ?? '-',
+        item['id_customer']?.toString() ?? '-',
+        NumberFormat("0.##")
+            .format(double.tryParse(item['lusin']?.toString() ?? '0') ?? 0),
+        'Rp ${currency.format(int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0)}',
+        'Rp ${currency.format((double.tryParse(item['discon']?.toString() ?? '0') ?? 0).toInt())}',
+        'Rp ${currency.format((double.tryParse(item['total_invoice']?.toString() ?? '0') ?? 0).toInt())}',
+        formatStatus(item['status']),
+        item['akun']?.toString() ?? '-', // kolom baru
+      ];
+    }).toList();
 
     dataRows.add([
       'TOTAL',
@@ -202,6 +206,7 @@ final dataRows = rekapList.map((item) {
       'Rp ${currency.format(totalDiskon)}',
       'Rp ${currency.format(totalInvoice)}',
       '',
+      '', // metode kosong
     ]);
 
     pdf.addPage(
@@ -247,6 +252,7 @@ final dataRows = rekapList.map((item) {
               6: const pw.FixedColumnWidth(70),
               7: const pw.FixedColumnWidth(70),
               8: const pw.FixedColumnWidth(50),
+              9: const pw.FixedColumnWidth(60),
             },
             cellDecoration: (index, data, rowIndex) {
               if (rowIndex == dataRows.length - 0) {
@@ -275,95 +281,99 @@ final dataRows = rekapList.map((item) {
     await Printing.layoutPdf(onLayout: (format) async => pdf.save());
   }
 
-Future<void> exportToExcel(BuildContext context) async {
-  var status = await Permission.storage.request();  // Izin pertama
+  Future<void> exportToExcel(BuildContext context) async {
+    var status = await Permission.storage.request(); // Izin pertama
 
-  if (!status.isGranted) return;
+    if (!status.isGranted) return;
 
-  final excelFile = excel.Excel.createExcel();
-  final sheet = excelFile['Sheet1'];
+    final excelFile = excel.Excel.createExcel();
+    final sheet = excelFile['Sheet1'];
 
-  // Menulis header
-  sheet.appendRow([
-    'Tanggal',
-    'Tgl Jatuh Tempo',
-    'Transaksi',
-    'Customer',
-    'Lusin',
-    'Subtotal',
-    'Diskon',
-    'Total',
-    'Status',
-  ]);
-
-  // Menulis data
-  for (var item in rekapList) {
+    // Menulis header
     sheet.appendRow([
-      (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
-      (item['tgl_jatuh_tempo'] != null &&
-              item['tgl_jatuh_tempo'] != '0000-00-00')
-          ? item['tgl_jatuh_tempo'].toString().split(' ')[0]
-          : '-',
-      item['id_transaksi']?.toString() ?? '-',
-      item['id_customer']?.toString() ?? '-',
-      double.tryParse(item['lusin']?.toString() ?? '0') ?? 0,
-      int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0,
-      double.tryParse(item['discon']?.toString() ?? '0')?.toInt() ?? 0,
-      double.tryParse(item['total_invoice']?.toString() ?? '0')?.toInt() ?? 0,
-      item['status']?.toString() ?? '-',
+      'Tanggal',
+      'Tgl Jatuh Tempo',
+      'Transaksi',
+      'Customer',
+      'Lusin',
+      'Subtotal',
+      'Diskon',
+      'Total',
+      'Status',
+      'Metode', // kolom baru
     ]);
-  }
 
-  // Menambahkan baris total
-  sheet.appendRow([
-    'TOTAL',
-    '',
-    '',
-    '',
-    totalLusin,
-    totalSubtotal,
-    totalDiskon,
-    totalInvoice,
-    '',
-  ]);
+    // Menulis data
+    for (var item in rekapList) {
+      sheet.appendRow([
+        (item['tgl_transaksi'] ?? '').toString().split(' ')[0],
+        (item['tgl_jatuh_tempo'] != null &&
+                item['tgl_jatuh_tempo'] != '0000-00-00')
+            ? item['tgl_jatuh_tempo'].toString().split(' ')[0]
+            : '-',
+        item['id_transaksi']?.toString() ?? '-',
+        item['id_customer']?.toString() ?? '-',
+        double.tryParse(item['lusin']?.toString() ?? '0') ?? 0,
+        int.tryParse(item['subtotal']?.toString() ?? '0') ?? 0,
+        double.tryParse(item['discon']?.toString() ?? '0')?.toInt() ?? 0,
+        double.tryParse(item['total_invoice']?.toString() ?? '0')?.toInt() ?? 0,
+        formatStatus(item['status']),
+        item['akun']?.toString() ?? '-', // kolom baru
+      ]);
+    }
 
-  // Minta izin penyimpanan
-  var storagePermissionStatus = await Permission.storage.request(); // Ubah nama variabel disini
+    // Menambahkan baris total
+    sheet.appendRow([
+      'TOTAL',
+      '',
+      '',
+      '',
+      totalLusin,
+      totalSubtotal,
+      totalDiskon,
+      totalInvoice,
+      '',
+      '', // metode kosong
+    ]);
 
-  if (!storagePermissionStatus.isGranted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Izin penyimpanan ditolak')),
-    );
-    return;
-  }
+    // Minta izin penyimpanan
+    var storagePermissionStatus =
+        await Permission.storage.request(); // Ubah nama variabel disini
 
-  try {
-    // Menggunakan getExternalStorageDirectory() yang sesuai
-    final directory = await getExternalStorageDirectory();
-    final filePath = '${directory!.path}/rekapitulasi_penjualan_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-
-    final fileBytes = excelFile.encode();
-    if (fileBytes == null) {
+    if (!storagePermissionStatus.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal membuat file Excel')),
+        const SnackBar(content: Text('Izin penyimpanan ditolak')),
       );
       return;
     }
 
-    final file = File(filePath);
-    await file.writeAsBytes(fileBytes);
+    try {
+      // Menggunakan getExternalStorageDirectory() yang sesuai
+      final directory = await getExternalStorageDirectory();
+      final filePath =
+          '${directory!.path}/rekapitulasi_penjualan_${DateTime.now().millisecondsSinceEpoch}.xlsx';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('File berhasil disimpan di $filePath')),
-    );
-  } catch (e) {
-    debugPrint("Gagal menyimpan file: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gagal menyimpan file')),
-    );
+      final fileBytes = excelFile.encode();
+      if (fileBytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal membuat file Excel')),
+        );
+        return;
+      }
+
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File berhasil disimpan di $filePath')),
+      );
+    } catch (e) {
+      debugPrint("Gagal menyimpan file: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal menyimpan file')),
+      );
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -375,7 +385,7 @@ Future<void> exportToExcel(BuildContext context) async {
         centerTitle: true,
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.blue),
-                leading: IconButton(
+        leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.blue),
           onPressed: () {
             Navigator.pop(context);
@@ -433,13 +443,13 @@ Future<void> exportToExcel(BuildContext context) async {
             const SizedBox(height: 16),
             Row(
               children: [
-                  ElevatedButton(
-                    onPressed: fetchRekapitulasiData,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
-                        foregroundColor: Colors.white),
-                    child: const Text('Cari'),
-                  ),
+                ElevatedButton(
+                  onPressed: fetchRekapitulasiData,
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white),
+                  child: const Text('Cari'),
+                ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: rekapList.isEmpty ? null : printPdf,
@@ -528,125 +538,141 @@ Future<void> exportToExcel(BuildContext context) async {
     );
   }
 
+  Widget buildTable() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double tableWidth = constraints.maxWidth;
+        double colWidth = tableWidth / 10;
+        double fontSize;
 
+        if (tableWidth < 320) {
+          fontSize = 10;
+        } else if (tableWidth < 400) {
+          fontSize = 11;
+        } else {
+          fontSize = 12;
+        }
 
-Widget buildTable() {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      double tableWidth = constraints.maxWidth;
-      double colWidth = tableWidth / 9;
-      double fontSize;
-
-      if (tableWidth < 320) {
-        fontSize = 10;
-      } else if (tableWidth < 400) {
-        fontSize = 11;
-      } else {
-        fontSize = 12;
-      }
-
-      return StickyHeader(
-        header: Container(
-          color: Colors.indigo,
-          child: Table(
-            border: TableBorder.all(color: Colors.grey.shade400, width: 1),
-            columnWidths: {
-              for (int i = 0; i < 9; i++) i: FixedColumnWidth(colWidth),
-            },
-            children: [
-              TableRow(
-                children: [
-                  for (var title in [
-                    'Tanggal',
-                    'Jatuh Tempo',
-                    'Transaksi',
-                    'Customer',
-                    'Lusin',
-                    'Subtotal',
-                    'Diskon',
-                    'Total',
-                    'Status'
-                  ])
-                    Padding(
-                      padding: const EdgeInsets.all(6.0),
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        content: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Table(
-            border: TableBorder.all(color: Colors.grey.shade400, width: 1),
-            columnWidths: {
-              for (int i = 0; i < 9; i++) i: FixedColumnWidth(colWidth),
-            },
-            children: [
-              // Data rows
-              ...rekapList.map((item) {
-                return TableRow(
+        return StickyHeader(
+          header: Container(
+            color: Colors.indigo,
+            child: Table(
+              border: TableBorder.all(color: Colors.grey.shade400, width: 1),
+              columnWidths: {
+                for (int i = 0; i < 10; i++) i: FixedColumnWidth(colWidth),
+              },
+              children: [
+                TableRow(
                   children: [
-                    buildCellText(item['tgl_transaksi'].split(' ')[0], fontSize),
-                    buildCellText(
-                      item['tgl_jatuh_tempo'] == '0000-00-00' ? '-' : item['tgl_jatuh_tempo'],
-                      fontSize,
-                    ),
-                    buildCellText(item['id_transaksi'], fontSize),
-                    buildCellText(item['id_customer'], fontSize),
-                    buildCellText(NumberFormat("0.##").format(toDouble(item['lusin'])), fontSize),
-                    buildCellText('Rp ${currency.format(toInt(item['subtotal']))}', fontSize),
-                    buildCellText('Rp ${currency.format(toInt(item['discon']))}', fontSize),
-                    buildCellText('Rp ${currency.format(toInt(item['total_invoice']))}', fontSize),
-                    buildCellText(item['status'] ?? '-', fontSize),
+                    for (var title in [
+                      'Tanggal',
+                      'Jatuh Tempo',
+                      'Transaksi',
+                      'Customer',
+                      'Lusin',
+                      'Subtotal',
+                      'Diskon',
+                      'Total',
+                      'Status',
+                      'Metode'
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.all(6.0),
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                   ],
-                );
-              }).toList(),
-
-              // Total row
-              TableRow(
-                decoration: BoxDecoration(color: Colors.indigo.shade200),
-                children: [
-                  buildCellText('TOTAL', fontSize, isBold: true),
-                  buildCellText('', fontSize),
-                  buildCellText('', fontSize),
-                  buildCellText('', fontSize),
-                  buildCellText(NumberFormat("0.##").format(totalLusin), fontSize),
-                  buildCellText('Rp ${currency.format(totalSubtotal)}', fontSize),
-                  buildCellText('Rp ${currency.format(totalDiskon)}', fontSize),
-                  buildCellText('Rp ${currency.format(totalInvoice)}', fontSize),
-                  buildCellText('', fontSize),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          content: SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            child: Table(
+              border: TableBorder.all(color: Colors.grey.shade400, width: 1),
+              columnWidths: {
+                for (int i = 0; i < 10; i++) i: FixedColumnWidth(colWidth),
+              },
+              children: [
+                // Data rows
+                ...rekapList.map((item) {
+                  return TableRow(
+                    children: [
+                      buildCellText(
+                          item['tgl_transaksi'].split(' ')[0], fontSize),
+                      buildCellText(
+                        item['tgl_jatuh_tempo'] == '0000-00-00'
+                            ? '-'
+                            : item['tgl_jatuh_tempo'],
+                        fontSize,
+                      ),
+                      buildCellText(item['id_transaksi'], fontSize),
+                      buildCellText(item['id_customer'], fontSize),
+                      buildCellText(
+                          NumberFormat("0.##").format(toDouble(item['lusin'])),
+                          fontSize),
+                      buildCellText(
+                          'Rp ${currency.format(toInt(item['subtotal']))}',
+                          fontSize),
+                      buildCellText(
+                          'Rp ${currency.format(toInt(item['discon']))}',
+                          fontSize),
+                      buildCellText(
+                          'Rp ${currency.format(toInt(item['total_invoice']))}',
+                          fontSize),
+                      buildCellText(formatStatus(item['status']), fontSize),
+                      buildCellText(item['akun']?.toString() ?? '-',
+                          fontSize), // kolom baru
+                    ],
+                  );
+                }).toList(),
+
+                // Total row
+                TableRow(
+                  decoration: BoxDecoration(color: Colors.indigo.shade200),
+                  children: [
+                    buildCellText('TOTAL', fontSize, isBold: true),
+                    buildCellText('', fontSize),
+                    buildCellText('', fontSize),
+                    buildCellText('', fontSize),
+                    buildCellText(
+                        NumberFormat("0.##").format(totalLusin), fontSize),
+                    buildCellText(
+                        'Rp ${currency.format(totalSubtotal)}', fontSize),
+                    buildCellText(
+                        'Rp ${currency.format(totalDiskon)}', fontSize),
+                    buildCellText(
+                        'Rp ${currency.format(totalInvoice)}', fontSize),
+                    buildCellText('', fontSize),
+                    buildCellText('', fontSize), // untuk Metode
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildCellText(String text, double fontSize, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.all(6.0),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
         ),
-      );
-    },
-  );
-}
-
-Widget buildCellText(String text, double fontSize, {bool isBold = false}) {
-  return Padding(
-    padding: const EdgeInsets.all(6.0),
-    child: Text(
-      text,
-      style: TextStyle(
-        fontSize: fontSize,
-        fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        textAlign: TextAlign.center,
       ),
-      textAlign: TextAlign.center,
-    ),
-  );
-}
-
+    );
+  }
 }

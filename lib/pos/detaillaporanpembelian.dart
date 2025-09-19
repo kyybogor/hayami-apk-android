@@ -30,7 +30,8 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
     });
 
     final idTransaksi = widget.invoice['id']?.toString() ?? '';
-    final url = Uri.parse("https://hayami.id/pos/masuk_detail.php?id_transaksi=$idTransaksi");
+    final url = Uri.parse(
+        "https://hayami.id/pos/masuk_detail.php?id_transaksi=$idTransaksi");
 
     try {
       final response = await http.get(url);
@@ -40,21 +41,27 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
           final List<dynamic> produkList = jsonData['data'];
 
           // Mengambil data stock
-          final stockResponse = await http.get(Uri.parse('https://hayami.id/pos/stock1.php'));
-          final List<dynamic> stockList = json.decode(stockResponse.body)['data'];
+          final stockResponse = await http
+              .get(Uri.parse('https://hayami.id/pos/stock1.php'));
+          final List<dynamic> stockList =
+              json.decode(stockResponse.body)['data'];
 
           // Menyamakan data produk dengan stock
-          final List<Map<String, dynamic>> parsedProduk = produkList.map<Map<String, dynamic>>((item) {
+          final List<Map<String, dynamic>> parsedProduk =
+              produkList.map<Map<String, dynamic>>((item) {
             final matchingStock = stockList.firstWhere(
-              (stockItem) => stockItem['id_bahan'] == item['id_product'] &&
-                             stockItem['model'] == item['model'] &&
-                             stockItem['ukuran'] == item['ukuran'],
+              (stockItem) =>
+                  stockItem['id_bahan'] == item['id_product'] &&
+                  stockItem['model'] == item['model'] &&
+                  stockItem['ukuran'] == item['ukuran'],
               orElse: () => null,
             );
 
             final qty = double.tryParse(item['qty']?.toString() ?? '0') ?? 0;
-            final harga = double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
-            final total = double.tryParse(item['total']?.toString() ?? '0') ?? 0;
+            final harga =
+                double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
+            final total =
+                double.tryParse(item['total']?.toString() ?? '0') ?? 0;
 
             return {
               'nama_barang': item['id_product'] ?? 'Tidak Diketahui',
@@ -88,6 +95,13 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
     });
   }
 
+  double getTotalJumlah() {
+    return barang.fold(0, (sum, item) {
+      final qty = double.tryParse(item['jumlah']?.toString() ?? '0') ?? 0;
+      return sum + qty;
+    });
+  }
+
   String formatRupiah(double number) {
     final formatter = NumberFormat("#,###", "id_ID");
     return formatter.format(number);
@@ -99,7 +113,8 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text("Detail Barang Masuk", style: TextStyle(color: Colors.blue)),
+        title: const Text("Detail Barang Masuk",
+            style: TextStyle(color: Colors.blue)),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -121,11 +136,13 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
                           final item = barang[index];
                           return Card(
                             child: ListTile(
-                              title: Text(item['nama_barang'] ?? 'Tidak Diketahui'),
+                              title: Text(
+                                  item['nama_barang'] ?? 'Tidak Diketahui'),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (item['model'] != null && item['model'].toString().isNotEmpty)
+                                  if (item['model'] != null &&
+                                      item['model'].toString().isNotEmpty)
                                     Text("Model: ${item['model']}"),
                                   Text("Ukuran: ${item['ukuran']}"),
                                   Text("${item['jumlah']} ${item['uom']}"),
@@ -133,7 +150,8 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
                               ),
                               trailing: Text(
                                 "Rp ${formatRupiah(double.tryParse(item['total'] ?? '0') ?? 0)}",
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           );
@@ -148,16 +166,39 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Total Semua Barang',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Semua Barang',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "Rp ${formatRupiah(getTotalSemuaBarang())}",
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
-                Text(
-                  "Rp ${formatRupiah(getTotalSemuaBarang())}",
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Lusin',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "${getTotalJumlah()} Lusin",
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -166,4 +207,4 @@ class _DetaillaporanpembelianState extends State<Detaillaporanpembelian> {
       ),
     );
   }
- }
+}
