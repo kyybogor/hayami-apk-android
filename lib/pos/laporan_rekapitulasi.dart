@@ -73,7 +73,7 @@ class _RekapitulasiState extends State<RekapitulasiPage> {
   }
 
   Future<void> fetchCustomerList() async {
-    const url = 'https://hayami.id/hayami/customer.php';
+    const url = 'https://hayami.id/pos/customer.php';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
