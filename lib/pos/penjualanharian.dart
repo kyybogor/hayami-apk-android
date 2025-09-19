@@ -14,23 +14,22 @@ class Penjualanharian extends StatefulWidget {
 
 class _PenjualanharianState extends State<Penjualanharian> {
   final TextEditingController _searchController = TextEditingController();
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+
+  DateTime? startDate;
+  DateTime? endDate;
+
   List<Map<String, dynamic>> invoices = [];
   List<Map<String, dynamic>> filteredInvoices = [];
   Map<String, dynamic> totalPerAkun = {};
   bool isLoading = true;
   bool dataChanged = false;
 
-  String selectedMonth =
-      DateFormat('MM').format(DateTime.now()); // Default bulan ini
-  String selectedYear =
-      DateFormat('yyyy').format(DateTime.now()); // Default tahun ini
-
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
     fetchInvoices();
-    filterByMonthYear();
   }
 
   Future<void> fetchInvoices() async {
@@ -55,7 +54,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
               "tgl_transaksi": item["tgl_transaksi"] ?? '-',
               "total_invoice": item["total_invoice"] ?? '0',
               "akun": item["akun"] ?? '-',
-              "sisa_bayar": item["sisa_bayar"] ?? '0', // Tambahan ini
+              "sisa_bayar": item["sisa_bayar"] ?? '0',
             };
           }).toList();
 
@@ -63,8 +62,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
           isLoading = false;
         });
 
-        // Langsung filter ke bulan Juli
-        filterByMonthYear();
+        filterByDateRange();
       } else {
         throw Exception('Gagal mengambil data');
       }
@@ -77,25 +75,65 @@ class _PenjualanharianState extends State<Penjualanharian> {
   }
 
   void _onSearchChanged() {
-    String keyword = _searchController.text.toLowerCase();
+    filterByDateRange();
+  }
 
+  void filterByDateRange() {
     setState(() {
       filteredInvoices = invoices.where((invoice) {
-        final idTransaksi = invoice["id_transaksi"].toString().toLowerCase();
-        return idTransaksi.contains(keyword);
+        try {
+          final dateStr = invoice["tgl_transaksi"];
+          if (dateStr == null || dateStr.isEmpty || dateStr == '-')
+            return false;
+
+          final invoiceDate = _dateFormat.parse(dateStr);
+          final matchStart = startDate == null ||
+              invoiceDate.isAfter(startDate!.subtract(const Duration(days: 1)));
+          final matchEnd = endDate == null ||
+              invoiceDate.isBefore(endDate!.add(const Duration(days: 1)));
+
+          final matchKeyword = invoice["id_transaksi"]
+              .toString()
+              .toLowerCase()
+              .contains(_searchController.text.toLowerCase());
+
+          return matchStart && matchEnd && matchKeyword;
+        } catch (e) {
+          return false;
+        }
       }).toList();
 
       filteredInvoices.sort((a, b) {
         try {
-          final dateA = DateFormat('yyyy-MM-dd').parse(a['tgl_transaksi']);
-          final dateB = DateFormat('yyyy-MM-dd').parse(b['tgl_transaksi']);
-          return dateB
-              .compareTo(dateA); // Urutkan dari yang terbaru ke yang terlama
+          final dateA = _dateFormat.parse(a['tgl_transaksi']);
+          final dateB = _dateFormat.parse(b['tgl_transaksi']);
+          return dateB.compareTo(dateA);
         } catch (e) {
           return 0;
         }
       });
     });
+  }
+
+  Future<void> _pickDate(BuildContext context, bool isStartDate) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          isStartDate ? startDate ?? DateTime.now() : endDate ?? DateTime.now(),
+      firstDate: DateTime(2023),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isStartDate) {
+          startDate = picked;
+        } else {
+          endDate = picked;
+        }
+      });
+      filterByDateRange();
+    }
   }
 
   String formatRupiah(String amount) {
@@ -107,38 +145,6 @@ class _PenjualanharianState extends State<Penjualanharian> {
     } catch (e) {
       return amount;
     }
-  }
-
-  void filterByMonthYear() {
-    setState(() {
-      filteredInvoices = invoices.where((invoice) {
-        try {
-          final dateStr = invoice["tgl_transaksi"];
-          if (dateStr == null || dateStr.isEmpty || dateStr == '-') {
-            return false;
-          }
-
-          final invoiceDate = DateFormat('yyyy-MM-dd').parse(dateStr);
-          final matchMonth = selectedMonth == 'Semua' ||
-              invoiceDate.month.toString().padLeft(2, '0') == selectedMonth;
-          final matchYear = selectedYear == 'Semua' ||
-              invoiceDate.year.toString() == selectedYear;
-          return matchMonth && matchYear;
-        } catch (e) {
-          return false;
-        }
-      }).toList();
-
-      filteredInvoices.sort((a, b) {
-        try {
-          final dateA = DateFormat('yyyy-MM-dd').parse(a['tgl_transaksi']);
-          final dateB = DateFormat('yyyy-MM-dd').parse(b['tgl_transaksi']);
-          return dateB.compareTo(dateA); // descending (baru ke lama)
-        } catch (e) {
-          return 0;
-        }
-      });
-    });
   }
 
   @override
@@ -172,6 +178,7 @@ class _PenjualanharianState extends State<Penjualanharian> {
             ? const Center(child: CircularProgressIndicator())
             : CustomScrollView(
                 slivers: [
+                  // TextField cari transaksi
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
@@ -190,91 +197,80 @@ class _PenjualanharianState extends State<Penjualanharian> {
                       ),
                     ),
                   ),
+
+                  // Pilih tanggal awal dan akhir (dua dropdown)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12.0, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(
                         children: [
-                          Flexible(
-                            flex: 1,
-                            child: DropdownButtonFormField<String>(
-                              value: selectedMonth,
-                              isExpanded: true,
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.calendar_today),
-                                labelText: "Bulan",
-                                border: OutlineInputBorder(
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _pickDate(context, true),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
+                                  border:
+                                      Border.all(color: Colors.blue.shade100),
                                 ),
-                                filled: true,
-                                fillColor: Colors.blue.shade50,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Icon(Icons.date_range,
+                                        color: Colors.blue),
+                                    Text(
+                                      startDate != null
+                                          ? _dateFormat.format(startDate!)
+                                          : "Dari Tanggal",
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              items: [
-                                'Semua',
-                                ...List.generate(
-                                    12,
-                                    (index) =>
-                                        (index + 1).toString().padLeft(2, '0')),
-                              ].map((month) {
-                                return DropdownMenuItem(
-                                  value: month,
-                                  child: Text(month == 'Semua'
-                                      ? 'Semua Bulan'
-                                      : DateFormat('MMMM').format(
-                                          DateTime(0, int.parse(month)))),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() {
-                                    selectedMonth = value;
-                                  });
-                                  filterByMonthYear();
-                                }
-                              },
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Flexible(
-                            flex: 1,
-                            child: DropdownButtonFormField<String>(
-                              value: selectedYear,
-                              isExpanded: true,
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.date_range),
-                                labelText: "Tahun",
-                                border: OutlineInputBorder(
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _pickDate(context, false),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
+                                  border:
+                                      Border.all(color: Colors.blue.shade100),
                                 ),
-                                filled: true,
-                                fillColor: Colors.blue.shade50,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Icon(Icons.date_range,
+                                        color: Colors.blue),
+                                    Text(
+                                      endDate != null
+                                          ? _dateFormat.format(endDate!)
+                                          : "Sampai Tanggal",
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              items:
-                                  ['Semua', '2023', '2024', '2025'].map((year) {
-                                return DropdownMenuItem(
-                                  value: year,
-                                  child: Text(
-                                      year == 'Semua' ? 'Semua Tahun' : year),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() {
-                                    selectedYear = value;
-                                  });
-                                  filterByMonthYear();
-                                }
-                              },
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
+
                   SliverToBoxAdapter(child: const SizedBox(height: 12)),
+
+                  // Total per akun
                   SliverToBoxAdapter(
                     child: Container(
                       height: 100,
@@ -319,10 +315,10 @@ class _PenjualanharianState extends State<Penjualanharian> {
                                   const SizedBox(height: 8),
                                   Text(
                                     NumberFormat.currency(
-                                      locale: 'id_ID',
-                                      symbol: 'Rp ',
-                                      decimalDigits: 0,
-                                    ).format(total),
+                                            locale: 'id_ID',
+                                            symbol: 'Rp ',
+                                            decimalDigits: 0)
+                                        .format(total),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       color: Colors.black87,
@@ -337,10 +333,15 @@ class _PenjualanharianState extends State<Penjualanharian> {
                     ),
                   ),
                   SliverToBoxAdapter(child: const SizedBox(height: 12)),
+
+                  // List data transaksi
                   filteredInvoices.isEmpty
                       ? SliverToBoxAdapter(
-                          child:
-                              Center(child: Text("Tidak ada data ditemukan")),
+                          child: Center(
+                              child: Padding(
+                            padding: EdgeInsets.only(top: 40),
+                            child: Text("Tidak ada data ditemukan"),
+                          )),
                         )
                       : SliverList(
                           delegate: SliverChildBuilderDelegate(
@@ -356,54 +357,39 @@ class _PenjualanharianState extends State<Penjualanharian> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(invoice["id_transaksi"] ?? '-'),
-                                    Text(
-                                      invoice["akun"] ?? '-',
-                                      style: const TextStyle(fontSize: 10),
-                                    ),
-                                    Text(
-                                      invoice["tgl_transaksi"] ?? '-',
-                                      style: const TextStyle(fontSize: 10),
-                                    ),
+                                    Text(invoice["akun"] ?? '-',
+                                        style: const TextStyle(fontSize: 10)),
+                                    Text(invoice["tgl_transaksi"] ?? '-',
+                                        style: const TextStyle(fontSize: 10)),
                                   ],
                                 ),
-                                trailing: Builder(
-                                  builder: (context) {
-                                    final int sisaBayar = int.tryParse(
-                                            invoice["sisa_bayar"] ?? '0') ??
-                                        0;
-                                    final bool isOutstanding = sisaBayar > 0;
-
-                                    return Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: isOutstanding
-                                                ? Colors.red.shade100
-                                                : Colors.green.shade100,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: Text(
-                                            formatRupiah(
-                                                invoice["total_invoice"] ??
-                                                    '0'),
-                                            style: TextStyle(
-                                              color: isOutstanding
-                                                  ? Colors.red
-                                                  : Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isOutstanding
+                                            ? Colors.red.shade100
+                                            : Colors.green.shade100,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        formatRupiah(
+                                            invoice["total_invoice"] ?? '0'),
+                                        style: TextStyle(
+                                          color: isOutstanding
+                                              ? Colors.red
+                                              : Colors.green,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        const SizedBox(width: 8),
-                                        const Icon(Icons.arrow_forward_ios,
-                                            size: 16, color: Colors.grey),
-                                      ],
-                                    );
-                                  },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.arrow_forward_ios,
+                                        size: 16, color: Colors.grey),
+                                  ],
                                 ),
                                 onTap: () async {
                                   final result = await Navigator.push(
@@ -425,101 +411,6 @@ class _PenjualanharianState extends State<Penjualanharian> {
                         ),
                 ],
               ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () async {
-            final prefs = await SharedPreferences.getInstance();
-            final idCabang = prefs.getString('id_cabang') ?? '';
-            final idUser = prefs.getString('id_user') ?? '';
-
-            if (idCabang.isEmpty || idUser.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Data user belum lengkap, harap login ulang.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-
-            // Simpan context Scaffold utama
-            final scaffoldContext = context;
-
-            showDialog(
-              context: scaffoldContext,
-              builder: (context) => AlertDialog(
-                title: const Text('Closing Penjualan'),
-                content: const Text(
-                    'Apakah Anda yakin ingin melakukan closing penjualan hari ini? Pastikan semua transaksi sudah selesai karena proses ini tidak dapat diulangi setelah berhasil.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Batal'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
-
-                      final Uri url = Uri.parse(
-                          'https://hayami.id/pos/closing.php?id_cabang=$idCabang&id_user=$idUser');
-
-                      try {
-                        final response = await http.get(url);
-
-                        if (response.statusCode == 200) {
-                          final data = json.decode(response.body);
-
-                          if (data['success'] == true) {
-                            ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    'Penjualan berhasil di-closing.\nTotal: Rp ${data['total']} (ID: ${data['id_petty']})'),
-                                duration: const Duration(milliseconds: 500),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                              SnackBar(
-                                content: Text('Gagal: ${data['message']}'),
-                                duration: const Duration(milliseconds: 500),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        } else {
-                          ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                            SnackBar(
-                              content:
-                                  Text('Error server: ${response.statusCode}'),
-                              duration: const Duration(milliseconds: 500),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                          SnackBar(
-                            content: Text('Terjadi kesalahan: $e'),
-                            duration: const Duration(milliseconds: 500),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-                    child: const Text('Ya'),
-                  ),
-                ],
-              ),
-            );
-          },
-          icon: const Icon(Icons.lock),
-          foregroundColor: Colors.white,
-          label: const Text(
-            "Closing Penjualan",
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.indigo,
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
   }

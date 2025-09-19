@@ -18,8 +18,9 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
   List<Map<String, dynamic>> filteredInvoices = [];
   bool isLoading = true;
 
-  String selectedMonth = DateFormat('MM').format(DateTime.now());
-  String selectedYear = DateFormat('yyyy').format(DateTime.now());
+  DateTime? _startDate;
+  DateTime? _endDate;
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
 
   @override
   void initState() {
@@ -34,16 +35,12 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
     });
 
     final prefs = await SharedPreferences.getInstance();
-    final rawIdCabang = prefs.getString('id_cabang') ?? 'TKB-HAYAMI OFFICIAL-JAKARTA PUSAT';
+    final rawIdCabang =
+        prefs.getString('id_cabang') ?? 'TKB-HAYAMI OFFICIAL-JAKARTA PUSAT';
     final cleanIdCabang = rawIdCabang.replaceAll('\u00A0', ' ').trim();
-    print("🛠 ID Cabang (raw): '$rawIdCabang'");
-    print("🛠 ID Cabang (clean): '$cleanIdCabang'");
 
     if (cleanIdCabang.isEmpty) {
-      print("❌ id_cabang belum disimpan di SharedPreferences");
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
       return;
     }
 
@@ -52,17 +49,14 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
       '/pos/masuk.php',
       {'id_cabang': cleanIdCabang},
     );
-    print("🛠 Request URL: $url");
 
     try {
       final response = await http.get(url);
-      print("📦 Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         final List<dynamic> invoicesData = data['data'];
 
-        // Filter hanya status "s"
         invoices = invoicesData.where((item) {
           return item['status'] == 's';
         }).map<Map<String, dynamic>>((item) {
@@ -77,39 +71,83 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
           };
         }).toList();
 
-        // Urutkan berdasarkan tanggal
         invoices.sort((a, b) {
           try {
-            final dateA = DateFormat('yyyy-MM-dd').parse(a['date']);
-            final dateB = DateFormat('yyyy-MM-dd').parse(b['date']);
+            final dateA = _dateFormat.parse(a['date']);
+            final dateB = _dateFormat.parse(b['date']);
             return dateA.compareTo(dateB);
           } catch (_) {
             return 0;
           }
         });
 
-        setState(() {
-          filteredInvoices = invoices;
-          isLoading = false;
-        });
+        _applyFilters();
       } else {
         throw Exception('Gagal mengambil data');
       }
     } catch (e) {
-      print("Error: $e");
+      setState(() => isLoading = false);
+    }
+  }
+
+  void _applyFilters() {
+    String keyword = _searchController.text.toLowerCase();
+
+    setState(() {
+      filteredInvoices = invoices.where((invoice) {
+        final bool matchKeyword =
+            invoice["id"].toString().toLowerCase().contains(keyword);
+
+        final bool matchDate = () {
+          if (_startDate == null && _endDate == null) return true;
+
+          try {
+            final date = _dateFormat.parse(invoice['date']);
+            if (_startDate != null && date.isBefore(_startDate!)) return false;
+            if (_endDate != null && date.isAfter(_endDate!)) return false;
+            return true;
+          } catch (_) {
+            return true;
+          }
+        }();
+
+        return matchKeyword && matchDate;
+      }).toList();
+
+      isLoading = false;
+    });
+  }
+
+  void _onSearchChanged() => _applyFilters();
+
+  Future<void> _selectStartDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
       setState(() {
-        isLoading = false;
+        _startDate = picked;
+        _applyFilters();
       });
     }
   }
 
-  void _onSearchChanged() {
-    String keyword = _searchController.text.toLowerCase();
-    setState(() {
-      filteredInvoices = invoices.where((invoice) {
-        return invoice["id"].toString().toLowerCase().contains(keyword);
-      }).toList();
-    });
+  Future<void> _selectEndDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
+        _applyFilters();
+      });
+    }
   }
 
   @override
@@ -136,102 +174,170 @@ class _LaporanpembelianState extends State<Laporanpembelian> {
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.blue),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: "Cari",
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
+        body: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Cari ID Transaksi",
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredInvoices.isEmpty
-                      ? const Center(child: Text("Tidak ada data ditemukan"))
-                      : ListView.builder(
-                          itemCount: filteredInvoices.length,
-                          itemBuilder: (context, index) {
-                            final invoice = filteredInvoices[index];
-                            return ListTile(
-                              title: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(invoice["id"] ?? '-'),
-                                  Text(
-                                    invoice["name"] ?? '-',
-                                    style: const TextStyle(fontSize: 18),
-                                  ),
-                                  Text(
-                                    invoice["keterangan"] ?? '-',
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.black54),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    "Qty: ${invoice["qty"]} ${invoice["uom"]}",
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.black54),
-                                  ),
-                                ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _selectStartDate(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.blue.shade100),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(Icons.date_range, color: Colors.blue),
+                              Text(
+                                _startDate != null
+                                    ? _dateFormat.format(_startDate!)
+                                    : "Dari Tanggal",
+                                style: const TextStyle(fontSize: 14),
                               ),
-                              subtitle: Text(invoice["date"] ?? '-'),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Card(
-                                    color: Colors.green.shade100,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 6),
-                                      child: Text(
-                                        "${NumberFormat.currency(symbol: "Rp ").format(double.parse(invoice["total"]))}",
-                                        style: TextStyle(
-                                          color: Colors.green[800],
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_ios,
-                                      size: 16, color: Colors.grey),
-                                ],
-                              ),
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        Detaillaporanpembelian(invoice: invoice),
-                                  ),
-                                );
-                              },
-                            );
-                          },
+                            ],
+                          ),
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _selectEndDate(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.blue.shade100),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(Icons.date_range, color: Colors.blue),
+                              Text(
+                                _endDate != null
+                                    ? _dateFormat.format(_endDate!)
+                                    : "Sampai Tanggal",
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final invoice = filteredInvoices[index];
+                  return ListTile(
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(invoice["id"] ?? '-'),
+                        Text(invoice["name"] ?? '-',
+                            style: const TextStyle(fontSize: 18)),
+                        Text(invoice["keterangan"] ?? '-',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                        Text("Qty: ${invoice["qty"]} ${invoice["uom"]}",
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54)),
+                      ],
+                    ),
+                    subtitle: Text(invoice["date"] ?? '-'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Card(
+                          color: Colors.green.shade100,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            child: Text(
+                              "${NumberFormat.currency(symbol: "Rp ").format(double.parse(invoice["total"]))}",
+                              style: TextStyle(
+                                color: Colors.green[800],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_ios,
+                            size: 16, color: Colors.grey),
+                      ],
+                    ),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              Detaillaporanpembelian(invoice: invoice),
+                        ),
+                      );
+                    },
+                  );
+                },
+                childCount: filteredInvoices.length,
+              ),
+            ),
+            if (!isLoading && filteredInvoices.isEmpty)
+              const SliverToBoxAdapter(
+                child: Center(
+                    child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text("Tidak ada data ditemukan"),
+                )),
+              ),
+            if (isLoading)
+              const SliverToBoxAdapter(
+                child: Center(
+                    child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
+                )),
+              ),
           ],
         ),
       ),
